@@ -15,15 +15,42 @@
 import { buildClientEmailHtml } from './templates/clientEmail.js';
 import { buildCustomerEmailHtml } from './templates/customerEmail.js';
 
-// CORS — allow any origin while the static site potentially moves between
-// hosts (Vercel → Cloudflare Pages → custom domain). Tighten the allowed
-// origin list later if scraping/abuse becomes a concern.
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Access-Control-Max-Age': '86400',
-};
+// CORS — restricted to the production domain, Vercel preview deploys and the
+// local dev server. Add an entry here if the site ever moves host again.
+//
+// NOTE: this stops *other websites* from posting to the Worker with a user's
+// browser. It does NOT stop scripted abuse — curl ignores CORS entirely. The
+// protection against a flood of fake bookings is the Cloudflare rate-limiting
+// rule on this Worker's route (see worker/README.md), not this list.
+const ALLOWED_ORIGINS = [
+  'https://thedriver.fr',
+  'https://www.thedriver.fr',
+  'http://localhost:4321',
+];
+
+// Vercel preview deploys: https://<project>-<hash>-<scope>.vercel.app
+const PREVIEW_ORIGIN = /^https:\/\/[a-z0-9-]+\.vercel\.app$/;
+
+function isAllowedOrigin(origin) {
+  return ALLOWED_ORIGINS.includes(origin) || PREVIEW_ORIGIN.test(origin);
+}
+
+// `Vary: Origin` matters because the response differs per origin — without it
+// a cache could serve one origin's CORS header to another.
+function corsHeadersFor(origin) {
+  return {
+    'Access-Control-Allow-Origin': isAllowedOrigin(origin) ? origin : ALLOWED_ORIGINS[0],
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Max-Age': '86400',
+    'Vary': 'Origin',
+  };
+}
+
+// Longest value we'll accept in any single field. The booking form can't
+// produce anything near this; the cap exists so a scripted POST can't build a
+// multi-megabyte email out of the free-text `notes` field.
+const MAX_FIELD_LENGTH = 2000;
 
 // Where the chauffeur receives bookings. Hard-coded because the destination
 // is fixed for this business.
@@ -37,30 +64,56 @@ const FROM_ADDRESS = 'Driver Services <noreply@thedriver.fr>';
 
 export default {
   async fetch(request, env) {
+    const origin = request.headers.get('Origin') || '';
+    const cors = corsHeadersFor(origin);
+
     // CORS preflight
     if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: corsHeaders });
+      return new Response(null, { status: 204, headers: cors });
     }
 
     if (request.method !== 'POST') {
-      return jsonResponse({ success: false, error: 'Method not allowed' }, 405);
+      return jsonResponse({ success: false, error: 'Method not allowed' }, 405, cors);
+    }
+
+    // The real form is always cross-origin to this Worker, so a legitimate
+    // submission always carries an Origin header. Rejecting anything else
+    // costs nothing and turns away naive scripted posting.
+    if (!isAllowedOrigin(origin)) {
+      console.warn('Rejected submission from origin:', origin || '(none)');
+      return jsonResponse({ success: false, error: 'Forbidden' }, 403, cors);
     }
 
     if (!env.RESEND_API_KEY) {
       console.error('RESEND_API_KEY missing — set with: wrangler secret put RESEND_API_KEY');
-      return jsonResponse({ success: false, error: 'Server misconfigured' }, 500);
+      return jsonResponse({ success: false, error: 'Server misconfigured' }, 500, cors);
     }
 
     let data;
     try {
       data = await request.json();
     } catch {
-      return jsonResponse({ success: false, error: 'Invalid JSON' }, 400);
+      return jsonResponse({ success: false, error: 'Invalid JSON' }, 400, cors);
+    }
+
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      return jsonResponse({ success: false, error: 'Invalid payload' }, 400, cors);
+    }
+
+    const oversized = Object.entries(data)
+      .filter(([, v]) => typeof v === 'string' && v.length > MAX_FIELD_LENGTH)
+      .map(([k]) => k);
+    if (oversized.length) {
+      return jsonResponse(
+        { success: false, error: `Field too long: ${oversized.join(', ')}` },
+        400,
+        cors,
+      );
     }
 
     // Honeypot — silently accept (don't tell the bot it failed) but skip emails.
     if (data.botcheck) {
-      return jsonResponse({ success: true });
+      return jsonResponse({ success: true }, 200, cors);
     }
 
     // Required-field check. Loose — the form already validates client-side,
@@ -71,6 +124,7 @@ export default {
       return jsonResponse(
         { success: false, error: `Missing required fields: ${missing.join(', ')}` },
         400,
+        cors,
       );
     }
 
@@ -90,6 +144,7 @@ export default {
       return jsonResponse(
         { success: false, error: 'Failed to send notification' },
         502,
+        cors,
       );
     }
 
@@ -110,20 +165,24 @@ export default {
       console.warn('Customer auto-confirmation failed:', customerResult.error);
     }
 
-    return jsonResponse({
-      success: true,
-      message: 'Booking submitted successfully',
-      customerEmailSent: customerResult.success,
-    });
+    return jsonResponse(
+      {
+        success: true,
+        message: 'Booking submitted successfully',
+        customerEmailSent: customerResult.success,
+      },
+      200,
+      cors,
+    );
   },
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
-function jsonResponse(body, status = 200) {
+function jsonResponse(body, status = 200, cors = corsHeadersFor('')) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...cors, 'Content-Type': 'application/json' },
   });
 }
 

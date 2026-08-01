@@ -55,6 +55,37 @@ The Worker updates instantly on Cloudflare's edge. The URL doesn't change, so
 no site rebuild is required unless the email TEMPLATE was changed (templates
 live inside the Worker — not in the Astro project).
 
+## Security
+
+What the Worker already does:
+
+- **Origin allowlist.** Only `thedriver.fr`, `www.thedriver.fr`, `*.vercel.app`
+  previews and `localhost:4321` may post. Anything else gets a 403. Edit
+  `ALLOWED_ORIGINS` in `worker.js` if the site moves host, or the booking form
+  will start failing with 403 the moment the domain changes.
+- **Honeypot field** (`botcheck`) — silently accepted, no email sent.
+- **Field length cap** (2,000 chars) so a scripted post can't turn the free-text
+  `notes` field into a multi-megabyte email.
+- **The Resend key is a Worker secret**, never bundled into the public site.
+
+**What is still missing: rate limiting.** The origin check stops other websites
+using a visitor's browser to post here, but it does not stop `curl` — CORS is a
+browser mechanism and a script can send any `Origin` header it likes. Without a
+rate limit, someone who finds the Worker URL (it is public, in the page source)
+can flood the chauffeur's inbox and burn the Resend quota (3,000 emails/month on
+the free tier; each booking sends 2).
+
+Add the rule in the Cloudflare dashboard — it can't be expressed in
+`wrangler.toml`:
+
+**Security → WAF → Rate limiting rules → Create**, matching the Worker's route,
+something like 5 requests per minute per IP, action **Block**. A real customer
+submits once; anything above that is abuse.
+
+Consider also switching `FROM_ADDRESS` off `noreply@` if you ever want customer
+replies to reach the chauffeur — currently replies are steered by `reply_to`,
+which most clients honour but some strip.
+
 ## Sender domain
 
 The Worker sends both emails from `Driver Services <noreply@thedriver.fr>`.
