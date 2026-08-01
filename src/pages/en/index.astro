@@ -1,0 +1,39 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import IntroOverlay from '../../components/IntroOverlay.astro';
+import Hero from '../../components/Hero.astro';
+import TrustMarquee from '../../components/TrustMarquee.astro';
+import WhyUs from '../../components/WhyUs.astro';
+import HowItWorks from '../../components/HowItWorks.astro';
+import Destinations from '../../components/Destinations.astro';
+import Fleet from '../../components/Fleet.astro';
+import MoreServices from '../../components/MoreServices.astro';
+import Reviews from '../../components/Reviews.astro';
+import FAQ from '../../components/FAQ.astro';
+import FinalCTA from '../../components/FinalCTA.astro';
+import BookingModal from '../../components/BookingModal.astro';
+import BookingForm from '../../components/BookingForm.astro';
+---
+
+<BaseLayout
+  locale="en"
+  routeKey="home"
+  title="Private chauffeur in Paris — Airport transfers, day tours · Driver Services"
+  description="Private chauffeur and taxi service in Paris. Airport transfers, day tours, Disneyland, Versailles. Fixed prices, child seats included, pay on arrival."
+>
+  <IntroOverlay slot="intro-overlay" />
+  <Hero locale="en" />
+  <TrustMarquee locale="en" />
+  <WhyUs locale="en" />
+  <HowItWorks locale="en" />
+  <Destinations locale="en" />
+  <Fleet locale="en" />
+  <MoreServices locale="en" />
+  <Reviews locale="en" />
+  <FAQ locale="en" />
+  <FinalCTA locale="en" />
+
+  <BookingModal locale="en">
+    <BookingForm locale="en" />
+  </BookingModal>
+</BaseLayout>

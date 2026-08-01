@@ -1,0 +1,30 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import BookingThankYou from '../components/BookingThankYou.astro';
+---
+
+<BaseLayout
+  locale="en"
+  routeKey="thankYou"
+  title="Thank you for your booking · Driver Services"
+  description="Your booking request has been received. Check your inbox in the next few minutes."
+  noindex
+>
+  <BookingThankYou />
+
+  {/*
+    ─────────────────────────────────────────────────────────────────────
+    Conversion tracking goes here, if you run ads.
+
+    Every locale redirects to this one URL after a successful booking
+    (https://thedriver.fr/thank-you), so a single rule covers the whole
+    site — no per-language setup needed.
+
+    Wrap any snippet in <script is:inline> so Astro leaves it verbatim
+    instead of bundling it, which would break the global variables ad
+    platforms rely on.
+
+    Nothing is installed by default.
+    ─────────────────────────────────────────────────────────────────────
+  */}
+</BaseLayout>

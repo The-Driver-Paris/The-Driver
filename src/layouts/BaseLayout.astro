@@ -1,0 +1,279 @@
+---
+import '../styles/global.css';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import WhatsAppFab from '../components/WhatsAppFab.astro';
+import FancyDateTime from '../components/FancyDateTime.astro';
+import { ClientRouter } from 'astro:transitions';
+import { DEFAULT_LOCALE, LOCALES, pathForRoute, ROUTE_KEYS } from '../i18n';
+
+interface Props {
+  locale?: 'fr' | 'en' | 'es' | 'it';
+  title?: string;
+  description?: string;
+  /**
+   * Route identifier for this page — drives canonical URL, hreflang alternates,
+   * and the language switcher. Must match a key in ROUTES.
+   */
+  routeKey?: 'home' | 'fleet' | 'rates' | 'childSeats' | 'faqContact' | 'thankYou';
+  /**
+   * Optional extra JSON-LD to inject below the LocalBusiness block (used by
+   * e.g. the FAQ page to ship FAQPage schema, Tarifs for Service schema).
+   */
+  structuredData?: Record<string, unknown> | Record<string, unknown>[];
+  /**
+   * Emit `<meta name="robots" content="noindex,nofollow">` so search engines
+   * don't list this page. Used on post-conversion thank-you pages — they
+   * shouldn't appear in search results.
+   */
+  noindex?: boolean;
+}
+
+const {
+  locale = DEFAULT_LOCALE,
+  title = 'Driver Services — Private chauffeur in Paris',
+  description = 'Private chauffeur and taxi service in Paris. Airport transfers, day tours, Disneyland, Versailles.',
+  routeKey = 'home',
+  structuredData,
+  noindex = false,
+} = Astro.props;
+
+if (!ROUTE_KEYS.includes(routeKey)) {
+  throw new Error(`BaseLayout: unknown routeKey "${routeKey}". Add it to src/i18n/routes.js.`);
+}
+
+const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? '';
+const canonical = `${siteUrl}${pathForRoute(routeKey, locale)}`;
+const ogImage = `${siteUrl}/images/og-default.jpg`;
+
+// LocalBusiness / TaxiService structured data — every page ships this so
+// Google can associate the business across all URLs.
+const localBusinessSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'TaxiService',
+  name: 'Driver Services',
+  url: siteUrl || undefined,
+  telephone: '+33634301292',
+  email: 'thedriver.france@gmail.com',
+  image: ogImage,
+  areaServed: ['Paris', 'Île-de-France'],
+  priceRange: '€€',
+  aggregateRating: {
+    '@type': 'AggregateRating',
+    ratingValue: '5.0',
+    reviewCount: '17',
+  },
+};
+
+const extraSchemas = Array.isArray(structuredData)
+  ? structuredData
+  : structuredData
+    ? [structuredData]
+    : [];
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="generator" content={Astro.generator} />
+
+    {/* Browser-locale redirect — runs SYNCHRONOUSLY on `/` (FR root) only.
+        Site is a static build on Vercel (no Astro adapter), so we can't use
+        request-time middleware. Client-side redirect happens before paint so
+        users don't see the FR root flash before landing on /en/.
+        Respects a localStorage flag set when the user manually switches
+        language via the picker — they stay where they chose. */}
+    <script is:inline>
+      (function () {
+        if (window.location.pathname !== '/') return;
+        try {
+          if (localStorage.getItem('locale-manual') === '1') return;
+        } catch (e) { /* private mode — fall through */ }
+        var lang = (navigator.language || '').toLowerCase();
+        if (!lang.startsWith('fr')) {
+          window.location.replace('/en/');
+        }
+      })();
+    </script>
+
+    {/* Intro overlay session check — runs SYNCHRONOUSLY before first paint.
+        The intro is mounted ONLY on the home page (FR/EN/ES/IT), so on any
+        other route this script bails immediately without burning the
+        sessionStorage flag — that way a user who lands on /flotte first
+        still gets the intro when they later visit home.
+
+        On home: if we've shown it this session, or reduced-motion is on,
+        or it's mobile-landscape, we set `data-intro-skip` and the overlay
+        self-removes. Otherwise we set the session flag AND the
+        `intro-pending` class so the global CSS below hides hero content
+        until the bands fully cover the screen — no flash.
+
+        `data-astro-rerun` makes this re-run on every ClientRouter
+        navigation (otherwise it would only execute on hard-load). */}
+    <script is:inline data-astro-rerun>
+      (function () {
+        // Always reset state on every navigation — `<html>` persists
+        // across ClientRouter transitions, so leftover classes/attrs
+        // from a previous home visit must be cleared on non-home pages.
+        document.documentElement.classList.remove('intro-pending');
+        document.documentElement.removeAttribute('data-intro-skip');
+
+        var path = window.location.pathname;
+        var isHome = (
+          path === '/' ||
+          path === '/en/' || path === '/en' ||
+          path === '/es/' || path === '/es' ||
+          path === '/it/' || path === '/it'
+        );
+        if (!isHome) return;
+
+        var skip = false;
+        try {
+          var shown = sessionStorage.getItem('driver-services-intro-shown') === '1';
+          var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          var landscape = window.matchMedia('(max-width: 767px) and (orientation: landscape)').matches;
+          // iPad / tablet skip: the welcome wave's heavy SVG animation +
+          // contain:strict combo causes white/black repaint flickers on
+          // real iPad Safari (not reproducible in DevTools). Belt-and-
+          // braces detection: viewport, classic iPad UA, iPadOS-as-Mac.
+          var ua = navigator.userAgent || '';
+          var isTabletViewport = window.matchMedia('(min-width: 768px) and (max-width: 1180px)').matches;
+          var isIPadUA = /iPad|Macintosh.*Mobile/.test(ua);
+          var isIPadOS = navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1;
+          var isTablet = isTabletViewport || isIPadUA || isIPadOS;
+          skip = shown || reduced || landscape || isTablet;
+        } catch (e) {
+          skip = true;
+        }
+        if (skip) {
+          document.documentElement.setAttribute('data-intro-skip', 'true');
+        } else {
+          try { sessionStorage.setItem('driver-services-intro-shown', '1'); } catch (e) {}
+          document.documentElement.classList.add('intro-pending');
+        }
+      })();
+    </script>
+
+    {/* While `intro-pending` is set on <html>, hide the page so hero
+        content can't flash through before the bands paint. The IntroOverlay
+        body script lifts this class at 600ms (full coverage), letting the
+        page paint behind the still-covering bands. */}
+    <style is:global>
+      html.intro-pending main,
+      html.intro-pending nav,
+      html.intro-pending footer,
+      html.intro-pending .scroll-progress,
+      html.intro-pending .wa-fab {
+        visibility: hidden;
+      }
+    </style>
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex,nofollow" />}
+    <link rel="canonical" href={canonical} />
+
+    {/* Favicons — generated by `npm run generate-favicons` from
+        /public/favicon.svg. Order matters: modern formats first so
+        capable browsers pick SVG; the .ico is the legacy fallback. */}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#C94F3A" />
+    <meta name="apple-mobile-web-app-title" content="Driver Services" />
+
+    {/* hreflang alternates — x-default points to EN since the site auto-
+        redirects non-FR browsers there; FR browsers stay on the root URL. */}
+    {LOCALES.map((l) => (
+      <link rel="alternate" hreflang={l} href={`${siteUrl}${pathForRoute(routeKey, l)}`} />
+    ))}
+    <link rel="alternate" hreflang="x-default" href={`${siteUrl}${pathForRoute(routeKey, 'en')}`} />
+
+    {/* Fonts — Inter (body) + Fraunces (display). Preconnect + swap. */}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500&family=Inter:wght@400;500&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500&family=Inter:wght@400;500&display=swap"
+    />
+
+    {/* Open Graph */}
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={locale} />
+    <meta property="og:site_name" content="Driver Services" />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Driver Services — Private chauffeur in Paris" />
+
+    {/* Twitter */}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
+    {/* Structured data — LocalBusiness on every page, plus any page-specific
+        schema (FAQPage on /faq-contact, Service on /tarifs) passed via prop.
+        `is:inline` keeps the script element in the <head> verbatim (no bundling). */}
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(localBusinessSchema)} />
+    {extraSchemas.map((schema) => (
+      <script is:inline type="application/ld+json" set:html={JSON.stringify(schema)} />
+    ))}
+
+    {/* No analytics or tracking scripts are installed. Add your own here
+        (Google Tag Manager, Plausible, Matomo…) if you want them. */}
+
+    {/* Smooth cross-page fade (falls back to normal navigation in browsers without View Transitions) */}
+    <ClientRouter fallback="none" />
+  </head>
+  <body>
+    {/* Welcome wave intro is mounted only by home pages (FR/EN/ES/IT) via
+        the `intro-overlay` slot below — see src/pages/index.astro and the
+        locale variants. Other routes leave this slot empty and render
+        their content immediately, no overlay involvement. */}
+    <slot name="intro-overlay" />
+
+    {/* Top-of-viewport scroll progress bar. Subtle accent gradient that
+        signals editorial flow as the reader scrolls. Decorative. */}
+    <div class="scroll-progress" aria-hidden="true">
+      <span class="scroll-progress-bar"></span>
+    </div>
+
+    <Nav locale={locale} routeKey={routeKey} />
+    <main>
+      <slot />
+    </main>
+    <Footer locale={locale} routeKey={routeKey} />
+
+    {/* Floating WhatsApp bar — second conversion path on phones/tablets.
+        Self-hides on desktop and during the intro overlay. Skipped on the
+        thank-you page: the customer already converted there, and that page
+        carries its own WhatsApp CTA (no redundant bar, no locale mismatch). */}
+    {routeKey !== 'thankYou' && <WhatsAppFab locale={locale} />}
+
+    {/* Desktop-only on-brand date/time picker enhancer (script + styles). */}
+    <FancyDateTime />
+
+    {/* Scroll-reveal via Intersection Observer. Re-runs after each ClientRouter navigation. */}
+    <script>
+      import '../scripts/split-headings.js';
+      import '../scripts/reveal.js';
+      import '../scripts/scroll-progress.js';
+      import '../scripts/magnetic.js';
+      import '../scripts/card-tilt.js';
+      import '../scripts/count-up.js';
+    </script>
+  </body>
+</html>

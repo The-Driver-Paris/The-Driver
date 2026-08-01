@@ -1,0 +1,814 @@
+---
+import { PICKUP_POINTS, DROP_POINTS } from '../data/routes.js';
+import { t } from '../i18n';
+import LocationPicker from './LocationPicker.astro';
+import { minCarStarting } from '../utils/pricing.js';
+
+interface Props {
+  locale: 'fr' | 'en' | 'es' | 'it';
+  /** Optional visual variant — 'hero' gets bigger price, 'compact' smaller. */
+  variant?: 'hero' | 'compact';
+  /**
+   * Where the submit button should go.
+   * - Same-page: leave default '#booking-form' (script smooth-scrolls to it).
+   * - Different page: pass an absolute path like '/#booking-form' (FR) or '/en/#booking-form'.
+   *   The form GET-submits naturally; the destination page reads the query params and prefills.
+   */
+  targetHref?: string;
+}
+
+const { locale, variant = 'hero', targetHref = '#booking-form' } = Astro.props;
+const strings = t(locale);
+const hero = strings.hero;
+
+// Idle-state teaser — shows the floor price across the matrix until the user
+// has picked both endpoints. Anchors price expectations on first glance.
+const teaserMin = minCarStarting() ?? 45;
+
+// Conversion microcopy beneath the CTA. Email-confirmation phrasing —
+// matches what customers actually receive (driver replies via email,
+// not WhatsApp, by default).
+const reassureLabel =
+  locale === 'en' ? 'No deposit · Email confirmation within 1h'
+  : locale === 'es' ? 'Sin depósito · Confirmación por email en 1h'
+  : locale === 'it' ? 'Nessun acconto · Conferma email entro 1h'
+  : 'Aucun acompte · Confirmation Email en 1h';
+
+const teaserLabel =
+  locale === 'en' ? 'Trips from'
+  : locale === 'es' ? 'Trayectos desde'
+  : locale === 'it' ? 'Tratte da'
+  : 'Trajets dès';
+
+// Serialise prices + strings for the inline script (no external fetch).
+const dataBlob = {
+  labels: {
+    from: hero.price.from,
+    empty: hero.price.empty,
+    unavailable: hero.price.unavailable,
+  },
+};
+
+const uid = 'qp-' + Math.random().toString(36).slice(2, 9);
+---
+
+<div class="qp-shell" data-variant={variant}>
+  <form
+    class:list={[
+      'quote-picker relative bg-[color:var(--color-paper)] flex flex-col gap-3',
+      variant === 'hero' ? 'qp-card qp-card--hero' : 'qp-card qp-card--compact',
+    ]}
+    action={targetHref}
+    method="get"
+    data-quote-picker
+    data-picker-id={uid}
+    novalidate
+  >
+    {/* Animated accent gradient border — a thin glowing rim that slowly
+        rotates around the card. Pure CSS, GPU-only. */}
+    {variant === 'hero' && <span class="qp-rim" aria-hidden="true"></span>}
+
+    <script is:inline type="application/json" data-picker-data={uid} set:html={JSON.stringify(dataBlob)} />
+
+  {/* Pickup — custom combobox (hidden native select inside drives form state).
+      Mobile: bottom sheet with backdrop + drag-to-close (default variant). */}
+  <LocationPicker
+    uid={`${uid}-pickup`}
+    name="pickup"
+    dataRole="pickup"
+    label={hero.pickup.label}
+    placeholder={hero.pickup.placeholder}
+    options={PICKUP_POINTS}
+    labels={strings.form.locationLabels}
+    iconType="from"
+    mobileVariant="sheet"
+  />
+
+  {/* Connector — soft dashed line with centered arrow dot */}
+  <div class="qp-connector" aria-hidden="true">
+    <span class="qp-connector-line"></span>
+    <span class="qp-connector-dot">
+      <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <polyline points="19 12 12 19 5 12"/>
+      </svg>
+    </span>
+    <span class="qp-connector-line"></span>
+  </div>
+
+  {/* Drop-off */}
+  <LocationPicker
+    uid={`${uid}-dropoff`}
+    name="dropoff"
+    dataRole="dropoff"
+    label={hero.dropoff.label}
+    placeholder={hero.dropoff.placeholder}
+    options={DROP_POINTS}
+    labels={strings.form.locationLabels}
+    iconType="to"
+    mobileVariant="sheet"
+  />
+
+  {/* ── Trip details (HERO variant only) — passengers, date, time. Collected
+       here and prefilled into the booking modal on submit; the modal keeps
+       the full editable form. The compact (Tarifs) variant skips these. ── */}
+  {variant === 'hero' && (
+    <div class="qp-trip">
+      <div class="qp-field">
+        <span class="qp-field-label">{strings.form.when.passengers}</span>
+        {/* Roulette-style passenger wheel — swipe to spin (phone) or click a
+            number (PC). The centered number is the selection; a hidden input
+            holds the value so pricing + payload are unchanged. */}
+        <div class="qp-paxwheel" data-role="pax-wheel" role="group" aria-label={strings.form.when.passengers}>
+          <span class="qp-paxwheel-marker" aria-hidden="true"></span>
+          <div class="qp-paxwheel-fade qp-paxwheel-fade--l" aria-hidden="true"></div>
+          <div class="qp-paxwheel-fade qp-paxwheel-fade--r" aria-hidden="true"></div>
+          <div class="qp-paxwheel-track" data-role="pax-track">
+            {Array.from({ length: 24 }, (_, i) => (
+              <button type="button" class="qp-paxwheel-item" data-pax={i + 1} aria-label={`${i + 1}`}>{i + 1}</button>
+            ))}
+          </div>
+        </div>
+        <input type="hidden" name="pax" value="1" data-role="pax" />
+      </div>
+      <div class="qp-trip-row">
+        <div class="qp-field">
+          <label class="qp-field-label" for={`${uid}-date`}>{strings.form.when.date}</label>
+          <input id={`${uid}-date`} name="date" type="date" class="qp-input" data-role="date" data-fancy-date />
+        </div>
+        <div class="qp-field">
+          <label class="qp-field-label" for={`${uid}-time`}>{strings.form.when.time}</label>
+          <input id={`${uid}-time`} name="time" type="time" class="qp-input" data-role="time" data-fancy-time />
+        </div>
+      </div>
+    </div>
+  )}
+
+    {/* Divider + price block. Idle state shows a "Trips from €X" teaser
+        so users see prices are reasonable before they commit. When both
+        pickers are filled, the price block lights up with an accent glow. */}
+    <div class="qp-price-block" data-role="price-block">
+      <div class="qp-price-meta">
+        <span class="qp-price-label" data-role="price-label">{teaserLabel}</span>
+      </div>
+      <div
+        class:list={[
+          'qp-price font-display font-medium tracking-[-0.02em] text-[color:var(--color-ink)] leading-none tabular-nums',
+          variant === 'hero' ? 'text-[44px] md:text-[52px] lg:text-[60px]' : 'text-[34px]',
+        ]}
+        data-role="price-display"
+        aria-live="polite"
+      >€{teaserMin}</div>
+    </div>
+
+    {/* CTA — pulsing accent ring once the user has filled both pickers
+        signals "ready to book" and pulls the eye. */}
+    <button
+      type="submit"
+      class="btn-primary qp-cta w-full mt-1"
+      data-role="submit"
+      data-press
+      data-magnetic
+      data-magnetic-strength="0.25"
+      aria-disabled="true"
+      disabled
+    >
+      <span class="qp-cta-pulse" aria-hidden="true"></span>
+      <span class="qp-cta-label">{hero.cta}</span>
+      <svg
+        class="qp-cta-arrow h-4 w-4"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <line x1="5" y1="12" x2="19" y2="12" />
+        <polyline points="12 5 19 12 12 19" />
+      </svg>
+    </button>
+
+    {/* Risk-reversal microcopy — reassurance directly under the CTA */}
+    {variant === 'hero' && (
+      <p class="qp-reassure">
+        <svg class="qp-reassure-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        <span>{reassureLabel}</span>
+      </p>
+    )}
+  </form>
+</div>
+
+<style>
+  /* ---------------------------------------------------------------
+     Outer shell — provides the position context for the live badge
+     and the rotating gradient rim around the card.
+     --------------------------------------------------------------- */
+  .qp-shell {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* ---------------------------------------------------------------
+     The card itself — bigger padding on hero, animated accent rim,
+     hover lift, and a subtle "primed" glow when both fields are
+     filled (data-ready=true is set by the script).
+     --------------------------------------------------------------- */
+  .qp-card {
+    position: relative;
+    border-radius: var(--radius-card);
+    border: 1px solid var(--color-smoke);
+    padding: 20px;
+    /* Never exceed the column / viewport on mobile. box-sizing keeps the
+       padding inside the width so the card can't push past the screen edge. */
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    transition:
+      transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 360ms var(--ease-out),
+      border-color 360ms var(--ease-out);
+    box-shadow:
+      0 8px 24px -10px rgba(26, 26, 26, 0.10),
+      0 2px 6px -2px rgba(26, 26, 26, 0.06);
+  }
+  /* Every direct child shrinks rather than forcing the card wider. */
+  .qp-card > * { min-width: 0; max-width: 100%; }
+  .qp-card--hero {
+    padding: 18px;
+    box-shadow:
+      0 24px 56px -22px rgba(26, 26, 26, 0.18),
+      0 8px 22px -10px rgba(26, 26, 26, 0.08),
+      0 0 0 1px color-mix(in oklab, var(--color-accent) 0%, transparent);
+  }
+  /* Very narrow phones — stack date + time so two native pickers never
+     fight for width in one row. */
+  @media (max-width: 380px) {
+    .qp-trip-row { flex-direction: column; }
+  }
+  @media (min-width: 768px) {
+    .qp-card--hero { padding: 28px; }
+  }
+  @media (min-width: 1024px) {
+    .qp-card--hero { padding: 32px; }
+  }
+  .qp-card--compact { padding: 18px; }
+  @media (min-width: 768px) {
+    .qp-card--compact { padding: 22px; }
+  }
+  .qp-card.is-lifted {
+    transform: translateY(-4px);
+  }
+  .qp-card[data-ready="true"] {
+    box-shadow:
+      0 28px 64px -22px color-mix(in oklab, var(--color-accent) 28%, rgba(26,26,26,0.18)),
+      0 8px 22px -10px rgba(26, 26, 26, 0.10),
+      0 0 0 1px color-mix(in oklab, var(--color-accent) 30%, transparent);
+  }
+
+  /* Animated accent rim — a conic-gradient that rotates slowly around
+     the card. Sits behind the card via z-index trickery; user sees a
+     faint moving glow at the edge. Hero variant only. */
+  .qp-rim {
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    z-index: -1;
+    background: conic-gradient(
+      from 0deg,
+      color-mix(in oklab, var(--color-accent) 0%, transparent) 0deg,
+      color-mix(in oklab, var(--color-accent) 0%, transparent) 200deg,
+      color-mix(in oklab, var(--color-accent) 60%, transparent) 280deg,
+      color-mix(in oklab, var(--color-accent) 0%, transparent) 360deg
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    opacity: 0.7;
+    animation: qp-rim-rotate 6s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes qp-rim-rotate {
+    to { transform: rotate(1turn); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .qp-rim { animation: none; opacity: 0.35; }
+  }
+
+  /* Connector between the two LocationPickers — dashed line + arrow dot */
+  .qp-connector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 20px;
+    padding: 0 20px;
+    color: var(--color-graphite);
+    opacity: 0.75;
+  }
+  .qp-connector-line {
+    flex: 1;
+    height: 1px;
+    background-image: linear-gradient(to right, var(--color-smoke) 50%, transparent 50%);
+    background-size: 6px 1px;
+    background-repeat: repeat-x;
+  }
+  .qp-connector-dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 22px;
+    width: 22px;
+    border-radius: 999px;
+    background: var(--color-cream);
+    border: 1px solid var(--color-smoke);
+    color: var(--color-accent);
+  }
+
+  /* Trip details (hero) — passengers wheel + date/time. `min-width: 0`
+     throughout so native date/time inputs (which have an intrinsic min
+     width) can SHRINK in the flex row instead of forcing the whole card
+     wider than a phone viewport. */
+  .qp-trip { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; min-width: 0; }
+  .qp-trip-row { display: flex; gap: 12px; min-width: 0; }
+  .qp-trip-row > .qp-field { flex: 1 1 0; min-width: 0; }
+  .qp-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .qp-field-label {
+    font-family: var(--font-sans); font-size: 11px; font-weight: 500;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-graphite);
+  }
+  .qp-input {
+    height: 48px; padding: 0 14px; width: 100%; min-width: 0; box-sizing: border-box;
+    border-radius: var(--radius-input, 12px); border: 1px solid var(--color-smoke);
+    background: var(--color-paper); color: var(--color-ink);
+    font-family: var(--font-sans); font-size: 15px;
+    transition: border-color 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+  }
+  .qp-input:focus {
+    outline: none; border-color: color-mix(in oklab, var(--color-accent) 55%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent) 16%, transparent);
+  }
+  /* Passenger roulette wheel */
+  .qp-paxwheel {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    height: 56px;
+    border-radius: var(--radius-input, 12px);
+    border: 1px solid var(--color-smoke);
+    background: var(--color-paper);
+    overflow: hidden;
+  }
+  .qp-paxwheel-track {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    /* Side padding so the first/last number can sit dead-centre. JS sets the
+       exact value too, but this is the CSS baseline. */
+    padding: 0 calc(50% - 22px);
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  .qp-paxwheel-track::-webkit-scrollbar { display: none; }
+  .qp-paxwheel-item {
+    flex: 0 0 auto;
+    scroll-snap-align: center;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font-family: var(--font-display, var(--font-sans));
+    font-size: 18px;
+    font-weight: 500;
+    color: color-mix(in oklab, var(--color-ink) 45%, transparent);
+    font-variant-numeric: tabular-nums;
+    border-radius: 999px;
+    /* JS sets --d (0 at centre → 1 far) each scroll frame; scale + fade by it
+       for the wheel-depth effect. */
+    --d: 1;
+    transform: scale(calc(1 - 0.34 * var(--d)));
+    opacity: calc(1 - 0.45 * var(--d));
+    transition: color 160ms var(--ease-out), background-color 160ms var(--ease-out);
+  }
+  .qp-paxwheel-item.is-selected {
+    color: var(--color-paper);
+    background: var(--color-accent);
+    font-weight: 600;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .qp-paxwheel-track { scroll-behavior: auto; }
+    .qp-paxwheel-item { transform: none; opacity: 1; }
+  }
+  /* Centre marker ring — shows the active slot. */
+  .qp-paxwheel-marker {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 48px; height: 48px;
+    transform: translate(-50%, -50%);
+    border-radius: 999px;
+    box-shadow: 0 0 0 1.5px color-mix(in oklab, var(--color-accent) 45%, transparent);
+    pointer-events: none;
+    z-index: 0;
+  }
+  /* Soft edge fades so numbers dissolve at the sides. */
+  .qp-paxwheel-fade {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 56px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .qp-paxwheel-fade--l { left: 0; background: linear-gradient(to right, var(--color-paper), transparent); }
+  .qp-paxwheel-fade--r { right: 0; background: linear-gradient(to left, var(--color-paper), transparent); }
+
+  /* ---------------------------------------------------------------
+     Price block — accent gradient backdrop when ready, halo glow
+     behind the number, brief flash when a new price lands.
+     --------------------------------------------------------------- */
+  .qp-price-block {
+    position: relative;
+    margin-top: 6px;
+    padding: 14px 16px 16px;
+    border-radius: 14px;
+    background: color-mix(in oklab, var(--color-cream) 55%, var(--color-paper));
+    border: 1px solid color-mix(in oklab, var(--color-smoke) 70%, transparent);
+    transition:
+      background-color 360ms var(--ease-out),
+      border-color 360ms var(--ease-out);
+    overflow: hidden;
+  }
+  .qp-price-block::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 80% 100%, var(--color-accent-glow) 0%, transparent 65%);
+    opacity: 0;
+    transition: opacity 480ms var(--ease-out);
+    pointer-events: none;
+  }
+  .qp-card[data-ready="true"] .qp-price-block::before {
+    opacity: 1;
+  }
+  .qp-price-meta {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 4px;
+  }
+  .qp-price-label {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-graphite);
+  }
+  .qp-price {
+    position: relative;
+    z-index: 1;
+  }
+  .qp-card[data-ready="true"] .qp-price {
+    animation: qp-price-pop 480ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes qp-price-pop {
+    0%   { transform: scale(0.94); }
+    60%  { transform: scale(1.04); }
+    100% { transform: scale(1); }
+  }
+  /* Idle state — teaser is dimmer than the real reveal */
+  .qp-card:not([data-ready="true"]) .qp-price {
+    color: color-mix(in oklab, var(--color-ink) 65%, transparent);
+  }
+
+  /* ---------------------------------------------------------------
+     CTA — pulsing accent ring once data-ready=true. The ring sits
+     behind the button via z-index, expanding + fading every 2s to
+     pull the eye toward the conversion target.
+     --------------------------------------------------------------- */
+  .qp-cta {
+    position: relative;
+    overflow: visible;
+  }
+  .qp-cta-pulse {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+  }
+  .qp-card[data-ready="true"] .qp-cta-pulse {
+    animation: qp-cta-pulse 2s ease-out infinite;
+  }
+  @keyframes qp-cta-pulse {
+    0%   { opacity: 0.7; transform: scale(1);     box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-accent) 60%, transparent); }
+    70%  { opacity: 0;   transform: scale(1.06); box-shadow: 0 0 0 14px color-mix(in oklab, var(--color-accent) 0%, transparent); }
+    100% { opacity: 0;   transform: scale(1.06); box-shadow: 0 0 0 14px color-mix(in oklab, var(--color-accent) 0%, transparent); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .qp-cta-pulse { animation: none !important; }
+  }
+  .qp-cta-arrow {
+    transition: transform 280ms var(--ease-out);
+  }
+  .qp-card[data-ready="true"] .qp-cta-arrow {
+    animation: qp-arrow-drift 1.6s ease-in-out infinite;
+  }
+  @keyframes qp-arrow-drift {
+    0%, 100% { transform: translateX(0); }
+    50%      { transform: translateX(3px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .qp-cta-arrow { animation: none !important; }
+  }
+
+  /* Reassurance microcopy beneath the CTA — small green tick + line */
+  .qp-reassure {
+    margin: 4px 0 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    line-height: 1.3;
+    color: var(--color-graphite);
+    align-self: center;
+  }
+  .qp-reassure-icon {
+    width: 14px;
+    height: 14px;
+    color: var(--color-success, #1B9F4A);
+    flex-shrink: 0;
+  }
+</style>
+
+<script>
+  // Progressive enhancement for the quote picker:
+  //  - live EXACT price (per pax) via the shared quote() helper
+  //  - disabled duplicate point in drop-off
+  //  - hero variant also collects passengers / date / time and prefills them
+  //    into the booking modal on submit (modal keeps the full editable form)
+  //  - on submit: open the booking modal (same page) or GET-submit (cross-page)
+  // Without JS: form still GET-submits to #booking-form with the field values.
+  import { quote } from '../utils/pricing.js';
+
+  type Labels = { from: string; empty: string; unavailable: string };
+
+  function initPicker(form: HTMLFormElement) {
+    const id = form.dataset.pickerId;
+    const dataEl = document.querySelector<HTMLScriptElement>(
+      `script[data-picker-data="${id}"]`,
+    );
+    if (!dataEl?.textContent) return;
+
+    const { labels } = JSON.parse(dataEl.textContent) as { labels: Labels };
+
+    const pickup = form.querySelector<HTMLSelectElement>('[data-role="pickup"]')!;
+    const dropoff = form.querySelector<HTMLSelectElement>('[data-role="dropoff"]')!;
+    const priceEl = form.querySelector<HTMLElement>('[data-role="price-display"]')!;
+    const labelEl = form.querySelector<HTMLElement>('[data-role="price-label"]')!;
+    const submit = form.querySelector<HTMLButtonElement>('[data-role="submit"]')!;
+
+    // Optional hero-only controls (absent in the compact Tarifs variant).
+    const paxInput = form.querySelector<HTMLInputElement>('[data-role="pax"]');
+    const dateInput = form.querySelector<HTMLInputElement>('[data-role="date"]');
+    const timeInput = form.querySelector<HTMLInputElement>('[data-role="time"]');
+    const isHero = !!paxInput;
+    const getPax = () => {
+      const n = parseInt(paxInput?.value || '1', 10);
+      return !Number.isFinite(n) || n < 1 ? 1 : Math.min(24, n);
+    };
+
+    let currentPrice = 0;
+    let wasPriced = false;
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    function liftCard() {
+      if (reduceMotion) return;
+      form.classList.add('is-lifted');
+      setTimeout(() => form.classList.remove('is-lifted'), 600);
+    }
+
+    function refreshDropoffOptions() {
+      const from = pickup.value;
+      // Paris → Paris is a valid intra-city transfer; all other same-name
+      // pairs (CDG → CDG etc.) stay disabled.
+      for (const opt of Array.from(dropoff.options)) {
+        if (!opt.value) continue;
+        if (opt.value === 'Paris' && from === 'Paris') {
+          opt.disabled = false;
+          continue;
+        }
+        opt.disabled = opt.value === from;
+      }
+      if (dropoff.value && dropoff.value === from && !(from === 'Paris' && dropoff.value === 'Paris')) {
+        dropoff.value = '';
+      }
+    }
+
+    function animatePrice(to: number) {
+      const from = currentPrice;
+      if (from === to) {
+        priceEl.textContent = `€${to}`;
+        return;
+      }
+      const duration = 400;
+      const start = performance.now();
+      function step(now: number) {
+        const t = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+        const v = Math.round(from + (to - from) * eased);
+        priceEl.textContent = `€${v}`;
+        if (t < 1) requestAnimationFrame(step);
+        else currentPrice = to;
+      }
+      requestAnimationFrame(step);
+    }
+
+    function setFilled() {
+      pickup.dataset.filled = pickup.value ? 'true' : 'false';
+      dropoff.dataset.filled = dropoff.value ? 'true' : 'false';
+    }
+
+    // Idle baseline — preserve the SSR-rendered teaser price + label so we
+    // can restore them when the user clears a selection. The template
+    // pre-renders these (e.g. "Trajets dès" + "€45") so the card never
+    // shows an empty "—" on first paint.
+    const idlePriceText = priceEl.textContent || '';
+    const idleLabelText = labelEl.textContent || '';
+
+    function setReady(ready: boolean) {
+      // Drives the accent rim brightness, price glow, CTA pulse — all CSS.
+      form.dataset.ready = ready ? 'true' : 'false';
+    }
+
+    function update() {
+      refreshDropoffOptions();
+      setFilled();
+      const from = pickup.value;
+      const to = dropoff.value;
+
+      if (!from || !to) {
+        // Idle state — show the teaser, not "—". Anchors expectations.
+        priceEl.textContent = idlePriceText;
+        labelEl.textContent = idleLabelText;
+        submit.setAttribute('aria-disabled', 'true');
+        submit.disabled = true;
+        setReady(false);
+        currentPrice = 0;
+        wasPriced = false;
+        return;
+      }
+
+      // Exact price for the chosen pax (hero) or 1–3 pax teaser (compact).
+      const q = quote({ from, to, pax: getPax(), tripType: 'one-way' });
+
+      if (!q) {
+        priceEl.textContent = '—';
+        labelEl.textContent = labels.unavailable;
+        submit.setAttribute('aria-disabled', 'true');
+        submit.disabled = true;
+        setReady(false);
+        currentPrice = 0;
+        wasPriced = false;
+        return;
+      }
+
+      labelEl.textContent = labels.from;
+      submit.setAttribute('aria-disabled', 'false');
+      submit.disabled = false;
+      setReady(true);
+
+      if (reduceMotion) {
+        priceEl.textContent = `€${q.totalPrice}`;
+        currentPrice = q.totalPrice;
+      } else {
+        animatePrice(q.totalPrice);
+      }
+
+      // Card lifts once, the first moment a real price lands.
+      if (!wasPriced) liftCard();
+      wasPriced = true;
+    }
+
+    pickup.addEventListener('change', update);
+    dropoff.addEventListener('change', update);
+
+    // Hero-only controls — passenger roulette wheel + date min.
+    if (isHero) {
+      const track = form.querySelector<HTMLElement>('[data-role="pax-track"]');
+      const items = track
+        ? Array.from(track.querySelectorAll<HTMLButtonElement>('.qp-paxwheel-item'))
+        : [];
+      let rafPending = false;
+
+      // Each scroll frame: scale/fade items by distance from centre (the
+      // wheel-depth effect) and select the centred one → sets pax + reprices.
+      function paintWheel() {
+        rafPending = false;
+        if (!track) return;
+        const center = track.scrollLeft + track.clientWidth / 2;
+        let closest: HTMLButtonElement | null = null;
+        let closestDist = Infinity;
+        for (const it of items) {
+          const itCenter = it.offsetLeft + it.offsetWidth / 2;
+          const dist = Math.abs(itCenter - center);
+          it.style.setProperty('--d', String(Math.min(dist / (it.offsetWidth * 2.2), 1)));
+          if (dist < closestDist) { closestDist = dist; closest = it; }
+        }
+        if (closest) {
+          const n = closest.dataset.pax || '1';
+          items.forEach((it) => it.classList.toggle('is-selected', it === closest));
+          if (paxInput && paxInput.value !== n) {
+            paxInput.value = n;
+            update();
+          }
+        }
+      }
+      function onWheelScroll() {
+        if (rafPending) return;
+        rafPending = true;
+        requestAnimationFrame(paintWheel);
+      }
+
+      if (track) {
+        track.addEventListener('scroll', onWheelScroll, { passive: true });
+        // Click / tap a number → glide it to centre.
+        items.forEach((it) =>
+          it.addEventListener('click', () => {
+            track.scrollTo({
+              left: it.offsetLeft + it.offsetWidth / 2 - track.clientWidth / 2,
+              behavior: 'smooth',
+            });
+          }),
+        );
+        // Initial paint (pax = 1 is centred at scrollLeft 0).
+        requestAnimationFrame(paintWheel);
+      }
+
+      if (dateInput) {
+        const now = new Date();
+        const tz = now.getTimezoneOffset() * 60000;
+        dateInput.min = new Date(now.getTime() - tz).toISOString().slice(0, 10);
+      }
+    }
+
+    form.addEventListener('submit', (e) => {
+      if (submit.disabled) {
+        e.preventDefault();
+        return;
+      }
+      const detail: Record<string, unknown> = { source: 'hero-picker', pickup: pickup.value, dropoff: dropoff.value };
+      if (isHero) {
+        // Prefill whatever the customer filled — date/time are optional here;
+        // the modal collects/validates anything left blank.
+        detail.pax = getPax();
+        detail.date = dateInput?.value || '';
+        detail.time = timeInput?.value || '';
+      }
+
+      // Same-page case: a BookingModal is listening; open it + prefill via
+      // the event detail. We deliberately DO NOT write the selection into
+      // the URL — keeping ?pickup/?dropoff out of the address bar means a
+      // refresh doesn't replay the modal or repopulate stale data.
+      const modalHere = document.querySelector('[data-booking-modal]');
+      if (modalHere) {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent('thedriver:open-booking', { detail }));
+        return;
+      }
+
+      // Cross-page (e.g. on the Tarifs page): broadcast the selection, then let
+      // the form GET-submit naturally so the destination page auto-opens the modal.
+      window.dispatchEvent(new CustomEvent('thedriver:quote-selected', { detail }));
+    });
+
+    // Prefill from URL (if user lands directly on /?pickup=CDG&dropoff=Paris)
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('pickup')) pickup.value = params.get('pickup') ?? '';
+    if (params.get('dropoff')) dropoff.value = params.get('dropoff') ?? '';
+    update();
+  }
+
+  function run() {
+    document.querySelectorAll<HTMLFormElement>('[data-quote-picker]').forEach(initPicker);
+  }
+  // Re-run after ClientRouter navigations (astro:page-load fires on first load too).
+  document.addEventListener('astro:page-load', run);
+</script>

@@ -1,0 +1,1332 @@
+---
+import { PICKUP_POINTS, DROP_POINTS, PRICES, VEHICLE_CAPACITY, ROUND_TRIP_DISCOUNT } from '../data/routes.js';
+import { t, pathForRoute } from '../i18n';
+import LocationPicker from './LocationPicker.astro';
+
+interface Props {
+  locale: 'fr' | 'en' | 'es' | 'it';
+}
+
+const { locale } = Astro.props;
+const strings = t(locale);
+const f = strings.form;
+
+// Subset of pickup/dropoff that should reveal a free-form address field.
+const CITY_PICKUPS = ['Paris', 'Disneyland', 'Versailles'];
+const AIRPORT_PICKUPS = ['CDG', 'Orly', 'Beauvais'];
+const STATION_PICKUPS = ['Paris Train Station'];
+const CITY_DROPOFFS = ['Paris', 'Disneyland', 'Versailles'];
+
+// Specific Paris train stations — proper nouns, kept in French across all
+// locales. The driver needs to know exactly which station to head to.
+const PARIS_STATIONS = [
+  'Gare du Nord',
+  'Gare de l\'Est',
+  'Gare de Lyon',
+  'Gare Montparnasse',
+];
+
+const configBlob = {
+  prices: PRICES,
+  vehicle: VEHICLE_CAPACITY,
+  roundTripDiscount: ROUND_TRIP_DISCOUNT,
+  airportPickups: AIRPORT_PICKUPS,
+  stationPickups: STATION_PICKUPS,
+  cityPickups: CITY_PICKUPS,
+  cityDropoffs: CITY_DROPOFFS,
+  labels: {
+    tripOneWay: f.trip.oneWay,
+    tripRoundTrip: f.trip.roundTrip,
+    unavailable: strings.hero.price.unavailable,
+    empty: strings.hero.price.empty,
+    vehicleOrSimilar: f.summary.vehicleOrSimilar,
+  },
+  locale,
+  // Cloudflare Worker URL — receives the booking JSON, sends two emails
+  // via Resend (chauffeur notification + customer auto-confirmation).
+  // The actual URL is set via PUBLIC_WORKER_URL in `.env` after the Worker
+  // is deployed (see worker/README.md). The placeholder lets the form
+  // surface a clear error if it's submitted before deploy.
+  workerUrl: import.meta.env.PUBLIC_WORKER_URL ?? '',
+  whatsapp: '33634301292',
+  // Post-conversion landing — single URL for all locales so the media buyer
+  // can attach one Google Ads / Meta / GA4 conversion to `/thank-you`. The
+  // `?lang=` query param tells the page which locale to render; pre-paint
+  // inline script in BookingThankYou reads it and swaps in the matching block.
+  thankYouPath: `${pathForRoute('thankYou', locale)}?lang=${locale}`,
+};
+
+// Country codes — France default, then EU, then UK/US/CA, then Gulf/NA,
+// then Asia/Oceania/Americas. Kept alphabetical inside each region group.
+//
+// We ship a 2-letter ISO code instead of an emoji flag because Windows + most
+// desktop browsers don't render regional-indicator flags (they show letter
+// pairs). Clean, consistent everywhere — and screen readers read it.
+const countryCodes = [
+  // Default
+  { cc: '+33', iso: 'FR', label: 'France' },
+
+  // EU
+  { cc: '+49',  iso: 'DE', label: 'Deutschland' },
+  { cc: '+34',  iso: 'ES', label: 'España' },
+  { cc: '+39',  iso: 'IT', label: 'Italia' },
+  { cc: '+41',  iso: 'CH', label: 'Suisse' },
+  { cc: '+32',  iso: 'BE', label: 'België' },
+  { cc: '+31',  iso: 'NL', label: 'Nederland' },
+  { cc: '+351', iso: 'PT', label: 'Portugal' },
+  { cc: '+352', iso: 'LU', label: 'Luxembourg' },
+  { cc: '+353', iso: 'IE', label: 'Ireland' },
+  { cc: '+43',  iso: 'AT', label: 'Österreich' },
+  { cc: '+45',  iso: 'DK', label: 'Danmark' },
+  { cc: '+46',  iso: 'SE', label: 'Sverige' },
+  { cc: '+47',  iso: 'NO', label: 'Norge' },
+  { cc: '+358', iso: 'FI', label: 'Suomi' },
+  { cc: '+354', iso: 'IS', label: 'Ísland' },
+  { cc: '+48',  iso: 'PL', label: 'Polska' },
+  { cc: '+420', iso: 'CZ', label: 'Česko' },
+  { cc: '+36',  iso: 'HU', label: 'Magyarország' },
+  { cc: '+40',  iso: 'RO', label: 'România' },
+  { cc: '+30',  iso: 'GR', label: 'Ελλάδα' },
+
+  // UK / US / CA
+  { cc: '+44', iso: 'GB', label: 'United Kingdom' },
+  { cc: '+1',  iso: 'US', label: 'United States' },
+  { cc: '+1',  iso: 'CA', label: 'Canada' },
+
+  // East / Central Europe + rest
+  { cc: '+90',  iso: 'TR', label: 'Türkiye' },
+  { cc: '+7',   iso: 'RU', label: 'Россия' },
+  { cc: '+380', iso: 'UA', label: 'Україна' },
+
+  // Gulf / North Africa
+  { cc: '+971', iso: 'AE', label: 'الإمارات' },
+  { cc: '+966', iso: 'SA', label: 'السعودية' },
+  { cc: '+972', iso: 'IL', label: 'ישראל' },
+  { cc: '+974', iso: 'QA', label: 'قطر' },
+  { cc: '+965', iso: 'KW', label: 'الكويت' },
+  { cc: '+973', iso: 'BH', label: 'البحرين' },
+  { cc: '+20',  iso: 'EG', label: 'مصر' },
+  { cc: '+212', iso: 'MA', label: 'المغرب' },
+  { cc: '+213', iso: 'DZ', label: 'الجزائر' },
+  { cc: '+216', iso: 'TN', label: 'تونس' },
+
+  // Asia / Oceania
+  { cc: '+86', iso: 'CN', label: '中国' },
+  { cc: '+81', iso: 'JP', label: '日本' },
+  { cc: '+82', iso: 'KR', label: '대한민국' },
+  { cc: '+91', iso: 'IN', label: 'India' },
+  { cc: '+66', iso: 'TH', label: 'ไทย' },
+  { cc: '+65', iso: 'SG', label: 'Singapore' },
+  { cc: '+60', iso: 'MY', label: 'Malaysia' },
+  { cc: '+62', iso: 'ID', label: 'Indonesia' },
+  { cc: '+63', iso: 'PH', label: 'Philippines' },
+  { cc: '+84', iso: 'VN', label: 'Việt Nam' },
+  { cc: '+61', iso: 'AU', label: 'Australia' },
+  { cc: '+64', iso: 'NZ', label: 'New Zealand' },
+
+  // Americas
+  { cc: '+55', iso: 'BR', label: 'Brasil' },
+  { cc: '+54', iso: 'AR', label: 'Argentina' },
+  { cc: '+52', iso: 'MX', label: 'México' },
+  { cc: '+56', iso: 'CL', label: 'Chile' },
+  { cc: '+57', iso: 'CO', label: 'Colombia' },
+
+  // Africa
+  { cc: '+27', iso: 'ZA', label: 'South Africa' },
+];
+
+const uid = 'bf-' + Math.random().toString(36).slice(2, 9);
+
+// Convert a 2-letter ISO country code to its flag emoji by combining
+// regional-indicator codepoints (each letter A–Z maps to a regional
+// indicator: A → 🇦, B → 🇧 …). Two combined make a flag (FR → 🇫🇷).
+// Renders natively on Apple/Android, via Segoe UI Emoji on Win10+, and
+// gracefully falls back to text on platforms without emoji support.
+function isoToFlag(iso: string): string {
+  return iso
+    .toUpperCase()
+    .split('')
+    .map((ch) => String.fromCodePoint(0x1F1A5 + ch.charCodeAt(0)))
+    .join('');
+}
+---
+
+<section id="booking-form" aria-labelledby={`${uid}-heading`}>
+  <div class="section-y">
+    <div class="page-x mx-auto max-w-[640px]">
+
+    <header class="mb-8 md:mb-10" data-reveal>
+      <p class="meta-label mb-3 booking-form-eyebrow">{f.eyebrow}</p>
+      <h2 id={`${uid}-heading`} class="h2 text-balance">{f.heading}</h2>
+      <p class="mt-3 body-lg">{f.subheading}</p>
+    </header>
+
+    {/* Success + error cards (hidden by default) */}
+    <div
+      data-role="success"
+      class="hidden rounded-[var(--radius-card)] bg-[color:var(--color-paper)] border border-[color:var(--color-success)]/30 p-6 md:p-8"
+      role="status"
+      aria-live="polite"
+    >
+      <div class="flex items-start gap-3">
+        <svg class="h-6 w-6 text-[color:var(--color-success)] shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+        <div>
+          <p class="h3 text-[color:var(--color-ink)]">{f.success.title}</p>
+          <p class="mt-3 text-[color:var(--color-graphite)]" data-role="success-body">{f.success.body}</p>
+        </div>
+      </div>
+    </div>
+
+    <form
+      data-booking-form
+      data-form-id={uid}
+      method="POST"
+      class="md:bg-[color:var(--color-paper)] md:border md:border-[color:var(--color-smoke)] md:rounded-[var(--radius-card)] md:shadow-[var(--shadow-card)] md:p-10 space-y-10"
+      novalidate
+    >
+      <script is:inline type="application/json" data-form-config={uid} set:html={JSON.stringify(configBlob)} />
+
+      {/* The submit handler POSTs JSON to the Cloudflare Worker rather
+          than serialising the form, so the hidden inputs we still need
+          are only those the JS reads OUT of: vehicle/total are written
+          by the pricing summary code, the honeypot is a bot trap. */}
+      <input type="hidden" name="vehicle_summary" data-role="vehicle-summary" value="" />
+      <input type="hidden" name="total_price" data-role="total-price" value="" />
+      {/* Honeypot */}
+      <input type="checkbox" name="botcheck" class="hidden" tabindex="-1" autocomplete="off" />
+
+      {/* ---- Group 1: Trip ---- */}
+      <fieldset class="space-y-4">
+        <legend class="meta-label bf-legend w-full flex items-center justify-between">
+          <span class="bf-legend-title">
+            <span class="bf-legend-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
+            </span>
+            <span>{f.groups.trip}</span>
+          </span>
+        </legend>
+
+        <div class="space-y-3">
+          <LocationPicker
+            uid={`${uid}-pickup`}
+            name="pickup"
+            dataRole="pickup"
+            label={strings.hero.pickup.label}
+            placeholder={strings.hero.pickup.placeholder}
+            options={PICKUP_POINTS}
+            labels={f.locationLabels}
+            iconType="from"
+          />
+          <LocationPicker
+            uid={`${uid}-dropoff`}
+            name="dropoff"
+            dataRole="dropoff"
+            label={strings.hero.dropoff.label}
+            placeholder={strings.hero.dropoff.placeholder}
+            options={DROP_POINTS}
+            labels={f.locationLabels}
+            iconType="to"
+          />
+        </div>
+
+        {/* Conditional: flight number — shown ONLY for airport pickups, and
+            required when shown (the form script toggles `.required` with the
+            reveal). Sits under "VOTRE TRAJET". */}
+        <div data-reveal="flight" hidden>
+          <label class="meta-label mb-2 flex items-center gap-2" for={`${uid}-flight`}>
+            <span>{f.trip.flightNumber}</span>
+            <span class="round-trip-badge bf-required-pill">{f.requiredLabel}</span>
+          </label>
+          <input
+            id={`${uid}-flight`}
+            name="flight_number"
+            type="text"
+            class="field"
+            inputmode="text"
+            autocomplete="off"
+            enterkeyhint="next"
+            placeholder={f.trip.flightPlaceholder}
+          />
+        </div>
+
+        {/* Conditional: which Paris train station — PICKUP side. Shown
+            when pickup is "Paris Train Station". `required={false}`
+            keeps the native select out of HTML5 validation when hidden;
+            the form script toggles `.required` dynamically based on
+            visibility so the station can't be skipped when shown. */}
+        <div data-reveal="pickup-station" hidden>
+          <LocationPicker
+            uid={`${uid}-pickup-station`}
+            name="pickup_station"
+            dataRole="pickup-station"
+            label={f.trip.stationLabel}
+            placeholder={f.trip.stationPlaceholder}
+            sheetTitle={f.trip.stationSheetTitle}
+            options={PARIS_STATIONS}
+            iconType="from"
+            required={false}
+          />
+        </div>
+
+        {/* Conditional: train number */}
+        <div data-reveal="train" hidden>
+          <label class="meta-label block mb-2" for={`${uid}-train`}>{f.trip.trainNumber}</label>
+          <input
+            id={`${uid}-train`}
+            name="train_number"
+            type="text"
+            class="field"
+            inputmode="text"
+            autocomplete="off"
+            enterkeyhint="next"
+            placeholder={f.trip.trainPlaceholder}
+          />
+        </div>
+
+        {/* Conditional: pickup address / hotel / monument — shown + required
+            for city pickups (Paris / Disneyland / Versailles). */}
+        <div data-reveal="pickup-address" hidden>
+          <label class="meta-label mb-2 flex items-center gap-2" for={`${uid}-pickup-address`}>
+            <span>{f.trip.pickupAddress}</span>
+            <span class="round-trip-badge bf-required-pill">{f.requiredLabel}</span>
+          </label>
+          <input
+            id={`${uid}-pickup-address`}
+            name="pickup_address"
+            type="text"
+            class="field"
+            autocomplete="street-address"
+            enterkeyhint="next"
+            placeholder={f.trip.pickupAddressPlaceholder}
+          />
+        </div>
+
+        {/* Conditional: dropoff address / hotel / monument — shown + required
+            for city drop-offs (Paris / Disneyland / Versailles). */}
+        <div data-reveal="dropoff-address" hidden>
+          <label class="meta-label mb-2 flex items-center gap-2" for={`${uid}-dropoff-address`}>
+            <span>{f.trip.dropoffAddress}</span>
+            <span class="round-trip-badge bf-required-pill">{f.requiredLabel}</span>
+          </label>
+          <input
+            id={`${uid}-dropoff-address`}
+            name="dropoff_address"
+            type="text"
+            class="field"
+            autocomplete="street-address"
+            enterkeyhint="next"
+            placeholder={f.trip.dropoffAddressPlaceholder}
+          />
+        </div>
+
+        {/* Conditional: which Paris train station — DROP-OFF side. Shown
+            when dropoff is "Paris Train Station". No train number for
+            this case — the driver is delivering, not waiting on an
+            inbound train. Same component instance shape as the pickup
+            station picker; distinct field name (`dropoff_station`) so
+            the two never collide in the payload. */}
+        <div data-reveal="dropoff-station" hidden>
+          <LocationPicker
+            uid={`${uid}-dropoff-station`}
+            name="dropoff_station"
+            dataRole="dropoff-station"
+            label={f.trip.stationLabel}
+            placeholder={f.trip.stationPlaceholder}
+            sheetTitle={f.trip.stationSheetTitle}
+            options={PARIS_STATIONS}
+            iconType="to"
+            required={false}
+          />
+        </div>
+      </fieldset>
+
+      <div class="border-t border-[color:var(--color-smoke)]"></div>
+
+      {/* ---- Group 2: When & who ---- */}
+      <fieldset class="space-y-5">
+        <legend class="meta-label bf-legend">
+          <span class="bf-legend-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+          </span>
+          <span>{f.groups.whenWho}</span>
+        </legend>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="meta-label block mb-2" for={`${uid}-date`}>{f.when.date}</label>
+            <input
+              id={`${uid}-date`}
+              name="date"
+              type="date"
+              class="field"
+              required
+              enterkeyhint="next"
+              data-fancy-date
+            />
+          </div>
+          <div>
+            <label class="meta-label block mb-2" for={`${uid}-time`}>{f.when.time}</label>
+            <input
+              id={`${uid}-time`}
+              name="time"
+              type="time"
+              class="field"
+              required
+              enterkeyhint="next"
+              data-fancy-time
+            />
+          </div>
+        </div>
+
+        {/* Passengers stepper */}
+        <div>
+          <label class="meta-label block mb-2" for={`${uid}-pax`}>{f.when.passengers}</label>
+          <div class="inline-flex items-center rounded-[var(--radius-input)] border border-[color:var(--color-smoke)] bg-[color:var(--color-paper)]">
+            <button
+              type="button"
+              data-role="pax-dec"
+              class="h-12 w-12 inline-flex items-center justify-center text-[color:var(--color-ink)] disabled:opacity-30"
+              aria-label={f.when.passengersDecrease}
+            >
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+            <input
+              id={`${uid}-pax`}
+              name="passengers"
+              type="number"
+              min="1"
+              max="24"
+              value="1"
+              inputmode="numeric"
+              class="w-12 text-center bg-transparent border-0 text-[16px] font-medium focus:outline-none"
+              data-role="pax"
+            />
+            <button
+              type="button"
+              data-role="pax-inc"
+              class="h-12 w-12 inline-flex items-center justify-center text-[color:var(--color-ink)] disabled:opacity-30"
+              aria-label={f.when.passengersIncrease}
+            >
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </div>
+          <p class="mt-2 text-[13px] text-[color:var(--color-graphite)]">{f.when.passengersHelp}</p>
+        </div>
+
+        {/* Trip type — big tappable radio rows */}
+        <div>
+          <span class="meta-label block mb-2">{f.trip.typeLabel}</span>
+          <div class="space-y-2" role="radiogroup" aria-label={f.trip.typeLabel}>
+            <label class="flex items-center gap-3 min-h-[48px] px-4 rounded-[var(--radius-input)] border border-[color:var(--color-smoke)] bg-[color:var(--color-paper)] cursor-pointer has-[:checked]:border-[color:var(--color-ink)] has-[:checked]:border-[1.5px] transition-colors">
+              <input type="radio" name="trip_type" value="one-way" class="accent-[color:var(--color-accent)]" checked data-role="trip-type" />
+              <span class="text-[15px]">{f.trip.oneWay}</span>
+            </label>
+            <label class="flex items-center gap-3 min-h-[48px] px-4 rounded-[var(--radius-input)] border border-[color:var(--color-smoke)] bg-[color:var(--color-paper)] cursor-pointer has-[:checked]:border-[color:var(--color-ink)] has-[:checked]:border-[1.5px] transition-colors">
+              <input type="radio" name="trip_type" value="round-trip" class="accent-[color:var(--color-accent)]" data-role="trip-type" />
+              <span class="text-[15px]">{f.trip.roundTrip}</span>
+              <span class="round-trip-badge" aria-hidden="true">{f.trip.roundTripBadge}</span>
+            </label>
+          </div>
+
+          {/* Conditional: return date/time + discount note */}
+          <div data-reveal="return" hidden class="mt-4 space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="meta-label block mb-2" for={`${uid}-return-date`}>{f.trip.returnDate}</label>
+                <input id={`${uid}-return-date`} name="return_date" type="date" class="field" data-fancy-date />
+              </div>
+              <div>
+                <label class="meta-label block mb-2" for={`${uid}-return-time`}>{f.trip.returnTime}</label>
+                <input id={`${uid}-return-time`} name="return_time" type="time" class="field" data-fancy-time />
+              </div>
+            </div>
+            <p class="text-[13px] text-[color:var(--color-graphite)]">{f.trip.returnNote}</p>
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="border-t border-[color:var(--color-smoke)]"></div>
+
+      {/* ---- Group 3: Options (collapsible) ---- */}
+      <fieldset>
+        <details class="group" data-role="options">
+          <summary class="bf-options-summary list-none cursor-pointer flex items-center justify-between gap-3 py-2 meta-label">
+            <span class="bf-options-titlerow flex items-center flex-wrap gap-y-1">
+              <span>{f.options.heading}</span>
+              <span class="round-trip-badge">{f.options.pillSeats}</span>
+              <span class="round-trip-badge">{f.options.pillStop}</span>
+            </span>
+            <svg class="h-4 w-4 flex-shrink-0 transition-transform group-open:rotate-180 text-[color:var(--color-graphite)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </summary>
+
+          <div class="mt-4 space-y-5">
+            {/* Child seats — one +/- quantity stepper per type */}
+            <div>
+              <span class="meta-label block mb-1">{f.options.childSeats}</span>
+              <p class="text-[13px] text-[color:var(--color-graphite)] mb-3">{f.options.childSeatsHelp}</p>
+              <div class="space-y-2">
+                {[
+                  { key: 'cosy', label: f.options.seatCosy, hint: f.options.seatCosyHint },
+                  { key: 'baby', label: f.options.seatBaby, hint: f.options.seatBabyHint },
+                  { key: 'booster', label: f.options.seatBooster, hint: f.options.seatBoosterHint },
+                ].map((seat) => (
+                  <div class="flex items-center gap-3 min-h-[56px] px-4 py-2 rounded-[var(--radius-input)] border border-[color:var(--color-smoke)] bg-[color:var(--color-paper)]">
+                    <div class="flex-1 min-w-0">
+                      <span class="block text-[15px] text-[color:var(--color-ink)]">{seat.label}</span>
+                      <span class="block text-[13px] text-[color:var(--color-graphite)]">{seat.hint}</span>
+                    </div>
+                    <div class="inline-flex items-center rounded-[var(--radius-input)] border border-[color:var(--color-smoke)] bg-[color:var(--color-cream)] shrink-0" data-role="seat-stepper" data-seat-key={seat.key}>
+                      <button
+                        type="button"
+                        data-role="seat-dec"
+                        class="h-11 w-11 inline-flex items-center justify-center text-[color:var(--color-ink)] disabled:opacity-30"
+                        aria-label={`${f.when.passengersDecrease} — ${seat.label}`}
+                      >
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                      </button>
+                      <input
+                        id={`${uid}-seat-${seat.key}`}
+                        name={`seat_${seat.key}`}
+                        type="number"
+                        min="0"
+                        max="4"
+                        value="0"
+                        inputmode="numeric"
+                        class="w-10 text-center bg-transparent border-0 text-[16px] font-medium focus:outline-none tabular-nums"
+                        data-role="seat-qty"
+                        data-seat-label={seat.label}
+                      />
+                      <button
+                        type="button"
+                        data-role="seat-inc"
+                        class="h-11 w-11 inline-flex items-center justify-center text-[color:var(--color-ink)] disabled:opacity-30"
+                        aria-label={`${f.when.passengersIncrease} — ${seat.label}`}
+                      >
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <input type="hidden" name="child_seats" data-role="child-seats-summary" value="" />
+            </div>
+
+            {/* Extra stop */}
+            <div>
+              <label class="flex items-center gap-3 min-h-[48px] px-4 rounded-[var(--radius-input)] border border-[color:var(--color-smoke)] bg-[color:var(--color-paper)] cursor-pointer has-[:checked]:border-[color:var(--color-ink)] has-[:checked]:border-[1.5px] transition-colors">
+                <input type="checkbox" name="extra_stop" value="1" class="accent-[color:var(--color-accent)]" data-role="extra-stop" />
+                <span class="text-[15px]">{f.options.extraStop}</span>
+              </label>
+              <div data-reveal="extra-stop-details" hidden class="mt-3">
+                <label class="sr-only" for={`${uid}-stop-details`}>{f.options.extraStopDetails}</label>
+                <input
+                  id={`${uid}-stop-details`}
+                  name="extra_stop_details"
+                  type="text"
+                  class="field"
+                  placeholder={f.options.extraStopPlaceholder}
+                  autocomplete="off"
+                />
+                <p class="mt-2 text-[13px] text-[color:var(--color-graphite)]">{f.options.extraStopNote}</p>
+              </div>
+            </div>
+          </div>
+        </details>
+      </fieldset>
+
+      <div class="border-t border-[color:var(--color-smoke)]"></div>
+
+      {/* ---- Group 4: Your info ---- */}
+      <fieldset class="space-y-4">
+        <legend class="meta-label bf-legend">
+          <span class="bf-legend-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </span>
+          <span>{f.groups.you}</span>
+        </legend>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="meta-label block mb-2" for={`${uid}-firstname`}>{f.you.firstName}</label>
+            <input
+              id={`${uid}-firstname`}
+              name="first_name"
+              type="text"
+              class="field"
+              autocomplete="given-name"
+              enterkeyhint="next"
+              required
+            />
+          </div>
+          <div>
+            <label class="meta-label block mb-2" for={`${uid}-lastname`}>{f.you.lastName}</label>
+            <input
+              id={`${uid}-lastname`}
+              name="last_name"
+              type="text"
+              class="field"
+              autocomplete="family-name"
+              enterkeyhint="next"
+              required
+            />
+          </div>
+        </div>
+
+        <div>
+          <label class="meta-label block mb-2" for={`${uid}-phone`}>{f.you.phone}</label>
+          <div class="flex gap-2">
+            <select
+              name="country_code"
+              class="field field-select country-code-select !w-[140px] shrink-0"
+              autocomplete="tel-country-code"
+              aria-label={f.you.countryCode}
+            >
+              {countryCodes.map((c) => (
+                <option
+                  value={c.cc}
+                  selected={c.cc === '+33' && c.iso === 'FR'}
+                  aria-label={`${c.label} ${c.cc}`}
+                >{isoToFlag(c.iso)} {c.cc}</option>
+              ))}
+            </select>
+            <input
+              id={`${uid}-phone`}
+              name="phone_number"
+              type="tel"
+              class="field"
+              inputmode="tel"
+              autocomplete="tel-national"
+              enterkeyhint="next"
+              required
+            />
+          </div>
+        </div>
+
+        <div>
+          <label class="meta-label block mb-2" for={`${uid}-email`}>{f.you.email}</label>
+          <input
+            id={`${uid}-email`}
+            name="email"
+            type="email"
+            class="field"
+            inputmode="email"
+            autocomplete="email"
+            enterkeyhint="done"
+            required
+          />
+        </div>
+      </fieldset>
+
+      {/* ---- Group 5: Summary + submit ---- */}
+      <div class="bf-summary rounded-[14px] p-5 md:p-6">
+        <p class="meta-label bf-legend mb-3">
+          <span class="bf-legend-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </span>
+          <span>{f.summary.heading}</span>
+        </p>
+        <dl class="text-[14px] space-y-2">
+          <div class="flex justify-between gap-4">
+            <dt class="text-[color:var(--color-graphite)]">{f.summary.route}</dt>
+            <dd class="text-[color:var(--color-ink)] text-right" data-role="summary-route">—</dd>
+          </div>
+          {/* Subtle hint shown only when both pickup & dropoff are "Paris" */}
+          <p
+            class="text-[12px] text-[color:var(--color-graphite)] -mt-1"
+            data-role="intra-paris-hint"
+            hidden
+          >{f.trip.intraParisHint}</p>
+          <div class="flex justify-between gap-4">
+            <dt class="text-[color:var(--color-graphite)]">{f.summary.vehicle}</dt>
+            <dd class="text-[color:var(--color-ink)] bf-vehicle-cell">
+              <span class="bf-vehicle-icons" data-role="vehicle-icons" aria-hidden="true"></span>
+              <span data-role="summary-vehicle">—</span>
+            </dd>
+          </div>
+          <div class="flex justify-between gap-4">
+            <dt class="text-[color:var(--color-graphite)]">{f.summary.passengers}</dt>
+            <dd class="text-[color:var(--color-ink)] text-right" data-role="summary-pax">1</dd>
+          </div>
+          <div class="flex justify-between gap-4">
+            <dt class="text-[color:var(--color-graphite)]">{f.summary.type}</dt>
+            <dd class="text-[color:var(--color-ink)] text-right" data-role="summary-type">{f.trip.oneWay}</dd>
+          </div>
+          <div class="flex justify-between gap-4" data-role="summary-seats-row" hidden>
+            <dt class="text-[color:var(--color-graphite)]">{f.summary.seats}</dt>
+            <dd class="text-[color:var(--color-ink)] text-right" data-role="summary-seats">—</dd>
+          </div>
+        </dl>
+        <div class="mt-4 pt-4 border-t border-[color:var(--color-smoke)] flex justify-between items-baseline">
+          <span class="meta-label">{f.summary.total}</span>
+          <span class="bf-total font-display text-[32px] leading-none tabular-nums" data-role="summary-total">—</span>
+        </div>
+      </div>
+
+      <div class="space-y-3" data-role="error-container">
+        <button
+          type="submit"
+          class="btn-primary w-full"
+          data-role="form-submit"
+          data-magnetic
+          data-magnetic-strength="0.2"
+        >
+          <span data-role="submit-label">{f.submit.cta}</span>
+          <svg data-role="submit-spinner" class="hidden h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M21 12a9 9 0 1 1-6.2-8.55" />
+          </svg>
+        </button>
+        <p data-role="submit-error" class="hidden text-[14px] text-[color:var(--color-danger)] text-center" role="alert"></p>
+      </div>
+    </form>
+
+    {/* Alternative WhatsApp CTA */}
+    <div class="mt-8 pt-6 border-t border-[color:var(--color-smoke)] text-center">
+      <p class="text-[14px] text-[color:var(--color-graphite)] mb-3">{f.whatsapp.prompt}</p>
+      <a
+        data-role="whatsapp-link"
+        href={`https://wa.me/${configBlob.whatsapp}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="btn-secondary inline-flex"
+      >
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.296-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.247-.694.247-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+        </svg>
+        <span>{f.whatsapp.cta}</span>
+      </a>
+    </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  type PriceCell = {
+    p1to3?: number; p4?: number; p5?: number; p6?: number; p7?: number;
+    p8?: number; p12?: number; p16?: number; p20?: number; p24?: number;
+  };
+  type Config = {
+    prices: Record<string, Record<string, PriceCell>>;
+    vehicle: { car: { max: number; model: string }; van: { max: number; model: string } };
+    roundTripDiscount: number;
+    airportPickups: string[];
+    stationPickups: string[];
+    cityPickups: string[];
+    cityDropoffs: string[];
+    labels: { tripOneWay: string; tripRoundTrip: string; unavailable: string; empty: string; vehicleOrSimilar: string };
+    locale: string;
+    workerUrl: string;
+    whatsapp: string;
+    thankYouPath: string;
+  };
+
+  // Mirror of src/utils/pricing.js — the inline form script can't import
+  // the module, so we duplicate the helpers verbatim. Keep them in sync.
+  function explicitKeyForPax(pax: number): keyof PriceCell | null {
+    if (pax >= 1 && pax <= 3) return 'p1to3';
+    if (pax >= 4 && pax <= 8) return `p${pax}` as keyof PriceCell;
+    if (pax === 12) return 'p12';
+    if (pax === 16) return 'p16';
+    if (pax === 20) return 'p20';
+    if (pax === 24) return 'p24';
+    return null;
+  }
+  function explicitPrice(cell: PriceCell, pax: number): number | null {
+    const key = explicitKeyForPax(pax);
+    if (!key) return null;
+    const v = cell[key];
+    return typeof v === 'number' ? v : null;
+  }
+  function vehicleSummaryFor(pax: number): string {
+    if (pax <= 0)  return '—';
+    if (pax <= 3)  return '1× Tesla Model Y';
+    if (pax <= 8)  return '1× Vito';
+    if (pax <= 11) return '1× Vito + 1× Tesla Y';
+    if (pax <= 16) return '2× Vito';
+    if (pax <= 20) return '2× Vito + 1× Tesla Y';
+    if (pax <= 24) return '3× Vito';
+    return '—';
+  }
+
+  function initForm(form: HTMLFormElement) {
+    const id = form.dataset.formId;
+    const dataEl = document.querySelector<HTMLScriptElement>(`script[data-form-config="${id}"]`);
+    if (!dataEl?.textContent) return;
+    const cfg = JSON.parse(dataEl.textContent) as Config;
+
+    const $ = <T extends Element = HTMLElement>(sel: string) => form.querySelector<T>(sel)!;
+    const pickup = $<HTMLSelectElement>('[data-role="pickup"]');
+    const dropoff = $<HTMLSelectElement>('[data-role="dropoff"]');
+    const pickupStation = form.querySelector<HTMLSelectElement>('[data-role="pickup-station"]');
+    const dropoffStation = form.querySelector<HTMLSelectElement>('[data-role="dropoff-station"]');
+    const paxInput = $<HTMLInputElement>('[data-role="pax"]');
+    const paxInc = $<HTMLButtonElement>('[data-role="pax-inc"]');
+    const paxDec = $<HTMLButtonElement>('[data-role="pax-dec"]');
+    const tripRadios = form.querySelectorAll<HTMLInputElement>('[data-role="trip-type"]');
+    const extraStop = $<HTMLInputElement>('[data-role="extra-stop"]');
+    const submitBtn = $<HTMLButtonElement>('[data-role="form-submit"]');
+    const submitLabel = $('[data-role="submit-label"]');
+    // Capture once so we can restore it after submit / on modal-close reset.
+    const submitLabelDefault = submitLabel.textContent ?? '';
+    const submitSpinner = $('[data-role="submit-spinner"]');
+    const errorEl = $('[data-role="submit-error"]');
+    const successCard = form.parentElement?.querySelector<HTMLElement>('[data-role="success"]') ?? null;
+    const whatsappLink = form.parentElement?.querySelector<HTMLAnchorElement>('[data-role="whatsapp-link"]') ?? null;
+
+    const sRoute = $('[data-role="summary-route"]');
+    const sVehicle = $('[data-role="summary-vehicle"]');
+    const sPax = $('[data-role="summary-pax"]');
+    const sType = $('[data-role="summary-type"]');
+    const sTotal = $('[data-role="summary-total"]');
+    const sVehicleIcons = $('[data-role="vehicle-icons"]');
+    const intraParisHint = form.querySelector<HTMLElement>('[data-role="intra-paris-hint"]');
+
+    // Inline Lucide-style SVG paths. Stroke + sizing handled by the parent
+    // CSS — these strings are just the inner <path>/<circle> content.
+    const ICON_INNER = {
+      car:
+        '<path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/>' +
+        '<circle cx="6.5" cy="16.5" r="2.5"/>' +
+        '<circle cx="16.5" cy="16.5" r="2.5"/>',
+      van:
+        '<path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/>' +
+        '<path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/>' +
+        '<circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/>',
+    };
+    function iconsForPax(pax: number): Array<'car' | 'van'> {
+      if (pax <= 0)  return [];
+      if (pax <= 3)  return ['car'];
+      if (pax <= 8)  return ['van'];
+      if (pax <= 11) return ['van', 'car'];
+      if (pax <= 16) return ['van', 'van'];
+      if (pax <= 20) return ['van', 'van', 'car'];
+      if (pax <= 24) return ['van', 'van', 'van'];
+      return [];
+    }
+    function renderVehicleIcons(pax: number) {
+      const icons = iconsForPax(pax);
+      sVehicleIcons.innerHTML = icons
+        .map((kind) =>
+          `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_INNER[kind]}</svg>`,
+        )
+        .join('');
+    }
+
+    // ---- Conditional reveals -----------------------------------------
+    function setReveal(name: string, show: boolean) {
+      const el = form.querySelector<HTMLElement>(`[data-reveal="${name}"]`);
+      if (!el) return;
+      el.hidden = !show;
+      // Clear values when hidden so stale data isn't submitted
+      if (!show) {
+        el.querySelectorAll<HTMLInputElement>('input').forEach((i) => {
+          if (i.type === 'checkbox') i.checked = false;
+          else i.value = '';
+        });
+        // Custom selects (LocationPicker) — clear value AND sync the
+        // visible trigger via a dispatched change event so it shows the
+        // placeholder again instead of stale "Gare du Nord".
+        el.querySelectorAll<HTMLSelectElement>('select').forEach((s) => {
+          if (s.value !== '') {
+            s.value = '';
+            s.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        });
+      }
+    }
+
+    function refreshConditionals() {
+      const pu = pickup.value;
+      const dr = dropoff.value;
+      const isStationPickup = cfg.stationPickups.includes(pu);
+      // Same station list applies to dropoff — `cfg.stationPickups` is
+      // really "which values trigger the station picker" rather than a
+      // pickup-only list. Reusing it keeps both sides in sync.
+      const isStationDropoff = cfg.stationPickups.includes(dr);
+      const isAirportPickup = cfg.airportPickups.includes(pu);
+      const isCityPickup = cfg.cityPickups.includes(pu);
+      const isCityDropoff = cfg.cityDropoffs.includes(dr);
+      // Flight number — shown + required only for airport pickups.
+      setReveal('flight', isAirportPickup);
+      setReveal('pickup-station', isStationPickup);
+      setReveal('train', isStationPickup);
+      // Address / hotel / monument — shown + required for city pickup/dropoff.
+      setReveal('pickup-address', isCityPickup);
+      setReveal('dropoff-address', isCityDropoff);
+      setReveal('dropoff-station', isStationDropoff);
+      const tripType = [...tripRadios].find((r) => r.checked)?.value;
+      setReveal('return', tripType === 'round-trip');
+      setReveal('extra-stop-details', extraStop.checked);
+
+      // Fields required only while their reveal is shown. Without this toggle,
+      // an always-required attribute would block submit on combos where the
+      // field is hidden, AND skipping the toggle on hide would silently accept
+      // an empty value when the field IS on-screen.
+      const flightInput = form.querySelector<HTMLInputElement>('[name="flight_number"]');
+      if (flightInput) flightInput.required = isAirportPickup;
+      const pickupAddrInput = form.querySelector<HTMLInputElement>('[name="pickup_address"]');
+      if (pickupAddrInput) pickupAddrInput.required = isCityPickup;
+      const dropoffAddrInput = form.querySelector<HTMLInputElement>('[name="dropoff_address"]');
+      if (dropoffAddrInput) dropoffAddrInput.required = isCityDropoff;
+      if (pickupStation) pickupStation.required = isStationPickup;
+      if (dropoffStation) dropoffStation.required = isStationDropoff;
+
+      // Disable same-point drop-off, with one explicit exception:
+      // Paris → Paris is a valid intra-city transfer (hotel → restaurant,
+      // Airbnb → hotel, etc.), so we keep that pair selectable.
+      for (const opt of Array.from(dropoff.options)) {
+        if (!opt.value) continue;
+        if (opt.value === 'Paris' && pu === 'Paris') {
+          opt.disabled = false;
+          continue;
+        }
+        opt.disabled = opt.value === pu;
+      }
+      if (dropoff.value === pu && !(pu === 'Paris' && dr === 'Paris')) {
+        dropoff.value = '';
+      }
+    }
+
+    // ---- Pricing + summary -------------------------------------------
+
+    /**
+     * Per-pax pricing.
+     *   pax ∈ {1–8, 12, 16, 20, 24} → direct lookup.
+     *   pax in a combo gap (9–11, 13–15, 17–19, 21–23) → memoised DP over
+     *   integer partitions where every part is ∈ [1, 8] and has an
+     *   explicit price; total is minimised across all partitions.
+     */
+    function lookupRoutePrice(pax: number, cell?: PriceCell): number | null {
+      if (!cell || !pax || pax < 1) return null;
+      const directCell: PriceCell = cell;
+      const direct = explicitPrice(directCell, pax);
+      if (direct !== null) return direct;
+
+      // Combo solver
+      const memo = new Map<number, number>();
+      function solve(remaining: number): number {
+        if (remaining === 0) return 0;
+        if (memo.has(remaining)) return memo.get(remaining)!;
+        let best = Infinity;
+        for (let size = 1; size <= Math.min(8, remaining); size++) {
+          const groupPrice = explicitPrice(directCell, size);
+          if (groupPrice === null) continue;
+          const rest = solve(remaining - size);
+          if (rest === Infinity) continue;
+          const total = groupPrice + rest;
+          if (total < best) best = total;
+        }
+        memo.set(remaining, best);
+        return best;
+      }
+      const result = solve(pax);
+      return result === Infinity ? null : result;
+    }
+
+    function refreshSummary() {
+      const pu = pickup.value;
+      const dr = dropoff.value;
+      const pax = Math.max(1, Math.min(24, parseInt(paxInput.value || '1', 10)));
+      const tripType = [...tripRadios].find((r) => r.checked)?.value ?? 'one-way';
+
+      // Append the specific Paris train station to either side of the
+      // route line when the corresponding endpoint is "Paris Train
+      // Station" and the user has chosen a station for that side.
+      const puStationVal = pickupStation?.value || '';
+      const drStationVal = dropoffStation?.value || '';
+      const puLabel = pu && puStationVal && cfg.stationPickups.includes(pu)
+        ? `${pu} (${puStationVal})`
+        : pu;
+      const drLabel = dr && drStationVal && cfg.stationPickups.includes(dr)
+        ? `${dr} (${drStationVal})`
+        : dr;
+      sRoute.textContent = pu && dr ? `${puLabel} → ${drLabel}` : '—';
+      // Show the "intra-Paris transfer" hint only when both endpoints
+      // are exactly "Paris" — clarifies the otherwise-unusual same-city
+      // route, since the cross-disable lets it through as an exception.
+      if (intraParisHint) intraParisHint.hidden = !(pu === 'Paris' && dr === 'Paris');
+      sPax.textContent = String(pax);
+      sType.textContent = tripType === 'round-trip' ? cfg.labels.tripRoundTrip : cfg.labels.tripOneWay;
+
+      const cell = pu && dr ? cfg.prices[pu]?.[dr] : undefined;
+      const oneWay = lookupRoutePrice(pax, cell);
+      if (oneWay === null) {
+        sVehicle.textContent = '—';
+        sTotal.textContent = pu && dr ? cfg.labels.unavailable : '—';
+        (form.querySelector<HTMLInputElement>('[data-role="vehicle-summary"]')!).value = '';
+        (form.querySelector<HTMLInputElement>('[data-role="total-price"]')!).value = '';
+        renderVehicleIcons(0);
+        return;
+      }
+      const total = tripType === 'round-trip'
+        ? Math.round(oneWay * 2 * (1 - cfg.roundTripDiscount))
+        : oneWay;
+      const vehBase = vehicleSummaryFor(pax);
+      const veh = vehBase === '—' ? vehBase : `${vehBase} ${cfg.labels.vehicleOrSimilar}`;
+      sVehicle.textContent = veh;
+      sTotal.textContent = `€${total}`;
+      (form.querySelector<HTMLInputElement>('[data-role="vehicle-summary"]')!).value = veh;
+      (form.querySelector<HTMLInputElement>('[data-role="total-price"]')!).value = String(total);
+      renderVehicleIcons(pax);
+    }
+
+    // ---- Passenger stepper -------------------------------------------
+    function setPax(n: number) {
+      const clamped = Math.max(1, Math.min(24, Math.floor(n)));
+      paxInput.value = String(clamped);
+      paxDec.disabled = clamped <= 1;
+      paxInc.disabled = clamped >= 24;
+      refreshSummary();
+    }
+    paxInc.addEventListener('click', () => setPax(parseInt(paxInput.value || '1', 10) + 1));
+    paxDec.addEventListener('click', () => setPax(parseInt(paxInput.value || '1', 10) - 1));
+    paxInput.addEventListener('input', () => setPax(parseInt(paxInput.value || '1', 10) || 1));
+
+    // ---- Child seat steppers ----------------------------------------
+    const seatSummaryHidden = form.querySelector<HTMLInputElement>('[data-role="child-seats-summary"]');
+    const seatsRow = form.querySelector<HTMLElement>('[data-role="summary-seats-row"]');
+    const seatsCell = form.querySelector<HTMLElement>('[data-role="summary-seats"]');
+    const seatSteppers = form.querySelectorAll<HTMLElement>('[data-role="seat-stepper"]');
+
+    function refreshSeatSummary() {
+      const parts: string[] = [];
+      seatSteppers.forEach((stepper) => {
+        const qtyInput = stepper.querySelector<HTMLInputElement>('[data-role="seat-qty"]')!;
+        const n = Math.max(0, Math.min(4, parseInt(qtyInput.value || '0', 10) || 0));
+        const label = qtyInput.dataset.seatLabel ?? '';
+        if (n > 0) parts.push(`${n} ${label}`);
+      });
+      const summary = parts.join(', ');
+      if (seatSummaryHidden) seatSummaryHidden.value = summary;
+      if (seatsRow && seatsCell) {
+        if (parts.length === 0) {
+          seatsRow.hidden = true;
+          seatsCell.textContent = '—';
+        } else {
+          seatsRow.hidden = false;
+          seatsCell.textContent = parts.join(' + ');
+        }
+      }
+    }
+
+    function setSeatQty(stepper: HTMLElement, n: number) {
+      const qtyInput = stepper.querySelector<HTMLInputElement>('[data-role="seat-qty"]')!;
+      const dec = stepper.querySelector<HTMLButtonElement>('[data-role="seat-dec"]')!;
+      const inc = stepper.querySelector<HTMLButtonElement>('[data-role="seat-inc"]')!;
+      const clamped = Math.max(0, Math.min(4, Math.floor(n)));
+      qtyInput.value = String(clamped);
+      dec.disabled = clamped <= 0;
+      inc.disabled = clamped >= 4;
+      refreshSeatSummary();
+    }
+
+    seatSteppers.forEach((stepper) => {
+      const qtyInput = stepper.querySelector<HTMLInputElement>('[data-role="seat-qty"]')!;
+      const dec = stepper.querySelector<HTMLButtonElement>('[data-role="seat-dec"]')!;
+      const inc = stepper.querySelector<HTMLButtonElement>('[data-role="seat-inc"]')!;
+      dec.addEventListener('click', () => setSeatQty(stepper, parseInt(qtyInput.value || '0', 10) - 1));
+      inc.addEventListener('click', () => setSeatQty(stepper, parseInt(qtyInput.value || '0', 10) + 1));
+      qtyInput.addEventListener('input', () => setSeatQty(stepper, parseInt(qtyInput.value || '0', 10) || 0));
+      setSeatQty(stepper, parseInt(qtyInput.value || '0', 10) || 0);
+    });
+
+    // ---- Date min = today --------------------------------------------
+    const today = new Date().toISOString().slice(0, 10);
+    form.querySelectorAll<HTMLInputElement>('input[type="date"]').forEach((el) => {
+      el.min = today;
+    });
+
+    // ---- WhatsApp link prefill ---------------------------------------
+    function updateWhatsApp() {
+      if (!whatsappLink) return;
+      const pu = pickup.value || '?';
+      const dr = dropoff.value || '?';
+      const pax = paxInput.value;
+      const date = (form.querySelector<HTMLInputElement>('input[name="date"]')!).value;
+      const time = (form.querySelector<HTMLInputElement>('input[name="time"]')!).value;
+      const msg =
+        `Bonjour, je souhaite un devis : ${pu} → ${dr}` +
+        (date ? `, ${date}` : '') +
+        (time ? ` ${time}` : '') +
+        `, ${pax} pax.`;
+      whatsappLink.href = `https://wa.me/${cfg.whatsapp}?text=${encodeURIComponent(msg)}`;
+    }
+
+    // ---- Wire up events ----------------------------------------------
+    form.addEventListener('change', () => {
+      refreshConditionals();
+      refreshSummary();
+      updateWhatsApp();
+    });
+    form.addEventListener('input', updateWhatsApp);
+
+    // ---- Prefill from URL / hero event -------------------------------
+    // `undefined` means "don't touch", empty string means "clear", non-empty
+    // means "set to this value". The hidden native select drives the custom
+    // combobox UI via a change event, so we dispatch one after each write.
+    function applySelection(pu?: string, dr?: string) {
+      if (pu !== undefined) {
+        const valid = pu && [...pickup.options].some((o) => o.value === pu);
+        pickup.value = valid ? pu : '';
+        pickup.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      if (dr !== undefined) {
+        const valid = dr && [...dropoff.options].some((o) => o.value === dr);
+        dropoff.value = valid ? dr : '';
+        dropoff.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      refreshConditionals();
+      refreshSummary();
+      updateWhatsApp();
+    }
+    const params = new URLSearchParams(window.location.search);
+    applySelection(params.get('pickup') ?? undefined, params.get('dropoff') ?? undefined);
+    // Honor `?pax=N` from Tarifs card deep-links — setPax already clamps
+    // to [1, 24] and ignores NaN, so no extra guard is needed here.
+    const paxParam = params.get('pax');
+    if (paxParam !== null) {
+      const n = parseInt(paxParam, 10);
+      if (Number.isFinite(n) && n > 0) setPax(n);
+    }
+    window.addEventListener('thedriver:quote-selected', (e: Event) => {
+      const { pickup: p, dropoff: d, pax: paxFromEvent, date, time } = (e as CustomEvent).detail ?? {};
+      applySelection(p, d);
+      if (typeof paxFromEvent === 'number' && Number.isFinite(paxFromEvent) && paxFromEvent > 0) {
+        setPax(paxFromEvent);
+      }
+      // Prefill date/time from the hero (whatever the customer filled). The
+      // modal keeps the full editable form — they can still change these.
+      if (date) {
+        const dEl = form.querySelector<HTMLInputElement>('input[name="date"]');
+        if (dEl) { dEl.value = date; dEl.dispatchEvent(new Event('change', { bubbles: true })); }
+      }
+      if (time) {
+        const tEl = form.querySelector<HTMLInputElement>('input[name="time"]');
+        if (tEl) { tEl.value = time; tEl.dispatchEvent(new Event('change', { bubbles: true })); }
+      }
+      refreshSummary();
+      // Focus first empty required field
+      const firstEmpty = form.querySelector<HTMLInputElement>(
+        'input[required]:placeholder-shown, input[required]:not([value]), input[required][value=""]',
+      );
+      setTimeout(() => firstEmpty?.focus(), 600);
+    });
+
+    // ---- Submit ------------------------------------------------------
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorEl.classList.add('hidden');
+
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      if (!cfg.workerUrl) {
+        errorEl.textContent = 'Missing form config (PUBLIC_WORKER_URL).';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      // ── Collect form values into the JSON payload the Worker expects.
+      //    The Worker (worker/) builds both branded HTML emails server-
+      //    side from this payload and sends them via Resend. Submitting
+      //    JSON (not FormData) so accented strings, emoji, and nested
+      //    structures travel cleanly.
+      const payload = {
+        firstName: (form.querySelector<HTMLInputElement>('[name="first_name"]')!).value.trim(),
+        lastName: (form.querySelector<HTMLInputElement>('[name="last_name"]')!).value.trim(),
+        email: (form.querySelector<HTMLInputElement>('[name="email"]')!).value.trim(),
+        countryCode: (form.querySelector<HTMLSelectElement>('[name="country_code"]')!).value,
+        phone: (form.querySelector<HTMLInputElement>('[name="phone_number"]')!).value.trim(),
+        pickup: pickup.value,
+        dropoff: dropoff.value,
+        pickupStation: pickupStation?.value || '',
+        dropoffStation: dropoffStation?.value || '',
+        date: (form.querySelector<HTMLInputElement>('[name="date"]')!).value,
+        time: (form.querySelector<HTMLInputElement>('[name="time"]')!).value,
+        pax: paxInput.value,
+        tripType: form.querySelector<HTMLInputElement>('[name="trip_type"]:checked')?.value || 'one-way',
+        returnDate: form.querySelector<HTMLInputElement>('[name="return_date"]')?.value || '',
+        returnTime: form.querySelector<HTMLInputElement>('[name="return_time"]')?.value || '',
+        totalPrice: (form.querySelector<HTMLInputElement>('[data-role="total-price"]')!).value,
+        vehicleSummary: (form.querySelector<HTMLInputElement>('[data-role="vehicle-summary"]')!).value,
+        // Flight number — required for airport pickups, blank otherwise.
+        flightNumber: form.querySelector<HTMLInputElement>('[name="flight_number"]')?.value.trim() || '',
+        trainNumber: form.querySelector<HTMLInputElement>('[name="train_number"]')?.value.trim() || '',
+        // Address / hotel / monument — required for city pickup / dropoff.
+        pickupAddress: form.querySelector<HTMLInputElement>('[name="pickup_address"]')?.value.trim() || '',
+        dropoffAddress: form.querySelector<HTMLInputElement>('[name="dropoff_address"]')?.value.trim() || '',
+        cosyCount: parseInt(form.querySelector<HTMLInputElement>('[name="seat_cosy"]')?.value || '0', 10) || 0,
+        siegeCount: parseInt(form.querySelector<HTMLInputElement>('[name="seat_baby"]')?.value || '0', 10) || 0,
+        rehausseurCount: parseInt(form.querySelector<HTMLInputElement>('[name="seat_booster"]')?.value || '0', 10) || 0,
+        extraStop: !!form.querySelector<HTMLInputElement>('[name="extra_stop"]')?.checked,
+        extraStopDetails: form.querySelector<HTMLInputElement>('[name="extra_stop_details"]')?.value.trim() || '',
+        // Reserved for future: a notes/message field on the booking form.
+        notes: '',
+        locale: cfg.locale,
+        // Honeypot — Worker silently 200s and skips emails when this is true.
+        botcheck: !!form.querySelector<HTMLInputElement>('[name="botcheck"]')?.checked,
+      };
+
+      submitBtn.disabled = true;
+      submitLabel.textContent = submitBtn.dataset.loadingText || submitLabel.textContent!;
+      submitSpinner.classList.remove('hidden');
+
+      try {
+        const res = await fetch(cfg.workerUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const out = await res.json().catch(() => ({} as any));
+        if (!res.ok || out.success === false) {
+          throw new Error(out.error || 'submission failed');
+        }
+
+        // Success: redirect to the locale's thank-you page. The dedicated
+        // URL is what the media buyer's conversion pixels (Google Ads /
+        // Meta / GA4) attach to — a URL hit is a cleaner conversion signal
+        // than an in-page JS event. Keep the button disabled + spinner
+        // visible until the navigation kicks off so users can't double-submit.
+        window.location.assign(cfg.thankYouPath);
+        return;
+      } catch (err) {
+        errorEl.textContent = (err as Error).message || 'Submission failed.';
+        errorEl.classList.remove('hidden');
+        submitBtn.disabled = false;
+        submitSpinner.classList.add('hidden');
+        submitLabel.textContent = submitLabelDefault;
+      }
+    });
+
+    // ---- Modal-close reset --------------------------------------------
+    // When the booking modal fully finishes its close transition it
+    // dispatches `thedriver:booking-modal-closed`. We use that signal
+    // to undo any post-submit state (success card visible, form hidden,
+    // error banner) AND reset field values back to defaults — so the
+    // next open is a fresh form, not a stale success view.
+    // Pre-fill from quote-picker / Tarifs deep-links happens after this
+    // (on the open path), so it still overrides cleared values correctly.
+    function resetFormState() {
+      form.reset();
+      form.hidden = false;
+      successCard?.classList.add('hidden');
+      errorEl.classList.add('hidden');
+      errorEl.textContent = '';
+      submitBtn.disabled = false;
+      submitSpinner.classList.add('hidden');
+      submitLabel.textContent = submitLabelDefault;
+      // Bring derived UI (vehicle summary, total, conditionals, pax stepper)
+      // back in sync with the reset field values.
+      refreshConditionals();
+      setPax(parseInt(paxInput.value || '1', 10));
+      refreshSummary();
+      updateWhatsApp();
+    }
+    window.addEventListener('thedriver:booking-modal-closed', resetFormState);
+
+    // initial render
+    refreshConditionals();
+    refreshSummary();
+    updateWhatsApp();
+    setPax(parseInt(paxInput.value || '1', 10));
+  }
+
+  function run() {
+    document.querySelectorAll<HTMLFormElement>('[data-booking-form]').forEach(initForm);
+  }
+
+  // Reveal/open behaviour is now owned by BookingModal — this component only
+  // binds the form's own logic (fields, submit, conditional reveals, prefill).
+  document.addEventListener('astro:page-load', run);
+</script>
+
+<style>
+  /* Section legends — small terracotta icon badge before each section
+     title so the form reads as colour-coded steps, not a white wall. */
+  .bf-legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .bf-legend-title { display: inline-flex; align-items: center; gap: 8px; }
+  .bf-legend-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    background: color-mix(in oklab, var(--color-accent) 12%, transparent);
+    color: var(--color-accent);
+  }
+  .bf-legend-icon svg { width: 14px; height: 14px; }
+
+  /* Summary box — warm tinted card (was flat white) with an accent top
+     hairline and an accent-coloured total, so the price stands out. */
+  .bf-summary {
+    background:
+      linear-gradient(180deg,
+        color-mix(in oklab, var(--color-accent) 6%, var(--color-paper)) 0%,
+        var(--color-cream) 100%);
+    border: 1px solid color-mix(in oklab, var(--color-accent) 22%, var(--color-smoke));
+    border-top: 2px solid color-mix(in oklab, var(--color-accent) 55%, transparent);
+  }
+  .bf-total { color: var(--color-accent); }
+
+  /* "Required" pill next to a field label (flight / pickup / dropoff address).
+     Reuses .round-trip-badge but drops the left-margin + the parent
+     meta-label's uppercase so it reads as a small sentence-case tag. */
+  .bf-required-pill {
+    margin-left: 0;
+    text-transform: none;
+    letter-spacing: 0.01em;
+  }
+
+  /* Options accordion summary — title + two category pills + chevron.
+     The pills (reusing .round-trip-badge) sit inline with the title;
+     on narrow viewports they wrap to a second line while the chevron
+     stays right-aligned. */
+  .bf-options-titlerow {
+    min-width: 0;
+    column-gap: 8px;
+  }
+  .bf-options-titlerow > .round-trip-badge {
+    /* override the default left-margin so flex gap drives spacing,
+       and undo the parent meta-label's uppercase + tracking so the
+       pill label reads as casual sentence case. */
+    margin-left: 0;
+    text-transform: none;
+    letter-spacing: 0.01em;
+  }
+
+  /* Booking summary "Véhicule" row — small Lucide-style vehicle icons
+     before the text. Decorative; the text itself is the source of truth
+     for screen readers (icons are aria-hidden). */
+  .bf-vehicle-cell {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+    text-align: right;
+  }
+  .bf-vehicle-icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--color-graphite);
+    flex-shrink: 0;
+  }
+  .bf-vehicle-icons:empty { display: none; }
+  .bf-vehicle-icons svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+  }
+</style>

@@ -1,0 +1,349 @@
+---
+/**
+ * Welcome wave intro overlay — plays once per session, on the home page only.
+ *
+ * Sequence (1.728s total):
+ *   0     →  576ms   4 horizontal color bands stagger in from the right —
+ *                    deepest terracotta on top → dusty cream at bottom,
+ *                    ~108ms stagger top-to-bottom
+ *   576   → 1224ms   Hold; circular "Bienvenue à Paris" stamp fades in
+ *                    centered in the viewport (only foreground element)
+ *   576ms           BaseLayout's `intro-pending` class is removed — page
+ *                    content paints behind the (still-covering) bands,
+ *                    so it's ready when the bands slide off
+ *   1224  → 1728ms   Bands stagger out — bottom (cream) first, top last
+ *   1824ms          Cleanup: overlay removed from DOM
+ *
+ * Visual: warm tonal sunset poster — 4 stacked horizontal color bands
+ * tracking the brand palette (deep terracotta → terracotta → warm rose →
+ * dusty cream). Each band's curvy bottom edge laps over the band below
+ * for a hand-cut paper-collage feel. Bands overlap heavily so the next
+ * band's flat top always sits beneath the previous band's highest crest
+ * — no gaps, hero content never visible during the intro.
+ *
+ * Skipped when:
+ *   - sessionStorage flag exists (set by inline head script in BaseLayout
+ *     pre-paint, no flash on returning visitors)
+ *   - prefers-reduced-motion is reduce
+ *   - mobile in landscape orientation
+ *
+ * Performance: pure CSS keyframes, transform/opacity/stroke-dashoffset
+ * only. 4 SVG bands + arrow + 2 text elements = 7 GPU layers.
+ */
+---
+
+<div class="intro-overlay" data-intro aria-hidden="true">
+  {/* Four horizontal color bands. Each is a full-viewport-wide SVG with
+      viewBox 0 0 100 30 stretched to fill its 30%-tall container. Path
+      tops are flat (flush against the band above's wavy bottom); path
+      bottoms are wavy curves that lap over the band below. */}
+
+  <svg class="intro-band intro-band--b1" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
+    {/* Band 1 (deep terracotta, top): bold single dip slightly off-center */}
+    <path d="M 0 0 L 100 0 L 100 22 C 90 22, 76 30, 58 30 C 40 30, 24 22, 0 22 Z" />
+  </svg>
+
+  <svg class="intro-band intro-band--b2" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
+    {/* Band 2 (terracotta brand): double crest, more aggressive waves */}
+    <path d="M 0 0 L 100 0 L 100 24 C 80 30, 65 22, 50 26 C 35 30, 20 22, 0 26 Z" />
+  </svg>
+
+  <svg class="intro-band intro-band--b3" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
+    {/* Band 3 (warm rose): gentle continuous wave, broader and calmer */}
+    <path d="M 0 0 L 100 0 L 100 25 C 70 28, 40 23, 0 25 Z" />
+  </svg>
+
+  <svg class="intro-band intro-band--b4" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
+    {/* Band 4 (dusty cream, foundational base): full-rectangle fill so the
+        bottom of the viewport is always covered. Band 3's wave sits on top
+        of this band's flat surface — that's where the visual character at
+        the band-3/band-4 boundary comes from. */}
+    <path d="M 0 0 L 100 0 L 100 30 L 0 30 Z" />
+  </svg>
+
+  <div class="intro-stamp" aria-hidden="true">
+    <span class="intro-stamp-mark">✦</span>
+    <span class="intro-stamp-line">Bienvenue</span>
+    <span class="intro-stamp-rule"></span>
+    <span class="intro-stamp-line">à Paris</span>
+    <span class="intro-stamp-tag">Paris · FR</span>
+  </div>
+</div>
+
+<style>
+  .intro-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    overflow: hidden;
+    /* `contain: strict` is too aggressive on iPad Safari — the browser
+       skips repaints of regions it shouldn't and we get white/black
+       flicker. `layout style` still isolates the overlay's layout +
+       style work without making promises about paint isolation that
+       iPad Safari mishandles. (The intro is now also skipped on iPad
+       entirely via BaseLayout, so this is belt-and-braces.) */
+    contain: layout style;
+  }
+  /* Skip path — set by the inline head script in BaseLayout for: session-
+     already-shown, reduced-motion, or landscape mobile. */
+  :root[data-intro-skip] .intro-overlay {
+    display: none !important;
+  }
+
+  /* ---------------------------------------------------------------
+     Horizontal color bands — 4 stacked layers. Heights and tops are
+     tuned so each band's flat top sits at-or-above the previous band's
+     highest wave crest, eliminating any gap to hero content. Higher
+     z-index on top bands so their wavy bottom edges sit ON TOP of the
+     band below — paper-cut sunset effect.
+
+     Math: each path's wave reaches y=22 at its highest crest in a
+     viewBox 0..30. Container heights of 30% / 30% / 30% / 34% with
+     tops at 0 / 22% / 44% / 66% give 8% overlap between consecutive
+     bands — exactly enough so band-N+1's flat top covers band-N's
+     highest crest at viewport (22/30 × 30%) = 22% inside the band.
+     --------------------------------------------------------------- */
+  .intro-band {
+    position: absolute;
+    left: 0;
+    width: 100vw;
+    display: block;
+    will-change: transform;
+    backface-visibility: hidden;
+    transform: translate3d(100vw, 0, 0); /* off-screen baseline */
+    pointer-events: none;
+  }
+  .intro-band--b1 { top: 0;    height: 30%; z-index: 4; animation: intro-band-b1 1728ms forwards; }
+  .intro-band--b2 { top: 22%;  height: 30%; z-index: 3; animation: intro-band-b2 1728ms forwards; }
+  .intro-band--b3 { top: 44%;  height: 30%; z-index: 2; animation: intro-band-b3 1728ms forwards; }
+  .intro-band--b4 { top: 66%;  height: 34%; z-index: 1; animation: intro-band-b4 1728ms forwards; }
+
+  /* Brand-tonal palette — every color is the accent or a mix of accent +
+     cream / accent + black. Sets fill via CSS so we get the variable. */
+  .intro-band--b1 path { fill: color-mix(in srgb, var(--color-accent) 100%, black 25%); }
+  .intro-band--b2 path { fill: var(--color-accent); }
+  .intro-band--b3 path { fill: color-mix(in srgb, var(--color-accent) 60%, var(--color-cream) 40%); }
+  .intro-band--b4 path { fill: color-mix(in srgb, var(--color-accent) 25%, var(--color-cream) 75%); }
+
+  /* Per-band keyframes — single shared 2400ms timeline, each band has its
+     own entry hold + exit start so we get a coherent arrival moment at
+     800ms and a coherent dismissal moment at 2400ms with varied
+     per-band durations. Easings applied per-keyframe. */
+
+  @keyframes intro-band-b1 {
+    /* Top band — first in (0ms), last out (2150ms exit start, 250ms exit) */
+    0% {
+      transform: translate3d(100vw, 0, 0);
+      animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    33.33% { /* 800ms — settled */
+      transform: translate3d(0, 0, 0);
+      animation-timing-function: linear;
+    }
+    89.58% { /* 2150ms — exit begins */
+      transform: translate3d(0, 0, 0);
+      animation-timing-function: cubic-bezier(0.36, 0, 0.66, 0.04);
+    }
+    100% { transform: translate3d(100vw, 0, 0); }
+  }
+  @keyframes intro-band-b2 {
+    /* Terracotta — second in (150ms), exits at 2000ms (400ms exit) */
+    0% {
+      transform: translate3d(100vw, 0, 0);
+      animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    6.25% { transform: translate3d(100vw, 0, 0); } /* held off-screen until 150ms */
+    33.33% { /* 800ms — settled */
+      transform: translate3d(0, 0, 0);
+      animation-timing-function: linear;
+    }
+    83.33% { /* 2000ms — exit begins */
+      transform: translate3d(0, 0, 0);
+      animation-timing-function: cubic-bezier(0.36, 0, 0.66, 0.04);
+    }
+    100% { transform: translate3d(100vw, 0, 0); }
+  }
+  @keyframes intro-band-b3 {
+    /* Warm rose — third in (300ms), exits at 1850ms (550ms exit) */
+    0% {
+      transform: translate3d(100vw, 0, 0);
+      animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    12.5% { transform: translate3d(100vw, 0, 0); } /* held until 300ms */
+    33.33% { /* 800ms — settled */
+      transform: translate3d(0, 0, 0);
+      animation-timing-function: linear;
+    }
+    77.08% { /* 1850ms — exit begins */
+      transform: translate3d(0, 0, 0);
+      animation-timing-function: cubic-bezier(0.36, 0, 0.66, 0.04);
+    }
+    100% { transform: translate3d(100vw, 0, 0); }
+  }
+  @keyframes intro-band-b4 {
+    /* Dusty cream — last in (450ms), first out (1700ms exit start, 700ms exit) */
+    0% {
+      transform: translate3d(100vw, 0, 0);
+      animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    18.75% { transform: translate3d(100vw, 0, 0); } /* held until 450ms */
+    33.33% { /* 800ms — settled */
+      transform: translate3d(0, 0, 0);
+      animation-timing-function: linear;
+    }
+    70.83% { /* 1700ms — exit begins (first to leave) */
+      transform: translate3d(0, 0, 0);
+      animation-timing-function: cubic-bezier(0.36, 0, 0.66, 0.04);
+    }
+    100% { transform: translate3d(100vw, 0, 0); }
+  }
+
+  /* ── Postmark-style circular stamp — the only foreground element.
+     Centered in the viewport. Five-element layout for that filled-out
+     passport-stamp look:
+       • top  ornament (✦)        small decorative mark, scaled by font-size
+       • main line   (Bienvenue)  uppercase, bold, primary
+       • rule        (—)          thin horizontal divider, breaks the lines
+       • main line   (à Paris)    uppercase, bold, primary
+       • bottom tag  (Paris · FR) tiny letterspaced caption, half opacity
+     Wrapped in a solid outer + dashed inner ring for stamp character.
+   ── */
+  .intro-stamp {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(0.85);
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    border: 3px solid var(--color-cream, #F8F5EE);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 4px;
+    padding: 22px 28px;
+    box-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.28);
+    z-index: 10;
+    opacity: 0;
+    will-change: transform, opacity;
+    animation: intro-stamp 648ms 936ms forwards;
+  }
+  /* Inner dashed ring — postmark detail */
+  .intro-stamp::before {
+    content: '';
+    position: absolute;
+    inset: 14px;
+    border-radius: 50%;
+    border: 1.5px dashed rgba(248, 245, 238, 0.7);
+    pointer-events: none;
+  }
+  .intro-stamp-mark {
+    font-size: 14px;
+    line-height: 1;
+    color: rgba(248, 245, 238, 0.95);
+    margin-bottom: 2px;
+  }
+  .intro-stamp-line {
+    font-family: var(--font-sans, "Inter"), system-ui, sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-cream, #F8F5EE);
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .intro-stamp-rule {
+    display: block;
+    width: 32px;
+    height: 1px;
+    background: rgba(248, 245, 238, 0.55);
+    margin: 2px 0;
+  }
+  .intro-stamp-tag {
+    font-family: var(--font-sans, "Inter"), system-ui, sans-serif;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: rgba(248, 245, 238, 0.65);
+    line-height: 1;
+    margin-top: 4px;
+    white-space: nowrap;
+  }
+  @media (min-width: 768px) {
+    .intro-stamp {
+      width: 320px;
+      height: 320px;
+      border-width: 4px;
+      padding: 32px 40px;
+      gap: 6px;
+    }
+    .intro-stamp::before { inset: 20px; border-width: 1.5px; }
+    .intro-stamp-mark { font-size: 18px; margin-bottom: 4px; }
+    .intro-stamp-line { font-size: 24px; letter-spacing: 0.18em; }
+    .intro-stamp-rule { width: 44px; margin: 4px 0; }
+    .intro-stamp-tag {
+      font-size: 11px;
+      letter-spacing: 0.4em;
+      margin-top: 6px;
+    }
+  }
+  @keyframes intro-stamp {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.85) rotate(-3deg);
+      animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    33.33% { /* settled — slight rotation slap for stamp feel */
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1) rotate(-2deg);
+    }
+    55.56% { /* hold */
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1) rotate(-2deg);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(1) rotate(-2deg);
+    }
+  }
+
+  /* Reduced-motion + landscape mobile — fully skip */
+  @media (prefers-reduced-motion: reduce) {
+    .intro-overlay { display: none !important; }
+  }
+  @media (max-width: 767px) and (orientation: landscape) {
+    .intro-overlay { display: none !important; }
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    var overlay = document.querySelector('[data-intro]');
+    if (!overlay) return;
+
+    // Skip path — the inline head script already handled the decision.
+    if (document.documentElement.getAttribute('data-intro-skip') === 'true') {
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      return;
+    }
+
+    // Reveal page content once bands have fully covered the screen (576ms).
+    // BaseLayout's `intro-pending` class hid <main>/<nav>/<footer> through
+    // first paint; lifting it here lets the page paint behind the still-
+    // covering bands so it's ready by the time bands begin their exit
+    // (1224ms). No flash either way.
+    setTimeout(function () {
+      document.documentElement.classList.remove('intro-pending');
+    }, 576);
+
+    // Cleanup after the band exit completes. ~96ms buffer past 1728ms.
+    setTimeout(function () {
+      if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    }, 1824);
+  })();
+</script>

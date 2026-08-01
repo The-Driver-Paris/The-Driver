@@ -1,0 +1,807 @@
+---
+import { t } from '../i18n';
+
+interface Props {
+  locale: 'fr' | 'en' | 'es' | 'it';
+}
+
+const { locale } = Astro.props;
+const strings = t(locale).form;
+
+// Labels for the close button + drag handle, pulled from existing i18n where available.
+// We reuse the form heading as the modal title so it's meaningful to screen readers.
+const titleId = 'booking-modal-title';
+const dragHandleLabel =
+  locale === 'fr' ? 'Glisser vers le bas pour fermer'
+  : locale === 'es' ? 'Desliza hacia abajo para cerrar'
+  : locale === 'it' ? 'Trascina verso il basso per chiudere'
+  : 'Drag down to close';
+---
+
+<div
+  class="modal"
+  data-booking-modal
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby={titleId}
+  aria-hidden="true"
+  hidden
+>
+  {/* Backdrop — click to close, fades in with the panel */}
+  <div class="modal-backdrop" data-modal-backdrop aria-hidden="true"></div>
+
+  {/* Panel — bottom sheet on mobile, centered dialog on desktop.
+      Flex-column so the header is always pinned at the top of the panel
+      regardless of body scroll position. */}
+  <div class="modal-panel" role="document" data-modal-panel>
+    {/* Drag handle — mobile only. Also the primary drag target. */}
+    <div
+      class="modal-grip md:hidden"
+      data-modal-grip
+      role="button"
+      tabindex="0"
+      aria-label={dragHandleLabel}
+    ></div>
+
+    {/* Persistent top bar — always visible, never scrolls with the form.
+        Holds the eyebrow label + close button. Top padding accounts for
+        iOS safe-area-inset-top so it doesn't tuck under the notch. */}
+    <header class="modal-header">
+      <p class="modal-eyebrow">{strings.eyebrow}</p>
+      <button
+        type="button"
+        class="modal-close"
+        data-modal-close
+        aria-label={locale === 'fr' ? 'Fermer' : locale === 'es' ? 'Cerrar' : locale === 'it' ? 'Chiudi' : 'Close'}
+      >
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </header>
+
+    {/* Accessible title — visually hidden because the slotted form has its own heading */}
+    <h2 id={titleId} class="sr-only">{strings.heading}</h2>
+
+    <div class="modal-body">
+      <slot />
+    </div>
+  </div>
+</div>
+
+<style>
+  .modal {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  @media (min-width: 768px) {
+    .modal { align-items: center; padding: 32px; }
+  }
+  .modal[hidden] { display: none; }
+
+  .modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: color-mix(in oklab, var(--color-ink) 42%, transparent);
+    opacity: 0;
+    transition: opacity 240ms var(--ease-out);
+  }
+  .modal.is-open .modal-backdrop { opacity: 1; }
+
+  .modal-panel {
+    position: relative;
+    width: 100%;
+    /* `100dvh` accounts for iOS Safari's collapsing URL bar; `vh` is
+       the fallback for browsers that don't support dvh. Subtract the
+       top safe area so the panel never paints behind the notch /
+       status bar in viewport-fit=cover. */
+    max-height: 92vh;
+    max-height: calc(100dvh - max(20px, env(safe-area-inset-top, 0px)));
+    /* Padding here (not on header/body) keeps absolute children like the
+       grip positioned relative to the panel's visual top edge while
+       still pushing the flex content (header + body) clear of the
+       notch above and the home indicator below on mobile. */
+    padding-top: max(14px, env(safe-area-inset-top, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--color-paper);
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    box-shadow: 0 -12px 40px -12px rgba(0, 0, 0, 0.18);
+    transform: translateY(12px);
+    opacity: 0;
+    /* GPU compositing hint — keeps the panel on its own layer so the
+       backdrop fade + panel slide compose smoothly on iPad Safari.
+       Without this, the panel sometimes triggers a full-page repaint
+       at the moment of `is-open` transition, causing a visible flash. */
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transition: transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 220ms var(--ease-out);
+    /* Flex column so the header pins to the top and the body fills the
+       remaining height + handles its own internal scroll. */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  /* While the user is actively drag-following, bypass the release transition
+     so translateY tracks their finger at 60fps. */
+  .modal.is-dragging .modal-panel {
+    transition: none;
+  }
+  /* Release easing when they let go — snap back up, or slide out down. */
+  .modal.is-releasing .modal-panel {
+    transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms var(--ease-out);
+  }
+  @media (min-width: 768px) {
+    .modal-panel {
+      width: min(640px, calc(100vw - 64px));
+      max-height: min(88vh, 820px);
+      max-height: min(88dvh, 820px);
+      /* Desktop is a centered dialog with its own padding from the
+         outer modal — drop the mobile safe-area padding entirely. */
+      padding-top: 0;
+      padding-bottom: 0;
+      border-radius: 20px;
+      box-shadow: 0 30px 80px -12px rgba(0, 0, 0, 0.25);
+      transform: translateY(16px) scale(0.985);
+    }
+  }
+  .modal.is-open .modal-panel {
+    transform: none;
+    opacity: 1;
+  }
+
+  .modal-grip {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 52px;
+    height: 18px;   /* expanded hit target — the visible bar sits inside */
+    border-radius: 999px;
+    background: transparent;
+    z-index: 3;
+    cursor: grab;
+    touch-action: none; /* JS owns the drag-down gesture */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-grip::before {
+    content: '';
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--color-smoke);
+    transition: background-color 200ms var(--ease-out), width 200ms var(--ease-out);
+  }
+  .modal-grip:active { cursor: grabbing; }
+  .modal-grip:active::before { background: var(--color-graphite); width: 44px; }
+  .modal-grip:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--color-accent) 50%, transparent);
+    outline-offset: 3px;
+  }
+
+  /* Persistent top bar — pinned at the top of the panel via flex-column.
+     Mobile safe-area is handled on the panel itself, so this header
+     only needs its own visual padding. The grip (absolute on the
+     panel) sits 8px below the panel's padding-top edge, which is
+     above the header content — they don't overlap visually. */
+  .modal-header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 20px 12px 20px;
+    background: var(--color-paper);
+    border-bottom: 1px solid transparent;
+    z-index: 2;
+    transition: border-color 200ms var(--ease-out);
+  }
+  /* When the body has scrolled, mark the header with a hairline divider
+     so it visually detaches from the (now-scrolling) content beneath. */
+  .modal.is-scrolled .modal-header {
+    border-bottom-color: color-mix(in oklab, var(--color-ink) 8%, transparent);
+  }
+  @media (min-width: 768px) {
+    .modal-header {
+      padding: 20px 24px 14px 28px;
+    }
+  }
+
+  .modal-eyebrow {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-graphite);
+    line-height: 1;
+    /* On mobile the grip overlaps the very top edge of the header; the
+       eyebrow sits below it visually thanks to the padding-top above. */
+  }
+
+  .modal-close {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--color-cream);
+    color: var(--color-ink);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 200ms var(--ease-out), transform 200ms var(--ease-out);
+  }
+  .modal-close:hover { background: var(--color-smoke); }
+  .modal-close:active { transform: scale(0.94); }
+  .modal-close:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--color-accent) 50%, transparent);
+    outline-offset: 2px;
+  }
+
+  .modal-body {
+    flex: 1 1 auto;
+    /* `min-height: 0` is required so the flex item is allowed to shrink
+       below its content height and the body's internal scroll engages. */
+    min-height: 0;
+    padding-top: 8px;
+    padding-bottom: 16px;
+    overflow-y: auto;
+    /* Don't bubble overscroll into the locked <body>. Without this,
+       reaching the top/bottom of the form chains the scroll event up
+       through the chain and causes the locked page to flicker on iOS
+       and bounce on macOS trackpads. */
+    overscroll-behavior: contain;
+    /* Reserve the scrollbar gutter so toggling expandable rows in the
+       form doesn't reflow the layout when the scrollbar appears/disappears. */
+    scrollbar-gutter: stable;
+    /* When Tab-focus moves to an input, scroll-into-view should leave
+       room for the sticky header above. */
+    scroll-padding-top: 24px;
+    scroll-padding-bottom: 24px;
+    /* iOS native momentum scrolling — silently ignored elsewhere. */
+    -webkit-overflow-scrolling: touch;
+    /* Soft fade at the bottom so users see content can scroll further;
+       fades out the last 24px into the modal background. */
+    mask-image: linear-gradient(to bottom, black calc(100% - 24px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 24px), transparent 100%);
+  }
+  @media (min-width: 768px) {
+    .modal-body { padding-top: 4px; }
+  }
+
+  /* When the body is fully scrolled (or non-scrollable in the first
+     place), drop the bottom fade so the last form field reads cleanly. */
+  .modal.is-at-bottom .modal-body {
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+
+  /* Hide the form's internal eyebrow when it's rendered inside the modal —
+     the modal-header already shows it, no need to repeat. The standalone
+     home-page form keeps its eyebrow because it's not inside `.modal-body`. */
+  .modal-body :global(.booking-form-eyebrow) {
+    display: none;
+  }
+
+  /* Neutralise the slotted <section>'s vertical padding + max width — the modal
+     controls its own chrome. We scope via :global so Astro's scoped selectors
+     don't hide this rule from the slotted component. */
+  .modal-body :global(#booking-form) {
+    padding: 0;
+  }
+  .modal-body :global(#booking-form .section-y) {
+    padding-top: 4px;
+    padding-bottom: 24px;
+  }
+  .modal-body :global(#booking-form .page-x) {
+    padding-left: 20px;
+    padding-right: 20px;
+    max-width: none;
+  }
+  @media (min-width: 768px) {
+    .modal-body :global(#booking-form .page-x) {
+      padding-left: 40px;
+      padding-right: 40px;
+    }
+  }
+  /* Inside the modal the form shouldn't also have its own card chrome on desktop */
+  .modal-body :global(#booking-form form[data-booking-form]) {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  /* Reduced-motion: no slide, just swap opacity */
+  @media (prefers-reduced-motion: reduce) {
+    .modal-panel,
+    .modal-backdrop {
+      transition: opacity 120ms linear;
+      transform: none !important;
+    }
+  }
+</style>
+
+<script>
+  // Booking modal controller — global. Opens on:
+  //   • thedriver:open-booking custom event (optionally with {pickup, dropoff} detail)
+  //   • any click on a[href*="#booking-form"] on the same page
+  //   • page load if URL contains ?pickup=... / ?dropoff=... / #booking-form
+  // Close on: Esc, backdrop click, X button.
+  function run() {
+    // Defensive cleanup: if the previous page navigated away while the
+    // modal was open, the body still has its scroll-lock styles. Restore
+    // before the new page tries to do anything.
+    const body = document.body;
+    if (body.dataset.scrollLockY !== undefined) {
+      const y = parseInt(body.dataset.scrollLockY || '0', 10) || 0;
+      body.style.position = '';
+      body.style.top = '';
+      body.style.left = '';
+      body.style.right = '';
+      body.style.width = '';
+      body.style.overflow = '';
+      delete body.dataset.scrollLockY;
+      window.scrollTo({ top: y, left: 0, behavior: 'auto' });
+    }
+
+    const modalRef = document.querySelector<HTMLElement>('[data-booking-modal]');
+    if (!modalRef) return;
+    const modal = modalRef;
+
+    const backdrop = modal.querySelector<HTMLElement>('[data-modal-backdrop]');
+    const closeBtn = modal.querySelector<HTMLButtonElement>('[data-modal-close]');
+    const panelRef = modal.querySelector<HTMLElement>('.modal-panel');
+    if (!panelRef) return;
+    const panel = panelRef;
+
+    const modalBody = panel.querySelector<HTMLElement>('.modal-body');
+
+    let lastFocus: HTMLElement | null = null;
+    let savedScroll = 0;
+
+    // ---- Internal scroll state tracking --------------------------------
+    // - .is-scrolled marks the header with a hairline divider when the
+    //   user has moved past the top of the form.
+    // - .is-at-bottom drops the bottom mask-image fade so the last form
+    //   field doesn't sit half-faded when the user has reached the end
+    //   of the form (or the form is short enough to not need scrolling).
+    function updateScrollState() {
+      if (!modalBody) return;
+      const isScrollable = modalBody.scrollHeight > modalBody.clientHeight + 2;
+      const atBottom =
+        !isScrollable ||
+        modalBody.scrollTop + modalBody.clientHeight >= modalBody.scrollHeight - 4;
+      const atTop = modalBody.scrollTop <= 4;
+      modal.classList.toggle('is-scrolled', !atTop);
+      modal.classList.toggle('is-at-bottom', atBottom);
+    }
+    modalBody?.addEventListener('scroll', updateScrollState, { passive: true });
+    // Recompute when the panel resizes (e.g. orientation change, soft
+    // keyboard slide, or expandable form rows toggling).
+    if ('ResizeObserver' in window && modalBody) {
+      const ro = new ResizeObserver(() => updateScrollState());
+      ro.observe(modalBody);
+    }
+
+    // ---- iOS-safe page-scroll lock --------------------------------
+    // `body { overflow: hidden }` alone doesn't actually lock scroll on
+    // iOS Safari — the page still scrolls behind the modal. Pinning the
+    // body with `position: fixed` + a negative top offset is the only
+    // technique that holds across iOS, Android Chrome, and desktop.
+    function lockPageScroll() {
+      savedScroll = window.scrollY;
+      const body = document.body;
+      body.dataset.scrollLockY = String(savedScroll);
+      body.style.position = 'fixed';
+      body.style.top = `-${savedScroll}px`;
+      body.style.left = '0';
+      body.style.right = '0';
+      body.style.width = '100%';
+      body.style.overflow = 'hidden';
+    }
+    function unlockPageScroll() {
+      const body = document.body;
+      const y = parseInt(body.dataset.scrollLockY || '0', 10) || savedScroll;
+      body.style.position = '';
+      body.style.top = '';
+      body.style.left = '';
+      body.style.right = '';
+      body.style.width = '';
+      body.style.overflow = '';
+      delete body.dataset.scrollLockY;
+      // Use auto here, not 'instant' — Chrome warns on the latter and
+      // 'auto' bypasses smooth-scroll the same way.
+      window.scrollTo({ top: y, left: 0, behavior: 'auto' });
+    }
+
+    function focusableInside(root: HTMLElement) {
+      return Array.from(
+        root.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((el) => !el.hasAttribute('hidden') && el.offsetParent !== null);
+    }
+
+    type OpenDetail = {
+      source?: string;
+      pickup?: string;
+      dropoff?: string;
+      pax?: number;
+      // Hero form also collects these — passed through so the booking form
+      // prefills them (the modal still shows the full editable form).
+      date?: string;
+      time?: string;
+    };
+
+    // Whitelist of locations a deep-link is allowed to pre-select. Mirrors
+    // the option set of the booking-form selects — anything outside this
+    // list (typo, malicious link) is ignored so we never autoopen with a
+    // garbage pickup that the form would silently drop on submit.
+    const VALID_LOCATIONS = [
+      'CDG',
+      'Orly',
+      'Beauvais',
+      'Disneyland',
+      'Versailles',
+      'Paris',
+      'Paris Train Station',
+    ] as const;
+
+    function isValidLocation(v: string | null | undefined): v is string {
+      return typeof v === 'string' && (VALID_LOCATIONS as readonly string[]).includes(v);
+    }
+
+    // Same-pair routes are nonsensical EXCEPT Paris→Paris (intra-Paris
+    // transfer is a real product). Used by the URL autoopen guard.
+    function isValidPair(p: string, d: string): boolean {
+      if (p !== d) return true;
+      return p === 'Paris';
+    }
+
+    // Clamp pax to the form's accepted range. Anything non-numeric, ≤0,
+    // or NaN falls back to 1 — never block the autoopen on a bad pax,
+    // just normalize it.
+    function clampPax(raw: string | null | undefined): number {
+      const n = parseInt(String(raw ?? ''), 10);
+      if (!Number.isFinite(n) || n < 1) return 1;
+      if (n > 24) return 24;
+      return n;
+    }
+
+    // Resolve the prefill behavior based on WHERE the open came from.
+    // Returns `undefined` on fields we shouldn't touch, empty-string on fields
+    // we should clear, otherwise the value to apply.
+    function resolvePrefill(d?: OpenDetail): { pickup: string; dropoff: string; pax?: number; date?: string; time?: string } {
+      const src = d?.source ?? 'generic';
+      const pax = typeof d?.pax === 'number' ? d.pax : undefined;
+      const extra = { date: d?.date, time: d?.time };
+      if (src === 'hero-picker' && d?.pickup && d?.dropoff) {
+        return { pickup: d.pickup, dropoff: d.dropoff, pax, ...extra };
+      }
+      if (src === 'destination-card' && d?.dropoff) {
+        return { pickup: '', dropoff: d.dropoff, pax, ...extra };
+      }
+      if (src === 'url' && (d?.pickup || d?.dropoff)) {
+        // URL arrival — honor whatever was actually present
+        return { pickup: d.pickup ?? '', dropoff: d.dropoff ?? '', pax, ...extra };
+      }
+      return { pickup: '', dropoff: '', pax, ...extra };
+    }
+
+    function dispatchPrefill(d?: OpenDetail) {
+      const resolved = resolvePrefill(d);
+      window.dispatchEvent(
+        new CustomEvent('thedriver:quote-selected', { detail: resolved }),
+      );
+    }
+
+    // Strip pickup/dropoff/pax/autoopen query params + #booking-form hash
+    // from the URL once they've been consumed. Without this, refreshing
+    // the page would re-trigger the modal auto-open AND re-prefill the
+    // hero picker with stale data from the previous session.
+    function cleanUrlState() {
+      try {
+        const url = new URL(location.href);
+        let dirty = false;
+        for (const k of ['pickup', 'dropoff', 'pax', 'autoopen']) {
+          if (url.searchParams.has(k)) { url.searchParams.delete(k); dirty = true; }
+        }
+        if (url.hash === '#booking-form') { dirty = true; }
+        if (!dirty) return;
+        const cleanHash = url.hash === '#booking-form' ? '' : url.hash;
+        history.replaceState(null, '', url.pathname + url.search + cleanHash);
+      } catch {
+        /* noop — replaceState can throw on file:// or sandboxed contexts */
+      }
+    }
+
+    function open(detail?: OpenDetail) {
+      if (modal.getAttribute('aria-hidden') === 'false') {
+        // Already open — just re-apply the prefill for this source.
+        dispatchPrefill(detail);
+        cleanUrlState();
+        return;
+      }
+      lastFocus = document.activeElement as HTMLElement | null;
+      lockPageScroll();
+
+      modal.hidden = false;
+      // Always start the form scrolled to the top — without this,
+      // reopening the modal preserves the previous scroll position
+      // (e.g. you scrolled to the submit button, closed, reopened from
+      // the hero CTA, and it lands at the submit button instead of the
+      // pickup field).
+      if (modalBody) modalBody.scrollTop = 0;
+      // Sync header-divider + bottom-fade classes after scrollTop reset
+      requestAnimationFrame(updateScrollState);
+      // Double rAF so the initial styles apply before is-open kicks in (smooth transition)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => modal.classList.add('is-open'));
+      });
+      modal.setAttribute('aria-hidden', 'false');
+
+      // Apply prefill (or clear) for this source
+      dispatchPrefill(detail);
+      // Consume the URL state so refresh doesn't replay the open.
+      cleanUrlState();
+
+      // Force-reveal any [data-reveal] elements nested in the modal.
+      // The page-load IntersectionObserver observed them while the modal
+      // was still `hidden` (display:none), and depending on browser timing
+      // it may not fire on the display change — leaving split-heading
+      // words stuck at opacity 0 with their layout space reserved (a
+      // visible "blank gap" above the form description).
+      panel.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => {
+        el.classList.add('is-visible');
+      });
+
+      // Focus first focusable inside (close button or first input).
+      // preventScroll keeps the modal-body at top — without it the
+      // browser auto-scrolls into the focused element.
+      setTimeout(() => {
+        const focusables = focusableInside(panel);
+        (focusables[0] ?? closeBtn)?.focus({ preventScroll: true });
+      }, 120);
+    }
+
+    let closeTransitionTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function close() {
+      // Cancel any in-flight close transition timer so a quick reopen
+      // doesn't get hidden by the trailing setTimeout.
+      if (closeTransitionTimer) {
+        clearTimeout(closeTransitionTimer);
+        closeTransitionTimer = null;
+      }
+
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+      unlockPageScroll();
+
+      // Wait for the closing transition, then fully hide + dispatch the
+      // reset event so the slotted booking form swaps the success card
+      // back to the form view (and clears field values). Doing this AFTER
+      // the transition avoids a visible mid-close flash of the form.
+      closeTransitionTimer = setTimeout(() => {
+        closeTransitionTimer = null;
+        if (modal.getAttribute('aria-hidden') === 'true' && !modal.classList.contains('is-open')) {
+          modal.hidden = true;
+          window.dispatchEvent(new CustomEvent('thedriver:booking-modal-closed'));
+        }
+      }, 340);
+
+      // Restore focus to whatever opened the modal.
+      lastFocus?.focus({ preventScroll: true });
+    }
+
+    // --- wire-up ---
+    backdrop?.addEventListener('click', close);
+    closeBtn?.addEventListener('click', close);
+
+    // Esc to close + focus trap
+    document.addEventListener('keydown', (e) => {
+      if (modal.getAttribute('aria-hidden') === 'true') return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        close();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const focusables = focusableInside(panel!);
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
+
+    // Global open hook
+    window.addEventListener('thedriver:open-booking', ((e: Event) => {
+      const detail = (e as CustomEvent).detail as { pickup?: string; dropoff?: string } | undefined;
+      open(detail);
+    }) as EventListener);
+
+    // Quote-selected also implies the user wants to book — open the modal
+    window.addEventListener('thedriver:quote-selected', ((e: Event) => {
+      const detail = (e as CustomEvent).detail as { pickup?: string; dropoff?: string } | undefined;
+      // Only open via this path if we're not already open (prefill-refire above handles it)
+      if (modal.getAttribute('aria-hidden') === 'true') open(detail);
+    }) as EventListener);
+
+    // Any link targeting #booking-form on this page → open modal, suppress navigation
+    document.addEventListener('click', (e) => {
+      const a = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null;
+      if (!a) return;
+      const raw = a.getAttribute('href') || '';
+      if (!raw.includes('#booking-form')) return;
+      const url = new URL(raw, location.href);
+      // Cross-page link? Let the browser navigate, the destination page will auto-open.
+      if (url.pathname !== location.pathname) return;
+      e.preventDefault();
+      open();
+    });
+
+    // Auto-open on arrival if the URL signals a booking intent. Two
+    // independent triggers:
+    //   1. Hash `#booking-form` — the legacy in-page CTA pattern. Any
+    //      pickup/dropoff query params come along for the ride untouched.
+    //   2. Query `?autoopen=1` — used by the Tarifs card deep-links
+    //      (Tarifs page sends `?pickup=CDG&dropoff=Paris&pax=4&autoopen=1#hero`).
+    //      We refuse to autoopen unless BOTH pickup AND dropoff are valid
+    //      whitelist entries AND the pair is sensible (no Versailles→Versailles).
+    //      A bad URL (typo, malicious share, scraping bot) silently falls
+    //      through to "just pre-fill the hero picker" via QuotePicker.
+    //
+    // A bare `/?pickup=CDG&dropoff=Paris` (no hash, no autoopen) still
+    // just pre-fills the hero picker — the modal stays closed until the
+    // user explicitly hits a CTA.
+    {
+      const params = new URLSearchParams(location.search);
+      const hashTrigger = location.hash === '#booking-form';
+      const autoopenTrigger = params.get('autoopen') === '1';
+
+      if (hashTrigger || autoopenTrigger) {
+        const p = params.get('pickup');
+        const d = params.get('dropoff');
+        const detail: OpenDetail = { source: 'url' };
+        if (p) detail.pickup = p;
+        if (d) detail.dropoff = d;
+        if (params.has('pax')) detail.pax = clampPax(params.get('pax'));
+
+        // For the autoopen path specifically, validate before firing.
+        // The hash path stays permissive for backward compatibility with
+        // any existing in-page links that just want to open the modal.
+        let allowOpen = true;
+        if (autoopenTrigger && !hashTrigger) {
+          const pickupOk = isValidLocation(p);
+          const dropoffOk = isValidLocation(d);
+          allowOpen = pickupOk && dropoffOk && isValidPair(p as string, d as string);
+        }
+
+        if (allowOpen) {
+          // Small delay so the page layout settles + reveals run before we interrupt
+          setTimeout(() => open(detail), 300);
+        }
+        // If validation failed we deliberately do NOT clean the URL —
+        // QuotePicker still gets a shot at reading pickup/dropoff for
+        // the hero pre-fill, and a refresh with the same bad URL just
+        // re-fails the same way (no UI noise).
+      }
+    }
+
+    // ---- Mobile drag-down-to-close -----------------------------------
+    // Listeners attach to the GRIP element only, not the whole panel.
+    // This is deliberate: putting the gesture on the panel meant any
+    // touch in the top of the panel could be read as a drag intent,
+    // and that conflicted with internal form-scroll attempts. With
+    // grip-only, the user's scroll inside the form is never hijacked,
+    // and the visible drag handle is the explicit affordance.
+    const grip = panel.querySelector<HTMLElement>('[data-modal-grip]');
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const DISMISS_RATIO = 0.30; // of panel height
+    let dragStartY = 0;
+    let dragCurrentY = 0;
+    let dragging = false;
+    let dragAccepted = false; // true once vertical intent is clear
+    let panelHeightAtStart = 0;
+
+    function isMobile() {
+      return window.matchMedia('(max-width: 767px)').matches;
+    }
+
+    function onTouchStart(e: TouchEvent) {
+      if (!isMobile() || reduceMotion) return;
+      if (modal.getAttribute('aria-hidden') === 'true') return;
+      const t = e.touches[0];
+      if (!t) return;
+      dragStartY = t.clientY;
+      dragCurrentY = t.clientY;
+      dragging = true;
+      dragAccepted = false;
+      panelHeightAtStart = panel.getBoundingClientRect().height;
+    }
+
+    function onTouchMove(e: TouchEvent) {
+      if (!dragging) return;
+      const t = e.touches[0];
+      if (!t) return;
+      const dy = t.clientY - dragStartY;
+      if (!dragAccepted) {
+        // Wait for a clear downward intent before stealing the gesture.
+        if (dy > 6) {
+          dragAccepted = true;
+          modal.classList.add('is-dragging');
+        } else if (dy < -2) {
+          // Upward intent on the grip — release; let the user scroll the
+          // form via natural means if they overshot the grip.
+          dragging = false;
+          return;
+        } else {
+          return;
+        }
+      }
+      e.preventDefault(); // block native scroll / rubber-band
+      dragCurrentY = t.clientY;
+      const d = Math.max(0, dy);
+      panel.style.transform = `translateY(${d}px)`;
+      const backdropFade = Math.max(0, 1 - d / panelHeightAtStart);
+      if (backdrop) backdrop.style.opacity = String(backdropFade);
+    }
+
+    function onTouchEnd() {
+      if (!dragging) return;
+      dragging = false;
+      modal.classList.remove('is-dragging');
+      if (!dragAccepted) return; // nothing to release
+      const dy = Math.max(0, dragCurrentY - dragStartY);
+      const threshold = panelHeightAtStart * DISMISS_RATIO;
+      modal.classList.add('is-releasing');
+      if (dy >= threshold) {
+        // Finish the slide out, then close
+        panel.style.transform = `translateY(${panelHeightAtStart}px)`;
+        if (backdrop) backdrop.style.opacity = '0';
+        setTimeout(() => {
+          panel.style.transform = '';
+          if (backdrop) backdrop.style.opacity = '';
+          modal.classList.remove('is-releasing');
+          close();
+        }, 260);
+      } else {
+        panel.style.transform = '';
+        if (backdrop) backdrop.style.opacity = '';
+        setTimeout(() => modal.classList.remove('is-releasing'), 320);
+      }
+    }
+
+    grip?.addEventListener('touchstart', onTouchStart, { passive: true });
+    grip?.addEventListener('touchmove', onTouchMove, { passive: false });
+    grip?.addEventListener('touchend', onTouchEnd, { passive: true });
+    grip?.addEventListener('touchcancel', onTouchEnd, { passive: true });
+
+    // Keyboard activation on the grip (accessibility fallback)
+    grip?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        close();
+      }
+    });
+  }
+  document.addEventListener('astro:page-load', run);
+</script>

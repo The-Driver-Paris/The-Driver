@@ -1,0 +1,134 @@
+---
+import { t } from '../i18n';
+
+interface Props {
+  locale: 'fr' | 'en' | 'es' | 'it';
+}
+
+const { locale } = Astro.props;
+
+// Opens WhatsApp chat (free for foreign tourists — they tap call or message
+// from there). No `?text=` so the status-bar URL stays clean. Number from
+// the Round 28 A6 site-wide sweep.
+const WA_NUMBER = '33634301292';
+const href = `https://wa.me/${WA_NUMBER}`;
+
+// Stable, language-independent tracking label, exposed as `data-track-label`.
+// If you wire up analytics, key the click trigger off this attribute rather
+// than the visible text — it stays constant across all 4 locales.
+const TRACK_LABEL = 'call now';
+
+// Accessible description per locale — icon-only button, this is what
+// screen readers announce on focus.
+const ARIA: Record<string, string> = {
+  fr: 'Nous contacter sur WhatsApp',
+  en: 'Contact us on WhatsApp',
+  es: 'Contáctanos por WhatsApp',
+  it: 'Contattaci su WhatsApp',
+};
+const ariaLabel = ARIA[locale] ?? ARIA.en;
+---
+
+{/* Sticky WhatsApp FAB — phones + tablets only (hidden on PC/laptop),
+    fixed bottom-right corner. Icon-only (WhatsApp glyph + pulsing green
+    availability dot), no text. Sits below the booking modal (z-80) and
+    mobile nav drawer (z-60) so those overlays cover it, and is hidden
+    during the intro overlay (see intro-pending rule in BaseLayout) and on
+    the thank-you page (where it would be redundant). */}
+<a
+  class="wa-fab"
+  href={href}
+  target="_blank"
+  rel="noopener noreferrer"
+  aria-label={ariaLabel}
+  data-wa-fab
+  data-track-label={TRACK_LABEL}
+>
+  <svg class="wa-fab-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.296-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.247-.694.247-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+  </svg>
+  <span class="wa-fab-dot" aria-hidden="true"></span>
+</a>
+
+<style>
+  .wa-fab {
+    /* Hidden by default — only shown on touch devices / small screens
+       (phones + tablets), never on PC/laptop. */
+    display: none;
+  }
+
+  /* Show on touch-primary devices (any phone/tablet) OR small screens.
+     `pointer: coarse` catches large tablets a width query would miss;
+     `max-width: 1024px` is the safety net if pointer detection fails. */
+  @media (max-width: 1024px), (pointer: coarse) {
+    .wa-fab {
+      position: fixed;
+      right: 18px;
+      bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+      z-index: 55;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 70px;
+      height: 70px;
+      border-radius: 999px;
+      background: var(--color-accent);
+      color: var(--color-paper);
+      text-decoration: none;
+      box-shadow:
+        0 12px 30px -8px color-mix(in oklab, var(--color-accent) 70%, transparent),
+        0 0 0 1px color-mix(in oklab, white 14%, transparent) inset;
+      transition: transform 200ms var(--ease-out), box-shadow 220ms var(--ease-out);
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+    }
+    .wa-fab:active { transform: scale(0.94); }
+  }
+
+  /* Hide on PC/laptop even if the width query matched a small window —
+     a fine pointer means mouse/trackpad. */
+  @media (min-width: 1025px) and (pointer: fine) {
+    .wa-fab { display: none; }
+  }
+
+  .wa-fab-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Green availability dot — notification-style, sits at the top-right
+     of the circle with an accent-colored border so it reads as inset. */
+  .wa-fab-dot {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: #25D366;
+    border: 2px solid var(--color-accent);
+  }
+  /* Pulse halo — animates transform + opacity only (GPU-composited, no
+     per-frame repaint). Same approach as the earlier pill version. */
+  .wa-fab-dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: #25D366;
+    transform: scale(1);
+    opacity: 0.7;
+    animation: wa-fab-pulse 2.2s var(--ease-out) infinite;
+    will-change: transform, opacity;
+  }
+  @keyframes wa-fab-pulse {
+    0%        { transform: scale(1); opacity: 0.7; }
+    80%, 100% { transform: scale(3); opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wa-fab { transition: none; }
+    .wa-fab:active { transform: none; }
+    .wa-fab-dot::after { animation: none; opacity: 0; }
+  }
+</style>

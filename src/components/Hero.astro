@@ -1,0 +1,593 @@
+---
+import { t } from '../i18n';
+import QuotePicker from './QuotePicker.astro';
+import HeroTrustBadges from './HeroTrustBadges.astro';
+import Icon from './Icon.astro';
+import { findImageByKeywords, logImageMatch } from '../utils/images.js';
+
+interface Props {
+  locale: 'fr' | 'en' | 'es' | 'it';
+}
+
+const { locale } = Astro.props;
+const strings = t(locale);
+const hero = strings.hero;
+
+// Eiffel Tower background — above-the-fold, fetched eager.
+// Falls back to the Paris map SVG if no matching photo is found.
+const eiffel = findImageByKeywords('images/routes', ['eiffel', 'tour']);
+logImageMatch('Hero', 'Eiffel background', eiffel, ['eiffel', 'tour']);
+const hasEiffel = !eiffel.missing && (eiffel.avif || eiffel.webp || eiffel.jpg);
+
+// H1 accent-word split — underline the last word in the display headline.
+// Handles all four locales without special-casing by language.
+const h1Words = hero.h1.trim().split(/\s+/);
+const h1Last = h1Words.pop() ?? '';
+const h1Head = h1Words.join(' ');
+
+// Localised "available now" status pill above the headline.
+const availableLabel =
+  locale === 'en' ? 'Available now'
+  : locale === 'es' ? 'Disponibles ahora'
+  : locale === 'it' ? 'Disponibile ora'
+  : 'Disponible maintenant';
+---
+
+<section class:list={['hero has-grain', hasEiffel && 'hero--eiffel']} data-hero>
+  {/* Decorative layer — aura + (Eiffel OR Paris map) + secondary drift. */}
+  <div class="hero-bg" aria-hidden="true">
+    {hasEiffel && (
+      <picture class="hero-eiffel">
+        {eiffel.avif && <source srcset={eiffel.avif} type="image/avif" />}
+        {eiffel.webp && <source srcset={eiffel.webp} type="image/webp" />}
+        <img
+          src={eiffel.jpg || eiffel.avif || eiffel.webp}
+          alt=""
+          width="800"
+          height="1000"
+          loading="eager"
+          fetchpriority="high"
+          decoding="async"
+        />
+      </picture>
+    )}
+    {/* Cream tint + accent gradient — pushes the photo back behind the headline. */}
+    {hasEiffel && <span class="hero-eiffel-overlay"></span>}
+    <div class="hero-aura"></div>
+    <div class="hero-aura-secondary"></div>
+    {/* One-shot horizontal streak — evokes motion on page load, plays once. */}
+    <span class="hero-streak" aria-hidden="true"></span>
+
+    {!hasEiffel && (
+      <svg
+        data-paris-map
+        class="hero-map"
+        viewBox="0 0 640 640"
+        fill="none" stroke="currentColor" stroke-width="1"
+        stroke-linecap="round" stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M0 340 C 90 300, 150 360, 220 320 S 360 270, 430 310 S 560 370, 640 330" />
+        <ellipse cx="320" cy="320" rx="220" ry="180" />
+        <line x1="320" y1="140" x2="320" y2="500" />
+        <line x1="120" y1="320" x2="520" y2="320" />
+        <line x1="260" y1="200" x2="380" y2="440" />
+        <line x1="380" y1="200" x2="260" y2="440" />
+        <circle cx="320" cy="320" r="4" />
+        <circle cx="280" cy="260" r="3" />
+        <circle cx="360" cy="360" r="3" />
+      </svg>
+    )}
+  </div>
+
+  <div class="hero-inner page-x mx-auto max-w-[1200px]">
+    <div class="hero-grid">
+      {/* Left column — the editorial stack */}
+      <div class="hero-copy">
+        {/* Trust badges — extracted to a shared component so the FAQ-
+            Contact hero can mount the exact same bar without duplicating
+            markup, links, or styling. */}
+        <HeroTrustBadges locale={locale} />
+
+        <p class="status-pill" data-reveal data-reveal-delay="1">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span>{availableLabel}</span>
+        </p>
+
+        <h1 class="h1 text-balance hero-h1 kinetic-h1" data-reveal data-reveal-delay="2">
+          {(h1Head.split(/\s+/).filter(Boolean) as string[]).map((w: string, i: number) => (
+            <>
+              <span class="kw" style={`--ki: ${i}`}>{w}</span>{' '}
+            </>
+          ))}<span class="kw accent-word" style={`--ki: ${h1Head.split(/\s+/).filter(Boolean).length}`}>{h1Last}</span>
+        </h1>
+
+        <p class="body-lg hero-sub" data-reveal data-reveal-delay="3">{hero.sub}</p>
+      </div>
+
+      {/* Right column — the booking-picker anchor */}
+      <div class="hero-picker" data-reveal data-reveal-delay="4">
+        <QuotePicker locale={locale} variant="hero" />
+      </div>
+    </div>
+
+    {/* Trust pills below the booking card. Same 4 strings the
+        dot-separated line previously rendered, but each gets its own
+        icon-pill — visually more anchored, easier to scan, and on
+        mobile the pills wrap onto multiple rows naturally instead of
+        becoming a long ribbon of text.
+        Icons map by index: 0=clock (24/7) · 1=shield (license)
+        2=baby (child seats) · 3=credit-card (pay on arrival). */}
+    <ul class="hero-trust-pills" data-reveal data-reveal-delay="5">
+      {hero.trustLine.map((item: string, i: number) => {
+        const icon = ['clock', 'shield', 'baby', 'credit-card'][i] ?? 'check';
+        return (
+          <li class="hero-trust-pill">
+            <Icon name={icon} size={14} strokeWidth={1.8} />
+            <span>{item}</span>
+          </li>
+        );
+      })}
+    </ul>
+  </div>
+</section>
+
+<style>
+  /* ---------------------------------------------------------------
+     Hero surface — a composed unit with a warm glow + faint map.
+     --------------------------------------------------------------- */
+  .hero {
+    position: relative;
+    background: var(--color-cream);
+    isolation: isolate;
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* One-shot motion streak — thin horizontal line sweeps left→right, once.
+     Evokes speed/transit without being cartoonish. Skipped on reduced-motion. */
+  .hero-streak {
+    position: absolute;
+    top: 34%;
+    left: 0;
+    width: 100%;
+    height: 1.5px;
+    pointer-events: none;
+    opacity: 0;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      color-mix(in oklab, var(--color-accent) 35%, transparent) 28%,
+      color-mix(in oklab, var(--color-accent) 55%, transparent) 50%,
+      color-mix(in oklab, var(--color-accent) 35%, transparent) 72%,
+      transparent 100%
+    );
+    transform: translateX(-100%);
+    filter: blur(0.4px);
+    animation: hero-streak-sweep 1.5s cubic-bezier(0.22, 1, 0.36, 1) 160ms 1 both;
+  }
+  @media (max-width: 767px) {
+    .hero-streak {
+      top: 38%;
+      animation-duration: 800ms;
+      height: 1px;
+    }
+  }
+  @keyframes hero-streak-sweep {
+    0% { transform: translateX(-100%); opacity: 0; }
+    15% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { transform: translateX(100%); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-streak { animation: none; opacity: 0; }
+  }
+  .hero-aura {
+    position: absolute;
+    top: -25%;
+    left: -10%;
+    width: 900px;
+    height: 900px;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      var(--color-accent-glow) 0%,
+      transparent 65%
+    );
+    filter: blur(80px);
+    opacity: 0.9;
+    animation: hero-aura-drift 22s var(--ease-in-out) infinite;
+  }
+
+  /* Secondary drifting glow — desktop-only, hover-capable devices only.
+     Counter-drifts against the primary aura for gentle composition motion.
+     @media (hover: hover) scopes out touch devices; prefers-reduced-motion disables. */
+  .hero-aura-secondary {
+    display: none;
+  }
+  @media (min-width: 1024px) and (hover: hover) {
+    .hero-aura-secondary {
+      display: block;
+      position: absolute;
+      bottom: -20%;
+      right: -8%;
+      width: 720px;
+      height: 720px;
+      border-radius: 50%;
+      background: radial-gradient(
+        circle,
+        color-mix(in oklab, var(--color-accent) 14%, transparent) 0%,
+        transparent 60%
+      );
+      filter: blur(90px);
+      opacity: 0.55;
+      animation: hero-aura-counter 28s var(--ease-in-out) infinite;
+    }
+  }
+  @keyframes hero-aura-drift {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%     { transform: translate(80px, 30px) scale(1.08); }
+  }
+  @keyframes hero-aura-counter {
+    0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.55; }
+    50%     { transform: translate(-60px, -40px) scale(1.06); opacity: 0.75; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-aura,
+    .hero-aura-secondary { animation: none; }
+  }
+
+  .hero-map {
+    position: absolute;
+    top: 0;
+    right: -120px;
+    height: 100%;
+    width: 640px;
+    color: var(--color-ink);
+    opacity: 0.06;
+    display: none;
+    will-change: transform;
+  }
+  @media (min-width: 768px) {
+    .hero-map { display: block; }
+  }
+
+  /* ---------------------------------------------------------------
+     Eiffel Tower background — photo sits above the aura but below
+     content. Desaturated + brightness-cut, cream overlay gradient on
+     top so the headline and booking card stay dominant.
+     --------------------------------------------------------------- */
+  .hero-eiffel {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    display: block;
+    pointer-events: none;
+    /* Desktop: show the tower anchored to the right so the left column of
+       copy sits in open cream space. Mobile: centered, further dimmed. */
+    mask-image: linear-gradient(to right, transparent 0%, black 35%, black 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 35%, black 100%);
+  }
+  .hero-eiffel img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 72% center;
+    filter: saturate(0.7) brightness(0.92) contrast(1.02);
+    opacity: 0.85;
+    will-change: transform;
+  }
+  /* Scroll-driven parallax — modern Chromium/Safari ship this in 2024+.
+     The Eiffel image scales up + drifts up as the user scrolls past the
+     hero. Pure GPU, zero JS. Browsers without scroll-timeline support
+     simply get the static image (graceful fallback). */
+  @supports (animation-timeline: scroll()) {
+    .hero-eiffel img {
+      animation: hero-eiffel-parallax linear forwards;
+      animation-timeline: scroll(root);
+      animation-range: 0 100vh;
+    }
+    @keyframes hero-eiffel-parallax {
+      from { transform: scale(1) translate3d(0, 0, 0); }
+      to   { transform: scale(1.18) translate3d(-24px, -48px, 0); }
+    }
+    .hero-aura {
+      animation: hero-aura-pulse linear forwards;
+      animation-timeline: scroll(root);
+      animation-range: 0 80vh;
+    }
+    @keyframes hero-aura-pulse {
+      from { opacity: 0.9; transform: translate3d(0, 0, 0) scale(1); }
+      to   { opacity: 0.5; transform: translate3d(40px, 30px, 0) scale(1.1); }
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-eiffel img,
+    .hero-aura { animation: none !important; }
+  }
+  .hero-eiffel-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        105deg,
+        var(--color-cream) 0%,
+        color-mix(in oklab, var(--color-cream) 92%, transparent) 45%,
+        color-mix(in oklab, var(--color-cream) 70%, transparent) 72%,
+        color-mix(in oklab, var(--color-cream) 55%, transparent) 100%
+      );
+  }
+  /* Mobile: push the tower further back so the booking card takes focus. */
+  @media (max-width: 767px) {
+    .hero-eiffel {
+      mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 62%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 62%, transparent 100%);
+    }
+    .hero-eiffel img {
+      object-position: center 30%;
+      opacity: 0.65;
+      filter: saturate(0.65) brightness(0.92) contrast(1.02);
+    }
+    .hero-eiffel-overlay {
+      background:
+        linear-gradient(
+          180deg,
+          color-mix(in oklab, var(--color-cream) 85%, transparent) 0%,
+          color-mix(in oklab, var(--color-cream) 70%, transparent) 45%,
+          color-mix(in oklab, var(--color-cream) 95%, transparent) 100%
+        );
+    }
+  }
+  @media (max-width: 767px) {
+    .hero-aura {
+      width: 620px;
+      height: 620px;
+      filter: blur(60px);
+      animation-duration: 26s;
+    }
+  }
+
+  .hero-inner {
+    position: relative;
+    z-index: 1;
+    padding-top: 28px;
+    padding-bottom: 40px;
+  }
+  @media (min-width: 768px) {
+    .hero-inner { padding-top: 88px; padding-bottom: 88px; }
+  }
+  @media (min-width: 1024px) {
+    .hero-inner { padding-top: 104px; padding-bottom: 104px; }
+  }
+
+  /* Composition — mobile: tight vertical stack. Desktop: 55/45 asymmetric,
+     but with only 40px gap and the picker card visually pulling the left column
+     (instead of a lonely right column with empty air). */
+  .hero-grid {
+    display: grid;
+    /* `minmax(0, 1fr)` (not `1fr`) so the column can shrink below its
+       content's min-content — otherwise the booking card's fields force the
+       track wider than a phone viewport and the card overflows the screen. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    align-items: center;
+  }
+  .hero-copy,
+  .hero-picker { min-width: 0; max-width: 100%; }
+  @media (min-width: 768px) {
+    .hero-grid {
+      /* Desktop: picker card gains weight — tighter copy column on the left */
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+      gap: 48px;
+    }
+  }
+  @media (min-width: 1024px) {
+    .hero-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 64px;
+    }
+  }
+
+  /* ---------------------------------------------------------------
+     Status pill — pulsing dot above the headline.
+     --------------------------------------------------------------- */
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px 6px 10px;
+    border-radius: 999px;
+    background: var(--color-paper);
+    border: 1px solid var(--color-smoke);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-graphite);
+  }
+  .status-dot {
+    position: relative;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--color-accent);
+    flex-shrink: 0;
+  }
+  .status-dot::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 999px;
+    background: var(--color-accent);
+    opacity: 0.4;
+    animation: status-pulse 2s var(--ease-in-out) infinite;
+  }
+  @keyframes status-pulse {
+    0%, 100% { transform: scale(0.6); opacity: 0.45; }
+    50% { transform: scale(1.4); opacity: 0; }
+  }
+
+  /* ---------------------------------------------------------------
+     Headline — editorial accent on the final word.
+     --------------------------------------------------------------- */
+  .hero-h1 {
+    margin-top: 18px;
+    max-width: 14ch;
+  }
+  @media (min-width: 768px) {
+    .hero-h1 { margin-top: 22px; max-width: 16ch; }
+  }
+  .accent-word {
+    position: relative;
+    display: inline-block;
+    color: var(--color-ink);
+    white-space: nowrap;
+  }
+  .accent-word::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 6%;
+    height: 0.32em;
+    background: color-mix(in oklab, var(--color-accent) 30%, transparent);
+    z-index: -1;
+    border-radius: 3px;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 700ms var(--ease-out) 500ms;
+  }
+  [data-reveal].is-visible .accent-word::after {
+    transform: scaleX(1);
+  }
+
+  .hero-sub {
+    margin-top: 16px;
+    max-width: 36ch;
+  }
+  @media (min-width: 768px) {
+    .hero-sub { margin-top: 22px; }
+  }
+
+  /* ---------------------------------------------------------------
+     Hero trust pills — 4 individual rounded pills below the booking
+     card. Icon (terracotta) on the left, label on the right. Wraps
+     to multiple rows on narrow screens.
+     --------------------------------------------------------------- */
+  .hero-trust-pills {
+    list-style: none;
+    padding: 0;
+    margin: 24px 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+  @media (min-width: 768px) {
+    .hero-trust-pills { margin-top: 32px; gap: 10px; }
+  }
+  .hero-trust-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: color-mix(in oklab, var(--color-paper) 92%, transparent);
+    border: 1px solid color-mix(in oklab, var(--color-smoke) 90%, transparent);
+    border-radius: 999px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--color-graphite);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  /* iPad / tablet: drop the backdrop blur for the same compositing
+     reasons as the trust badges above. */
+  @media (min-width: 768px) and (max-width: 1180px) {
+    .hero-trust-pill {
+      background: color-mix(in oklab, var(--color-paper) 96%, transparent);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+  }
+  .hero-trust-pill svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    color: var(--color-accent);
+  }
+  @media (max-width: 480px) {
+    .hero-trust-pills { gap: 6px; }
+    .hero-trust-pill { padding: 5px 10px; font-size: 11px; }
+    .hero-trust-pill svg { width: 12px; height: 12px; }
+  }
+
+  /* ---------------------------------------------------------------
+     Picker column — on desktop, nudge up into the headline's visual field
+     so the hero reads as ONE unit rather than two columns.
+     --------------------------------------------------------------- */
+  .hero-picker {
+    position: relative;
+  }
+  @media (min-width: 768px) {
+    .hero-picker {
+      max-width: 480px;
+      margin-left: auto;
+    }
+  }
+  @media (min-width: 1024px) {
+    .hero-picker {
+      max-width: 520px;
+    }
+  }
+</style>
+
+<script>
+  // Desktop-only, hover-capable, reduced-motion-aware cursor parallax
+  // on the faint Paris map. Max 8px travel, RAF-lerped.
+  function run() {
+    const hero = document.querySelector<HTMLElement>('[data-hero]');
+    if (!hero) return;
+    const svg = hero.querySelector<SVGElement>('[data-paris-map]');
+    if (!svg) return;
+
+    const canHover = window.matchMedia('(hover: hover)').matches;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!canHover || reduce) return;
+
+    let targetX = 0, targetY = 0, curX = 0, curY = 0, raf = 0;
+
+    function tick() {
+      curX += (targetX - curX) * 0.08;
+      curY += (targetY - curY) * 0.08;
+      svg!.style.transform = `translate3d(${curX.toFixed(2)}px, ${curY.toFixed(2)}px, 0)`;
+      if (Math.abs(targetX - curX) > 0.05 || Math.abs(targetY - curY) > 0.05) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        raf = 0;
+      }
+    }
+
+    hero.addEventListener('mousemove', (e) => {
+      const r = hero.getBoundingClientRect();
+      const nx = (e.clientX - r.left) / r.width - 0.5;
+      const ny = (e.clientY - r.top) / r.height - 0.5;
+      targetX = -nx * 8;
+      targetY = -ny * 8;
+      if (!raf) raf = requestAnimationFrame(tick);
+    });
+    hero.addEventListener('mouseleave', () => {
+      targetX = 0;
+      targetY = 0;
+      if (!raf) raf = requestAnimationFrame(tick);
+    });
+  }
+  document.addEventListener('astro:page-load', run);
+</script>

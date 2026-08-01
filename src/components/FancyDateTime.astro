@@ -1,0 +1,312 @@
+---
+/**
+ * On-brand date + time picker — DESKTOP-ONLY progressive enhancement.
+ *
+ * Native <input type="date"> / <input type="time"> popups are browser UI and
+ * can't be themed with CSS (the blue calendar / scrolling time list). This
+ * enhancer keeps the native input as the value source (so pricing, validation,
+ * and the email payload are all untouched) and overlays a styled popover on
+ * desktop. On touch / mobile we leave the native pickers alone — the OS wheel
+ * pickers are great UX there.
+ *
+ * Usage: add `data-fancy-date` or `data-fancy-time` to any native input.
+ * Selecting a value writes it back to the native input and dispatches a
+ * `change` event so existing listeners (pricing, summary, etc.) fire as before.
+ */
+---
+
+<style is:global>
+  .fdt-host { position: relative; }
+  .fdt-input-hidden {
+    position: absolute !important;
+    width: 1px; height: 1px;
+    padding: 0 !important; margin: -1px !important;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0 !important;
+  }
+  .fdt-trigger {
+    display: inline-flex; align-items: center; justify-content: space-between; gap: 8px;
+    width: 100%; height: 48px; padding: 0 14px;
+    border-radius: var(--radius-input, 12px);
+    border: 1px solid var(--color-smoke);
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans); font-size: 15px; text-align: left; cursor: pointer;
+    transition: border-color 180ms var(--ease-out), box-shadow 180ms var(--ease-out);
+  }
+  .fdt-trigger:hover { border-color: color-mix(in oklab, var(--color-ink) 22%, var(--color-smoke)); }
+  .fdt-trigger[aria-expanded="true"] {
+    border-color: color-mix(in oklab, var(--color-accent) 55%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent) 16%, transparent);
+  }
+  .fdt-trigger.is-placeholder { color: var(--color-graphite); }
+  .fdt-trigger-icon { width: 18px; height: 18px; color: var(--color-accent); flex-shrink: 0; }
+
+  .fdt-pop {
+    position: absolute; z-index: 90; top: calc(100% + 6px); left: 0;
+    min-width: 280px; padding: 14px; border-radius: 16px;
+    background: var(--color-paper); border: 1px solid var(--color-smoke);
+    box-shadow: 0 18px 48px -16px rgba(26,26,26,0.30), 0 4px 12px -6px rgba(26,26,26,0.12);
+  }
+  .fdt-pop[hidden] { display: none; }
+  .fdt-pop--up { top: auto; bottom: calc(100% + 6px); }
+  .fdt-pop--right { left: auto; right: 0; }
+
+  .fdt-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .fdt-cal-title {
+    font-family: var(--font-display, var(--font-sans)); font-size: 15px; font-weight: 600;
+    color: var(--color-ink); text-transform: capitalize;
+  }
+  .fdt-nav {
+    width: 32px; height: 32px; border-radius: 999px; border: 0;
+    background: var(--color-cream); color: var(--color-ink);
+    display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: background-color 160ms var(--ease-out);
+  }
+  .fdt-nav:hover { background: var(--color-smoke); }
+  .fdt-nav svg { width: 16px; height: 16px; }
+  .fdt-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .fdt-dow {
+    text-align: center; font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+    color: var(--color-graphite); padding: 4px 0; text-transform: uppercase;
+  }
+  .fdt-day {
+    aspect-ratio: 1 / 1; min-height: 34px; border: 0; background: transparent; cursor: pointer;
+    border-radius: 10px; font-family: var(--font-sans); font-size: 13px; color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+    transition: background-color 140ms var(--ease-out), color 140ms var(--ease-out);
+  }
+  .fdt-day:hover:not(:disabled) { background: var(--color-cream); }
+  .fdt-day.is-other { color: color-mix(in oklab, var(--color-ink) 30%, transparent); }
+  .fdt-day:disabled { color: color-mix(in oklab, var(--color-ink) 22%, transparent); cursor: not-allowed; }
+  .fdt-day.is-today { box-shadow: inset 0 0 0 1px var(--color-smoke); }
+  .fdt-day.is-selected { background: var(--color-accent); color: var(--color-paper); font-weight: 600; }
+  .fdt-day.is-selected:hover { background: var(--color-accent-ink, var(--color-accent)); }
+
+  .fdt-time { display: flex; gap: 8px; }
+  .fdt-time-col {
+    flex: 1; max-height: 220px; overflow-y: auto;
+    border: 1px solid var(--color-smoke); border-radius: 12px; padding: 4px; scrollbar-width: thin;
+  }
+  .fdt-time-col-label {
+    text-align: center; font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+    color: var(--color-graphite); text-transform: uppercase; padding: 2px 0 6px;
+  }
+  .fdt-time-opt {
+    display: block; width: 100%; border: 0; background: transparent; cursor: pointer;
+    padding: 8px 0; border-radius: 8px; text-align: center;
+    font-family: var(--font-sans); font-size: 14px; color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+    transition: background-color 140ms var(--ease-out), color 140ms var(--ease-out);
+  }
+  .fdt-time-opt:hover { background: var(--color-cream); }
+  .fdt-time-opt.is-selected { background: var(--color-accent); color: var(--color-paper); font-weight: 600; }
+
+  .fdt-foot { display: flex; justify-content: space-between; margin-top: 10px; }
+  .fdt-foot-btn {
+    border: 0; background: transparent; cursor: pointer;
+    font-family: var(--font-sans); font-size: 13px; font-weight: 500; color: var(--color-accent);
+    padding: 4px 6px; border-radius: 8px;
+  }
+  .fdt-foot-btn:hover { background: var(--color-cream); }
+
+  @media (prefers-reduced-motion: reduce) { .fdt-trigger { transition: none; } }
+</style>
+
+<script>
+  function initFancyDateTime() {
+    const isDesktop = window.matchMedia('(min-width: 768px) and (pointer: fine)').matches;
+    if (!isDesktop) return;
+
+    const lang = document.documentElement.lang || 'fr';
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const toISO = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
+
+    function parseISODate(v: string): { y: number; m: number; d: number } | null {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || '');
+      if (!m) return null;
+      return { y: +m[1], m: +m[2] - 1, d: +m[3] };
+    }
+    function fmtDateDisplay(v: string): string {
+      const p = parseISODate(v);
+      if (!p) return '';
+      try {
+        return new Intl.DateTimeFormat(lang, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+          .format(new Date(Date.UTC(p.y, p.m, p.d)));
+      } catch { return v; }
+    }
+    function closeAllPops(except?: HTMLElement) {
+      document.querySelectorAll<HTMLElement>('.fdt-pop').forEach((p) => {
+        if (p !== except) {
+          p.hidden = true;
+          p.closest('.fdt-host')?.querySelector('.fdt-trigger')?.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
+    function positionPop(pop: HTMLElement, host: HTMLElement) {
+      pop.classList.remove('fdt-pop--up', 'fdt-pop--right');
+      const r = host.getBoundingClientRect();
+      if (window.innerHeight - r.bottom < 340 && r.top > 340) pop.classList.add('fdt-pop--up');
+      if (r.left + 300 > window.innerWidth) pop.classList.add('fdt-pop--right');
+    }
+
+    function enhanceDate(input: HTMLInputElement) {
+      if (input.dataset.fdtReady) return;
+      input.dataset.fdtReady = '1';
+      const host = document.createElement('div');
+      host.className = 'fdt-host';
+      input.parentNode?.insertBefore(host, input);
+      host.appendChild(input);
+      input.classList.add('fdt-input-hidden');
+      input.setAttribute('tabindex', '-1');
+
+      const trigger = document.createElement('button');
+      trigger.type = 'button';
+      trigger.className = 'fdt-trigger is-placeholder';
+      trigger.setAttribute('aria-haspopup', 'dialog');
+      trigger.setAttribute('aria-expanded', 'false');
+      const calIcon = '<svg class="fdt-trigger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+      const placeholder = (lang.startsWith('fr') ? 'Choisir une date' : lang.startsWith('es') ? 'Elegir fecha' : lang.startsWith('it') ? 'Scegli data' : 'Choose a date');
+      const setTriggerText = () => {
+        const disp = fmtDateDisplay(input.value);
+        trigger.innerHTML = `<span>${disp || placeholder}</span>${calIcon}`;
+        trigger.classList.toggle('is-placeholder', !disp);
+      };
+      setTriggerText();
+      host.appendChild(trigger);
+
+      const pop = document.createElement('div');
+      pop.className = 'fdt-pop'; pop.hidden = true; pop.setAttribute('role', 'dialog');
+      host.appendChild(pop);
+
+      const minDate = input.min ? parseISODate(input.min) : null;
+      const todayUTC = (() => { const n = new Date(); return Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()); })();
+      const minTime = minDate ? Date.UTC(minDate.y, minDate.m, minDate.d) : todayUTC;
+
+      let viewY: number, viewM: number;
+      const initFromValue = () => {
+        const p = parseISODate(input.value) || (input.min ? parseISODate(input.min) : null);
+        const base = p || (() => { const n = new Date(); return { y: n.getFullYear(), m: n.getMonth(), d: 1 }; })();
+        viewY = base.y; viewM = base.m;
+      };
+      function render() {
+        const monthName = new Intl.DateTimeFormat(lang, { month: 'long', year: 'numeric' }).format(new Date(Date.UTC(viewY, viewM, 1)));
+        const dow: string[] = [];
+        for (let i = 0; i < 7; i++) dow.push(new Intl.DateTimeFormat(lang, { weekday: 'short' }).format(new Date(Date.UTC(2024, 0, 1 + i))));
+        const firstDow = (new Date(Date.UTC(viewY, viewM, 1)).getUTCDay() + 6) % 7;
+        const daysInMonth = new Date(Date.UTC(viewY, viewM + 1, 0)).getUTCDate();
+        const selected = parseISODate(input.value);
+        const td = new Date();
+        const todayKey = toISO(td.getFullYear(), td.getMonth(), td.getDate());
+        let cells = '';
+        for (let i = 0; i < firstDow; i++) cells += '<span class="fdt-day is-other" aria-hidden="true"></span>';
+        for (let d = 1; d <= daysInMonth; d++) {
+          const iso = toISO(viewY, viewM, d);
+          const disabled = Date.UTC(viewY, viewM, d) < minTime;
+          const cls = ['fdt-day'];
+          if (iso === todayKey) cls.push('is-today');
+          if (selected && iso === toISO(selected.y, selected.m, selected.d)) cls.push('is-selected');
+          cells += `<button type="button" class="${cls.join(' ')}" data-iso="${iso}"${disabled ? ' disabled' : ''}>${d}</button>`;
+        }
+        const clearLbl = (lang.startsWith('fr') ? 'Effacer' : lang.startsWith('es') ? 'Borrar' : lang.startsWith('it') ? 'Cancella' : 'Clear');
+        const todayLbl = (lang.startsWith('fr') ? "Aujourd'hui" : lang.startsWith('es') ? 'Hoy' : lang.startsWith('it') ? 'Oggi' : 'Today');
+        pop.innerHTML = `
+          <div class="fdt-cal-head">
+            <button type="button" class="fdt-nav" data-nav="-1" aria-label="Prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <span class="fdt-cal-title">${monthName}</span>
+            <button type="button" class="fdt-nav" data-nav="1" aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+          <div class="fdt-grid">${dow.map((d) => `<span class="fdt-dow">${d}</span>`).join('')}${cells}</div>
+          <div class="fdt-foot"><button type="button" class="fdt-foot-btn" data-act="clear">${clearLbl}</button><button type="button" class="fdt-foot-btn" data-act="today">${todayLbl}</button></div>`;
+      }
+      function open() { closeAllPops(pop); initFromValue(); render(); pop.hidden = false; positionPop(pop, host); trigger.setAttribute('aria-expanded', 'true'); }
+      function close() { pop.hidden = true; trigger.setAttribute('aria-expanded', 'false'); }
+      function commit(iso: string) { input.value = iso; input.dispatchEvent(new Event('change', { bubbles: true })); setTriggerText(); close(); }
+      trigger.addEventListener('click', () => { pop.hidden ? open() : close(); });
+      // Keep focus on the trigger when a day is clicked — without this the
+      // clicked <button> takes focus and the browser auto-scrolls the modal
+      // to it, jumping the date field to the top after the popover closes.
+      pop.addEventListener('mousedown', (e) => e.preventDefault());
+      pop.addEventListener('click', (e) => {
+        const t = e.target as HTMLElement;
+        const nav = t.closest<HTMLElement>('[data-nav]');
+        if (nav) { viewM += parseInt(nav.dataset.nav!, 10); if (viewM < 0) { viewM = 11; viewY--; } if (viewM > 11) { viewM = 0; viewY++; } render(); return; }
+        const day = t.closest<HTMLButtonElement>('.fdt-day[data-iso]');
+        if (day && !day.disabled) { commit(day.dataset.iso!); return; }
+        const act = t.closest<HTMLElement>('[data-act]');
+        if (act?.dataset.act === 'clear') { commit(''); return; }
+        if (act?.dataset.act === 'today') { const n = new Date(); const iso = toISO(n.getFullYear(), n.getMonth(), n.getDate()); if (Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()) >= minTime) commit(iso); return; }
+      });
+      input.addEventListener('change', setTriggerText);
+    }
+
+    function enhanceTime(input: HTMLInputElement) {
+      if (input.dataset.fdtReady) return;
+      input.dataset.fdtReady = '1';
+      const host = document.createElement('div');
+      host.className = 'fdt-host';
+      input.parentNode?.insertBefore(host, input);
+      host.appendChild(input);
+      input.classList.add('fdt-input-hidden');
+      input.setAttribute('tabindex', '-1');
+
+      const trigger = document.createElement('button');
+      trigger.type = 'button';
+      trigger.className = 'fdt-trigger is-placeholder';
+      trigger.setAttribute('aria-haspopup', 'dialog');
+      trigger.setAttribute('aria-expanded', 'false');
+      const clockIcon = '<svg class="fdt-trigger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>';
+      const placeholder = (lang.startsWith('fr') ? "Choisir l'heure" : lang.startsWith('es') ? 'Elegir hora' : lang.startsWith('it') ? 'Scegli ora' : 'Choose a time');
+      const setTriggerText = () => { const v = input.value; trigger.innerHTML = `<span>${v || placeholder}</span>${clockIcon}`; trigger.classList.toggle('is-placeholder', !v); };
+      setTriggerText();
+      host.appendChild(trigger);
+
+      const pop = document.createElement('div');
+      pop.className = 'fdt-pop'; pop.hidden = true; pop.setAttribute('role', 'dialog');
+      host.appendChild(pop);
+
+      const hoursLbl = (lang.startsWith('fr') ? 'Heure' : lang.startsWith('es') ? 'Hora' : lang.startsWith('it') ? 'Ora' : 'Hour');
+      function curParts() { const m = /^(\d{2}):(\d{2})$/.exec(input.value || ''); return m ? { h: +m[1], min: +m[2] } : { h: -1, min: -1 }; }
+      function render() {
+        const { h, min } = curParts();
+        let hours = ''; for (let i = 0; i < 24; i++) hours += `<button type="button" class="fdt-time-opt${i === h ? ' is-selected' : ''}" data-h="${i}">${pad(i)}</button>`;
+        let mins = ''; for (let i = 0; i < 60; i += 15) mins += `<button type="button" class="fdt-time-opt${i === min ? ' is-selected' : ''}" data-m="${i}">${pad(i)}</button>`;
+        pop.innerHTML = `<div class="fdt-time"><div class="fdt-time-col" data-col="h"><div class="fdt-time-col-label">${hoursLbl}</div>${hours}</div><div class="fdt-time-col" data-col="m"><div class="fdt-time-col-label">Min</div>${mins}</div></div>`;
+        // Scroll the selected hour into view WITHIN its own column only (set
+        // scrollTop directly — scrollIntoView would bubble up and scroll the
+        // modal/page too).
+        const selH = pop.querySelector<HTMLElement>('.fdt-time-opt.is-selected[data-h]');
+        const col = pop.querySelector<HTMLElement>('.fdt-time-col[data-col="h"]');
+        if (selH && col) col.scrollTop = selH.offsetTop - col.clientHeight / 2 + selH.offsetHeight / 2;
+      }
+      function open() { closeAllPops(pop); render(); pop.hidden = false; positionPop(pop, host); trigger.setAttribute('aria-expanded', 'true'); }
+      function close() { pop.hidden = true; trigger.setAttribute('aria-expanded', 'false'); }
+      trigger.addEventListener('click', () => { pop.hidden ? open() : close(); });
+      // Keep focus on the trigger when options are clicked (no auto-scroll).
+      pop.addEventListener('mousedown', (e) => e.preventDefault());
+      pop.addEventListener('click', (e) => {
+        const t = e.target as HTMLElement;
+        const hBtn = t.closest<HTMLButtonElement>('[data-h]');
+        const mBtn = t.closest<HTMLButtonElement>('[data-m]');
+        if (!hBtn && !mBtn) return;
+        const cur = curParts(); let h = cur.h, min = cur.min;
+        if (hBtn) h = parseInt(hBtn.dataset.h!, 10);
+        if (mBtn) min = parseInt(mBtn.dataset.m!, 10);
+        if (h < 0) h = 9; if (min < 0) min = 0;
+        input.value = `${pad(h)}:${pad(min)}`;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        setTriggerText(); render();
+      });
+      input.addEventListener('change', setTriggerText);
+    }
+
+    document.querySelectorAll<HTMLInputElement>('input[data-fancy-date]').forEach(enhanceDate);
+    document.querySelectorAll<HTMLInputElement>('input[data-fancy-time]').forEach(enhanceTime);
+
+    if (!(window as any).__fdtBound) {
+      (window as any).__fdtBound = true;
+      document.addEventListener('click', (e) => { if (!(e.target as HTMLElement).closest('.fdt-host')) closeAllPops(); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAllPops(); });
+    }
+  }
+  document.addEventListener('astro:page-load', initFancyDateTime);
+</script>

@@ -1,0 +1,913 @@
+---
+/**
+ * Accessible combobox for From / To pickup-dropoff selection.
+ *
+ * Strategy: keeps the native <select> in the DOM (hidden, but functional)
+ * so existing form submission + change-event listeners + cross-picker
+ * disable logic keep working unchanged. A custom button + listbox sits
+ * visually on top and drives the native select by value-sync + change
+ * dispatch.
+ *
+ * On mobile (<768px) the listbox opens as a bottom sheet with backdrop.
+ * On desktop it opens as an inline dropdown beneath the trigger.
+ */
+interface Props {
+  /** Unique ID fragment — trigger + menu get suffixed IDs from this. */
+  uid: string;
+  /** Form field name — usually 'pickup' or 'dropoff'. */
+  name: string;
+  /** `data-role` attribute that existing scripts query. */
+  dataRole: string;
+  /** Floating label text ("DÉPART" / "ARRIVÉE"). */
+  label: string;
+  /** Empty-state trigger text. */
+  placeholder: string;
+  /** Locations to choose from (these strings are the VALUES — pricing keys,
+      payload, whitelist). Do not change them to rename anything. */
+  options: string[];
+  /**
+   * Optional display labels, keyed by option value. When a value has a label
+   * here it's shown in the dropdown + trigger while the value stays the code
+   * (e.g. { CDG: 'Charles de Gaulle Airport (CDG)' }). Falls back to the value
+   * itself when no label is given.
+   */
+  labels?: Record<string, string>;
+  /** Which pin glyph to use (departure vs destination). */
+  iconType: 'from' | 'to';
+  /** Mobile bottom-sheet header (defaults to `label`). */
+  sheetTitle?: string;
+  /**
+   * How the menu is presented on mobile (<768px).
+   * - `sheet` (default): full-width bottom sheet with backdrop, drag-to-close.
+   *   Used by the booking modal and Tarifs calculator.
+   * - `centered`: small popover floated centre of the screen, no backdrop dim,
+   *   internal scroll. Used by the hero booking card.
+   * Desktop layout (inline dropdown) is identical for both variants.
+   */
+  mobileVariant?: 'sheet' | 'centered';
+  /**
+   * Whether the underlying native <select> should be required.
+   * Defaults to true (matches pickup/dropoff). Pass false for conditional
+   * pickers that should only validate when shown — caller toggles
+   * `.required` dynamically based on visibility.
+   */
+  required?: boolean;
+}
+
+const {
+  uid,
+  name,
+  dataRole,
+  label,
+  placeholder,
+  options,
+  labels = {},
+  iconType,
+  sheetTitle,
+  mobileVariant = 'sheet',
+  required = true,
+} = Astro.props;
+
+// Display label for an option value — full name when provided, else the value.
+const labelFor = (opt: string) => labels[opt] ?? opt;
+
+const triggerId = `${uid}-trigger`;
+const menuId = `${uid}-menu`;
+const labelId = `${uid}-label`;
+const sheetHeaderId = `${uid}-sheet-header`;
+
+const fromPath = `<path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>`;
+const toPath = `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>`;
+const iconSvg = iconType === 'from' ? fromPath : toPath;
+---
+
+<div class="lp" data-lp data-lp-role={dataRole} data-lp-mobile-variant={mobileVariant}>
+  {/* Native select — hidden from users but drives form state + existing scripts */}
+  <select
+    id={`${uid}-native`}
+    class="lp-native"
+    name={name}
+    data-role={dataRole}
+    data-lp-native
+    autocomplete="off"
+    required={required}
+    aria-hidden="true"
+    tabindex="-1"
+  >
+    <option value="">{placeholder}</option>
+    {options.map((opt: string) => (
+      <option value={opt}>{labelFor(opt)}</option>
+    ))}
+  </select>
+
+  {/* Custom combobox trigger */}
+  <button
+    type="button"
+    id={triggerId}
+    class="lp-trigger"
+    data-lp-trigger
+    role="combobox"
+    aria-haspopup="listbox"
+    aria-controls={menuId}
+    aria-expanded="false"
+    aria-labelledby={`${labelId} ${triggerId}-display`}
+  >
+    <svg
+      class="lp-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+      set:html={iconSvg}
+    />
+    <span id={labelId} class="lp-label">{label}</span>
+    <span
+      id={`${triggerId}-display`}
+      class="lp-display is-empty"
+      data-lp-display
+      data-placeholder={placeholder}
+    >{placeholder}</span>
+    <svg
+      class="lp-chev"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  </button>
+
+  {/* Backdrop — rendered always, shown only on mobile when menu is open */}
+  <div class="lp-backdrop" data-lp-backdrop aria-hidden="true"></div>
+
+  {/* Listbox menu — `data-lp-mobile-variant` is also stamped on this element
+      so the centered-variant CSS keeps applying after the menu is portaled
+      out to <body> (escaping any transformed ancestor that would otherwise
+      break `position: fixed`). */}
+  <div
+    id={menuId}
+    class="lp-menu"
+    data-lp-menu
+    data-lp-mobile-variant={mobileVariant}
+    role="listbox"
+    aria-labelledby={labelId}
+    hidden
+  >
+    <div class="lp-sheet-head" data-lp-drag-zone>
+      <span class="lp-grip" aria-hidden="true"></span>
+      <p class="lp-sheet-title" id={sheetHeaderId}>{sheetTitle ?? label}</p>
+      <button
+        type="button"
+        class="lp-sheet-close"
+        data-lp-close
+        aria-label="Close"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <ul class="lp-options" role="none">
+      {options.map((opt: string) => (
+        <li role="none">
+          <button
+            type="button"
+            class="lp-option"
+            role="option"
+            data-lp-option
+            data-value={opt}
+            aria-selected="false"
+          >
+            <span class="lp-option-label">{labelFor(opt)}</span>
+            <svg class="lp-option-check" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </button>
+        </li>
+      ))}
+    </ul>
+  </div>
+</div>
+
+<style>
+  .lp {
+    position: relative;
+  }
+
+  /* Native select — invisible but still in the DOM for form submit + scripts.
+     display:none is fine; forms still submit display:none controls. */
+  .lp-native {
+    display: none;
+  }
+
+  /* ---------------------------------------------------------------
+     Trigger button — matches the previous .qp-field-inner look.
+     Floating small-caps label + selected value + chevron.
+     --------------------------------------------------------------- */
+  .lp-trigger {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 64px;
+    padding: 22px 44px 6px 52px;
+    border: 1px solid var(--color-smoke);
+    border-radius: var(--radius-input);
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.2;
+    cursor: pointer;
+    text-align: left;
+    transition:
+      border-color 200ms var(--ease-out),
+      background-color 200ms var(--ease-out),
+      box-shadow 200ms var(--ease-out);
+  }
+  .lp-trigger:hover {
+    border-color: color-mix(in oklab, var(--color-ink) 30%, var(--color-smoke));
+  }
+  .lp-trigger:focus-visible,
+  .lp-trigger[aria-expanded="true"] {
+    outline: none;
+    border-color: var(--color-ink);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent) 25%, transparent);
+  }
+  .lp[data-filled="true"] .lp-trigger {
+    background: color-mix(in oklab, var(--color-cream) 80%, var(--color-paper));
+  }
+
+  .lp-icon {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    color: var(--color-accent);
+    pointer-events: none;
+  }
+
+  .lp-label {
+    position: absolute;
+    top: 10px;
+    left: 52px;
+    font-size: 11px;
+    line-height: 1;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-graphite);
+    font-weight: 500;
+    pointer-events: none;
+  }
+
+  .lp-display {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .lp-display.is-empty {
+    color: var(--color-graphite);
+    font-weight: 400;
+  }
+
+  .lp-chev {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: var(--color-graphite);
+    pointer-events: none;
+    transition: transform 200ms var(--ease-out);
+  }
+  .lp-trigger[aria-expanded="true"] .lp-chev {
+    transform: translateY(-50%) rotate(180deg);
+  }
+
+  /* ---------------------------------------------------------------
+     Backdrop — only visible on mobile bottom sheet
+     --------------------------------------------------------------- */
+  .lp-backdrop {
+    display: none;
+  }
+  @media (max-width: 767px) {
+    .lp-backdrop {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 70;
+      background: color-mix(in oklab, var(--color-ink) 42%, transparent);
+      opacity: 0;
+      transition: opacity 180ms var(--ease-out);
+      pointer-events: none;
+    }
+    .lp[data-lp-open="true"] .lp-backdrop {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  /* ---------------------------------------------------------------
+     Menu — desktop: inline dropdown. Mobile: bottom sheet.
+     --------------------------------------------------------------- */
+  .lp-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    padding: 6px;
+    margin: 0;
+    background: var(--color-paper);
+    border: 1px solid var(--color-smoke);
+    border-radius: 12px;
+    box-shadow:
+      0 12px 32px -8px rgba(0, 0, 0, 0.18),
+      0 2px 8px -2px rgba(0, 0, 0, 0.08);
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out);
+    pointer-events: none;
+    z-index: 60;
+    max-height: 360px;
+    overflow-y: auto;
+    /* Keep finger-scroll trapped inside the dropdown; no page scroll chaining. */
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .lp-menu[data-open="true"] {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .lp-menu[hidden] { display: block; }  /* kept in DOM for animation; hidden attr toggled off when shown */
+
+  @media (max-width: 767px) {
+    .lp-menu {
+      position: fixed;
+      top: auto;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 80;
+      max-height: 72vh;
+      border-radius: 20px 20px 0 0;
+      padding: 0 0 16px;
+      transform: translateY(100%);
+      transition: opacity 220ms var(--ease-out), transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+      box-shadow: 0 -12px 40px -12px rgba(0, 0, 0, 0.2);
+      touch-action: pan-y;
+    }
+    .lp-menu[data-open="true"] {
+      transform: translateY(0);
+    }
+    /* Follow finger during active drag */
+    .lp[data-lp-dragging="true"] .lp-menu {
+      transition: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lp-menu { transition: opacity 0.01ms linear; transform: none; }
+    .lp-backdrop { transition: opacity 0.01ms linear; }
+  }
+
+  /* ---------------------------------------------------------------
+     Mobile "centered" variant — used by the hero booking card.
+     Floats a small popover in the centre of the screen with no backdrop
+     dim. Flex-column layout: header pinned, options list scrolls
+     internally when the route list overflows.
+     --------------------------------------------------------------- */
+  @media (max-width: 767px) {
+    .lp[data-lp-mobile-variant="centered"] .lp-backdrop {
+      display: none !important;
+    }
+    .lp-menu[data-lp-mobile-variant="centered"] {
+      position: fixed;
+      inset: auto;
+      top: 50%;
+      left: 50%;
+      right: auto;
+      bottom: auto;
+      width: calc(100% - 32px);
+      max-width: 360px;
+      /* Fixed popup size — content NEVER changes the popup's footprint;
+         the inner options list scrolls when there are more routes. clamp()
+         keeps it sane on tiny phones (down to 320px) and on tablets in
+         portrait (capped at 480px). */
+      height: clamp(320px, 60vh, 480px);
+      border-radius: 16px;
+      padding: 0;
+      transform: translate(-50%, calc(-50% + 12px));
+      transition: opacity 180ms var(--ease-out), transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+      box-shadow:
+        0 24px 60px -12px rgba(0, 0, 0, 0.32),
+        0 4px 12px -4px rgba(0, 0, 0, 0.16);
+      touch-action: auto;
+      /* Flex column so the header stays pinned and the list takes the rest. */
+      display: flex;
+      flex-direction: column;
+      /* Outer container clips; the .lp-options child does the scrolling. */
+      overflow: hidden;
+    }
+    .lp-menu[data-lp-mobile-variant="centered"][data-open="true"] {
+      transform: translate(-50%, -50%);
+    }
+    .lp-menu[data-lp-mobile-variant="centered"] .lp-sheet-head {
+      grid-template-columns: 1fr auto;
+      padding: 12px 12px 10px 16px;
+      cursor: default;
+      touch-action: auto;
+      flex: 0 0 auto;
+    }
+    .lp-menu[data-lp-mobile-variant="centered"] .lp-grip { display: none; }
+    .lp-menu[data-lp-mobile-variant="centered"] .lp-sheet-title {
+      margin: 0;
+    }
+    .lp-menu[data-lp-mobile-variant="centered"] .lp-sheet-close {
+      margin-top: 0;
+    }
+    .lp-menu[data-lp-mobile-variant="centered"] .lp-options {
+      /* Critical: min-height:0 lets this flex child shrink below its content
+         size, which is what enables overflow-y to actually kick in. */
+      flex: 1 1 auto;
+      min-height: 0;
+      max-height: none;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      padding: 6px 6px 8px;
+    }
+  }
+
+  /* Sheet header — hidden on desktop, visible on mobile */
+  .lp-sheet-head {
+    display: none;
+  }
+  @media (max-width: 767px) {
+    .lp-sheet-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      padding: 18px 16px 12px;
+      border-bottom: 1px solid var(--color-smoke);
+      position: relative;
+      touch-action: none;
+      cursor: grab;
+    }
+    .lp-sheet-head:active { cursor: grabbing; }
+    .lp-grip {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 44px;
+      height: 4px;
+      border-radius: 999px;
+      background: var(--color-smoke);
+      transition: background-color 180ms var(--ease-out), width 180ms var(--ease-out);
+    }
+    .lp-sheet-head:active .lp-grip { background: var(--color-graphite); width: 52px; }
+    .lp-sheet-title {
+      margin: 14px 0 0;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-graphite);
+    }
+    .lp-sheet-close {
+      margin-top: 10px;
+      width: 36px;
+      height: 36px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--color-cream);
+      color: var(--color-ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 200ms var(--ease-out);
+    }
+    .lp-sheet-close:hover { background: var(--color-smoke); }
+    .lp-sheet-close svg { width: 18px; height: 18px; }
+  }
+
+  .lp-options {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  @media (max-width: 767px) {
+    .lp-options {
+      padding: 8px 8px 0;
+      overflow-y: auto;
+      max-height: calc(72vh - 64px);
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+
+  .lp-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out);
+  }
+  @media (max-width: 767px) {
+    .lp-option { min-height: 52px; padding: 0 16px; font-size: 16.5px; }
+  }
+  .lp-option:hover,
+  .lp-option:focus-visible {
+    background: var(--color-cream);
+    outline: none;
+  }
+  .lp-option[aria-selected="true"] {
+    background: color-mix(in oklab, var(--color-accent) 8%, var(--color-cream));
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+  .lp-option[aria-disabled="true"] {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .lp-option-label { flex: 1; min-width: 0; }
+  .lp-option-check {
+    width: 14px;
+    height: 14px;
+    color: var(--color-accent);
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 150ms var(--ease-out);
+  }
+  .lp-option[aria-selected="true"] .lp-option-check {
+    opacity: 1;
+  }
+</style>
+
+<script>
+  // LocationPicker controller — each instance is a self-contained combobox
+  // that mirrors its state into a hidden <select data-role=...> so every
+  // existing script (QuotePicker, BookingForm, modal prefill) continues to
+  // work unchanged.
+
+  function initPicker(lp: HTMLElement) {
+    if (lp.dataset.lpInitted === 'true') return;
+    lp.dataset.lpInitted = 'true';
+
+    const native = lp.querySelector<HTMLSelectElement>('[data-lp-native]');
+    const trigger = lp.querySelector<HTMLButtonElement>('[data-lp-trigger]');
+    const menu = lp.querySelector<HTMLElement>('[data-lp-menu]');
+    const backdrop = lp.querySelector<HTMLElement>('[data-lp-backdrop]');
+    const closeBtn = lp.querySelector<HTMLButtonElement>('[data-lp-close]');
+    const display = lp.querySelector<HTMLElement>('[data-lp-display]');
+    const options = Array.from(lp.querySelectorAll<HTMLButtonElement>('[data-lp-option]'));
+    if (!native || !trigger || !menu || !display) return;
+
+    let isOpen = false;
+
+    // ---- Portaling for the mobile "centered" variant ------------------
+    // Ancestors of `.lp` may have `transform`, `filter`, or `will-change:
+    // transform` set (e.g. the hero's [data-reveal] wrapper). Any of those
+    // creates a containing block, which makes `position: fixed` resolve
+    // against that ancestor instead of the viewport — the popup ends up
+    // anchored to the booking card, not the screen center. Solution: while
+    // the menu is open, append it to <body> so nothing sits between it and
+    // the viewport. On close, return it to its original slot.
+    const menuOriginalParent = menu!.parentElement;
+    const menuOriginalNextSibling = menu!.nextSibling;
+
+    // Always portal: the hero section uses `isolation: isolate`, which traps
+    // any descendant inside its stacking context. Even with z-index:60+ on
+    // the dropdown, it can't render above the next section's content. Moving
+    // the menu to <body> makes it a top-level sibling that paints last, so
+    // it stacks above everything.
+    function shouldPortal() {
+      return true;
+    }
+    function portalMenuToBody() {
+      if (menu!.parentElement !== document.body) {
+        document.body.appendChild(menu!);
+      }
+    }
+    function returnMenuToOriginalParent() {
+      if (!menuOriginalParent) return;
+      if (menu!.parentElement === menuOriginalParent) return;
+      if (menuOriginalNextSibling && menuOriginalNextSibling.parentNode === menuOriginalParent) {
+        menuOriginalParent.insertBefore(menu!, menuOriginalNextSibling);
+      } else {
+        menuOriginalParent.appendChild(menu!);
+      }
+    }
+
+    /**
+     * Desktop dropdown: anchor the portaled menu to the trigger using
+     * `position: fixed` + getBoundingClientRect coords. Inline styles
+     * override the base CSS's `position: absolute` (which would resolve
+     * against <body> uselessly once portaled).
+     *
+     * Skipped on mobile — the bottom-sheet variant's CSS already pins the
+     * menu to `bottom: 0; left: 0; right: 0` and we don't want to fight it.
+     */
+    function applyDesktopAnchorPosition() {
+      if (window.matchMedia('(max-width: 767px)').matches) return;
+      const rect = trigger!.getBoundingClientRect();
+      menu!.style.position = 'fixed';
+      menu!.style.top = `${rect.bottom + 8}px`;
+      menu!.style.left = `${rect.left}px`;
+      menu!.style.right = 'auto';
+      menu!.style.width = `${rect.width}px`;
+      menu!.style.maxWidth = 'none';
+      menu!.style.zIndex = '999';
+    }
+    function clearInlinePositioning() {
+      menu!.style.position = '';
+      menu!.style.top = '';
+      menu!.style.left = '';
+      menu!.style.right = '';
+      menu!.style.width = '';
+      menu!.style.maxWidth = '';
+      menu!.style.zIndex = '';
+    }
+
+    // Window scroll/resize while open → close. Matches native picker
+    // behavior and avoids re-anchoring the dropdown frame-by-frame.
+    function onWindowScrollOrResize() {
+      if (isOpen) setOpen(false);
+    }
+
+    function syncFromNative() {
+      const val = native!.value;
+      const placeholder = display!.dataset.placeholder || '';
+      // Show the option's display label (full airport name) rather than the
+      // raw value/code — falls back to the value if no custom label exists.
+      let text = placeholder;
+      if (val) {
+        const match = options.find((o) => o.dataset.value === val);
+        text = match?.querySelector('.lp-option-label')?.textContent?.trim() || val;
+      }
+      display!.textContent = text;
+      display!.classList.toggle('is-empty', !val);
+      lp.dataset.filled = val ? 'true' : 'false';
+      options.forEach((opt) => {
+        const v = opt.dataset.value;
+        opt.setAttribute('aria-selected', String(v === val && v !== ''));
+      });
+    }
+
+    function syncDisabledState() {
+      // Reflect the native <option> disabled attr (set by QuotePicker's
+      // refreshDropoffOptions) onto the custom options.
+      const nativeOpts = native!.querySelectorAll<HTMLOptionElement>('option');
+      options.forEach((customOpt) => {
+        const val = customOpt.dataset.value;
+        const nOpt = Array.from(nativeOpts).find((o) => o.value === val);
+        if (nOpt?.disabled) {
+          customOpt.setAttribute('aria-disabled', 'true');
+          customOpt.tabIndex = -1;
+        } else {
+          customOpt.removeAttribute('aria-disabled');
+          customOpt.tabIndex = 0;
+        }
+      });
+    }
+
+    function setOpen(open: boolean) {
+      if (open === isOpen) return;
+      isOpen = open;
+      trigger!.setAttribute('aria-expanded', String(open));
+      lp.dataset.lpOpen = String(open);
+
+      if (open) {
+        syncDisabledState();
+        menu!.hidden = false;
+        // Portal BEFORE applying inline position so the rect is measured
+        // and the menu anchors correctly on first frame.
+        if (shouldPortal()) portalMenuToBody();
+        applyDesktopAnchorPosition();
+        // Close any other open LocationPickers on the page
+        document.querySelectorAll<HTMLElement>('[data-lp]').forEach((other) => {
+          if (other !== lp && other.dataset.lpOpen === 'true') {
+            const t = other.querySelector<HTMLButtonElement>('[data-lp-trigger]');
+            t?.dispatchEvent(new CustomEvent('lp:force-close'));
+          }
+        });
+        requestAnimationFrame(() => {
+          menu!.dataset.open = 'true';
+        });
+        // Mobile: lock body scroll when sheet is open. Desktop: window
+        // scroll/resize close the dropdown rather than try to keep it
+        // pinned to the trigger as the page moves under it.
+        if (window.matchMedia('(max-width: 767px)').matches) {
+          document.body.style.overflow = 'hidden';
+        } else {
+          window.addEventListener('scroll', onWindowScrollOrResize, { passive: true });
+          window.addEventListener('resize', onWindowScrollOrResize);
+        }
+        // Focus first selected, or first enabled option
+        setTimeout(() => {
+          const selected = options.find((o) => o.getAttribute('aria-selected') === 'true' && o.getAttribute('aria-disabled') !== 'true');
+          const firstEnabled = options.find((o) => o.getAttribute('aria-disabled') !== 'true');
+          (selected ?? firstEnabled)?.focus();
+        }, 40);
+      } else {
+        menu!.dataset.open = 'false';
+        document.body.style.overflow = '';
+        window.removeEventListener('scroll', onWindowScrollOrResize);
+        window.removeEventListener('resize', onWindowScrollOrResize);
+        // Restore focus to trigger only if focus was inside the menu
+        if (document.activeElement && menu!.contains(document.activeElement)) {
+          trigger!.focus();
+        }
+        setTimeout(() => {
+          if (lp.dataset.lpOpen === 'false') {
+            menu!.hidden = true;
+            // After the close animation, return the portaled menu to its
+            // original parent so subsequent opens still find it via the
+            // captured handle (and outside-click detection still works).
+            clearInlinePositioning();
+            returnMenuToOriginalParent();
+          }
+        }, 240);
+      }
+    }
+
+    function selectOption(opt: HTMLButtonElement) {
+      if (opt.getAttribute('aria-disabled') === 'true') return;
+      const val = opt.dataset.value || '';
+      native!.value = val;
+      // Dispatch native change event so existing scripts pick it up
+      native!.dispatchEvent(new Event('change', { bubbles: true }));
+      syncFromNative();
+      setOpen(false);
+    }
+
+    // --- wiring ---
+    trigger.addEventListener('click', () => setOpen(!isOpen));
+    trigger.addEventListener('lp:force-close' as any, () => setOpen(false));
+
+    trigger.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (isOpen) return;
+      if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        setOpen(true);
+      }
+    });
+
+    closeBtn?.addEventListener('click', () => setOpen(false));
+    backdrop?.addEventListener('click', () => setOpen(false));
+
+    options.forEach((opt, idx) => {
+      opt.addEventListener('click', () => selectOption(opt));
+      opt.addEventListener('keydown', (e: KeyboardEvent) => {
+        const enabled = options.filter((o) => o.getAttribute('aria-disabled') !== 'true');
+        const enabledIdx = enabled.indexOf(opt);
+        // Move focus + scroll into view so the user always sees the
+        // focused option, including when the menu has overflow scrolling.
+        const focusAndScroll = (target: HTMLButtonElement | undefined) => {
+          target?.focus();
+          target?.scrollIntoView({ block: 'nearest' });
+        };
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          selectOption(opt);
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          focusAndScroll(enabled[(enabledIdx + 1) % enabled.length]);
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          focusAndScroll(enabled[(enabledIdx - 1 + enabled.length) % enabled.length]);
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          focusAndScroll(enabled[0]);
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          focusAndScroll(enabled[enabled.length - 1]);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          setOpen(false);
+        } else if (e.key === 'Tab') {
+          // Close on Tab-out
+          setOpen(false);
+        }
+      });
+    });
+
+    // Click outside to close (also handles tap-on-empty-area when the menu
+    // has been portaled to <body> for the centered variant — `menu.contains`
+    // catches clicks on the options/header that are no longer descendants of
+    // `lp`).
+    document.addEventListener('click', (e) => {
+      if (!isOpen) return;
+      const target = e.target as Node;
+      if (lp.contains(target) || menu!.contains(target)) return;
+      setOpen(false);
+    });
+
+    // Escape anywhere → close
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isOpen) setOpen(false);
+    });
+
+    // Listen for external changes to native select (e.g. URL prefill, event-driven
+    // applySelection from BookingForm) and sync the display.
+    native.addEventListener('change', syncFromNative);
+
+    // ---- Mobile drag-to-close -----------------------------------------
+    // Gesture engages from the sheet header (grip + title) only, so
+    // scrolling the options list below is never hijacked. Skipped on
+    // reduced-motion and on desktop.
+    const dragZone = menu.querySelector<HTMLElement>('[data-lp-drag-zone]');
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const isMobile = () => window.matchMedia('(max-width: 767px)').matches;
+    let dragStartY = 0;
+    let dragCurrentY = 0;
+    let dragActive = false;
+    let dragAccepted = false;
+    let sheetHeight = 0;
+
+    function onDragStart(e: TouchEvent) {
+      if (!isOpen || !isMobile() || reduceMotion) return;
+      // Centered variant has no drag-to-close gesture (no drag handle, popup
+      // is small + uses tap-outside / X / option-tap to close).
+      if (lp.dataset.lpMobileVariant === 'centered') return;
+      const t = e.touches[0];
+      if (!t) return;
+      dragStartY = t.clientY;
+      dragCurrentY = t.clientY;
+      dragActive = true;
+      dragAccepted = false;
+      sheetHeight = menu!.getBoundingClientRect().height;
+    }
+    function onDragMove(e: TouchEvent) {
+      if (!dragActive) return;
+      const t = e.touches[0];
+      if (!t) return;
+      const dy = t.clientY - dragStartY;
+      if (!dragAccepted) {
+        if (dy > 6) {
+          dragAccepted = true;
+          lp.dataset.lpDragging = 'true';
+        } else return;
+      }
+      e.preventDefault();
+      dragCurrentY = t.clientY;
+      const d = Math.max(0, dy);
+      menu!.style.transform = `translateY(${d}px)`;
+      if (backdrop) backdrop.style.opacity = String(Math.max(0, 1 - d / sheetHeight));
+    }
+    function onDragEnd() {
+      if (!dragActive) return;
+      dragActive = false;
+      lp.dataset.lpDragging = 'false';
+      if (!dragAccepted) return;
+      const dy = Math.max(0, dragCurrentY - dragStartY);
+      menu!.style.transform = '';
+      if (backdrop) backdrop.style.opacity = '';
+      if (dy >= sheetHeight * 0.30) setOpen(false);
+    }
+
+    dragZone?.addEventListener('touchstart', onDragStart, { passive: true });
+    dragZone?.addEventListener('touchmove', onDragMove, { passive: false });
+    dragZone?.addEventListener('touchend', onDragEnd, { passive: true });
+    dragZone?.addEventListener('touchcancel', onDragEnd, { passive: true });
+
+    // Initial render
+    syncFromNative();
+    syncDisabledState();
+  }
+
+  function run() {
+    document.querySelectorAll<HTMLElement>('[data-lp]').forEach(initPicker);
+  }
+  document.addEventListener('astro:page-load', run);
+</script>
