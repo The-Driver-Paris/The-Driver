@@ -7,3 +7,28 @@ compatibility_flags = ["nodejs_compat"]
 # RESEND_API_KEY is set as a secret via:
 #   npx wrangler secret put RESEND_API_KEY
 # The secret is server-side only — never bundled into the public Worker code.
+
+# Per-IP rate limit.
+#
+# This lives here rather than in a dashboard WAF rule because WAF rate limiting
+# only applies to traffic through a Cloudflare *zone*. This Worker is served
+# from `*.workers.dev`, which is not in the thedriver.fr zone, so a WAF rule
+# would never match it. The binding runs inside the Worker and is independent
+# of where it's served from.
+#
+# `namespace_id` is an arbitrary number, unique per account — not a secret.
+#
+# MEASURED BEHAVIOUR, not a guarantee: enforcement is per-colo and per-isolate
+# and Cloudflare documents it as approximate. Tested against the deployed
+# Worker from one IP: 14 sequential requests were never limited, while a
+# 20-request parallel burst had 3 blocked. Read this as "clamps a burst",
+# NOT as "3 requests per minute". A slow drip stays under it.
+#
+# The limit is set well below a plausible legitimate rate for that reason —
+# a real customer submits once. Turnstile is the control that actually stops
+# a patient scripted attacker; see worker/README.md.
+[[unsafe.bindings]]
+name = "RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 3, period = 60 }

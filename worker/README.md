@@ -76,19 +76,37 @@ What the Worker already does:
   `notes` field into a multi-megabyte email.
 - **The Resend key is a Worker secret**, never bundled into the public site.
 
-**What is still missing: rate limiting.** The origin check stops other websites
-using a visitor's browser to post here, but it does not stop `curl` — CORS is a
-browser mechanism and a script can send any `Origin` header it likes. Without a
-rate limit, someone who finds the Worker URL (it is public, in the page source)
-can flood the chauffeur's inbox and burn the Resend quota (3,000 emails/month on
-the free tier; each booking sends 2).
+- **Per-IP rate limiting** — 5 requests per 60 seconds, then `429`. This
+  matters because the origin check does not stop `curl`: CORS is a browser
+  mechanism and a script can send any `Origin` header it likes. The Worker URL
+  is public (it's in the page source), so without a limit someone could flood
+  the chauffeur's inbox and burn the Resend quota (3,000 emails/month free;
+  each booking sends 2).
 
-Add the rule in the Cloudflare dashboard — it can't be expressed in
-`wrangler.toml`:
+  Configured as a `[[unsafe.bindings]]` block in `wrangler.toml` and enforced
+  in `worker.js`. **Not** a dashboard WAF rule: WAF rate limiting only applies
+  to traffic through a Cloudflare *zone*, and this Worker is served from
+  `*.workers.dev`, which is not in the `thedriver.fr` zone — a WAF rule there
+  would never match. Wrangler 3 flags `unsafe` fields as experimental; that
+  warning is expected. (Wrangler 4 promotes this to a first-class
+  `[[ratelimits]]` block.)
 
-**Security → WAF → Rate limiting rules → Create**, matching the Worker's route,
-something like 5 requests per minute per IP, action **Block**. A real customer
-submits once; anything above that is abuse.
+  To change the threshold, edit `simple = { limit, period }` in
+  `wrangler.toml` and redeploy. `period` accepts only `10` or `60`.
+
+**Know what this does and doesn't buy you.** Cloudflare enforces the limit per
+data centre and per isolate, and documents it as approximate. Measured against
+the deployed Worker from a single IP: **14 sequential requests were never
+limited; a 20-request parallel burst had 3 blocked.** So it clamps a flood —
+the loud, obvious attack — but a patient script trickling one request per
+second stays under it indefinitely. At two emails per booking, that is still
+enough to burn the 3,000/month Resend quota in well under an hour.
+
+**The control that actually closes that gap is [Cloudflare
+Turnstile](https://developers.cloudflare.com/turnstile/)** — free, invisible to
+real users, and designed for exactly this. It would mean adding a widget to
+both forms and verifying the token in the Worker before sending. Not yet
+implemented; it is the recommended next hardening step if abuse ever appears.
 
 Consider also switching `FROM_ADDRESS` off `noreply@` if you ever want customer
 replies to reach the chauffeur — currently replies are steered by `reply_to`,

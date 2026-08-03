@@ -85,6 +85,25 @@ export default {
       return jsonResponse({ success: false, error: 'Forbidden' }, 403, cors);
     }
 
+    // Per-IP rate limit (binding configured in wrangler.toml). Sits after the
+    // origin check so cheap 403s don't burn budget, but before anything that
+    // costs money — a flood is stopped before it reaches Resend.
+    //
+    // Guarded because the binding is absent when worker.js is imported
+    // directly in a local test harness.
+    if (env.RATE_LIMITER) {
+      const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+      const { success: allowed } = await env.RATE_LIMITER.limit({ key: ip });
+      if (!allowed) {
+        console.warn('Rate limited:', ip);
+        return jsonResponse(
+          { success: false, error: 'Too many requests. Please try again in a minute.' },
+          429,
+          cors,
+        );
+      }
+    }
+
     if (!env.RESEND_API_KEY) {
       console.error('RESEND_API_KEY missing — set with: wrangler secret put RESEND_API_KEY');
       return jsonResponse({ success: false, error: 'Server misconfigured' }, 500, cors);
