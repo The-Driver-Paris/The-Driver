@@ -1,11 +1,19 @@
 # Driver Services — Cloudflare Worker
 
-Receives booking submissions from the Astro static site and sends two emails
-via Resend: a French branded notification to the chauffeur and an English
-auto-confirmation to the customer.
+The site's only backend. It receives **both** forms and sends every email
+through Resend from the verified `thedriver.fr` domain.
+
+| `formType` | Sent by | Emails |
+|---|---|---|
+| *(absent)* or `booking` | Booking modal | French notification → chauffeur (**required**), English confirmation → customer (best-effort) |
+| `contact` | FAQ-page contact form | French notification → chauffeur |
+
+A payload with no `formType` is treated as a booking — that was the only
+submitter before the contact form moved over, and cached pages may still post
+the original shape.
 
 The Worker is independent of the static site — deploy it once, the URL is
-permanent, the static site fetches that URL.
+permanent, both forms fetch that URL.
 
 ## One-time setup
 
@@ -148,18 +156,20 @@ RESEND_API_KEY=re_your_actual_key_here
 
 | File | Purpose |
 |---|---|
-| `worker.js` | Entry point — handles fetch, validates, calls Resend |
+| `worker.js` | Entry point — handles fetch, dispatches on `formType`, validates, calls Resend |
 | `wrangler.toml` | Deployment config (name, compatibility date) |
-| `templates/clientEmail.js` | French branded HTML — chauffeur notification |
+| `templates/clientEmail.js` | French branded HTML — chauffeur booking notification |
 | `templates/customerEmail.js` | English branded HTML — customer auto-confirmation |
+| `templates/contactEmail.js` | French branded HTML — chauffeur contact-message notification |
 | `package.json` | Wrangler dependency only |
 
 ## Architecture quick view
 
 ```
-[Astro static site] ── POST JSON ──> [Cloudflare Worker]
-                                          ├─> [Resend API] ─> thedriver.france@gmail.com (FR HTML)
-                                          └─> [Resend API] ─> customer email (EN HTML)
+[Booking modal] ─── POST JSON ───┐
+                                 ├─> [Cloudflare Worker] ─┬─> [Resend] ─> thedriver.france@gmail.com (FR)
+[Contact form]  ─── POST JSON ───┘     dispatch on        └─> [Resend] ─> customer email (EN, booking only)
+                                       formType
 ```
 
 Worker free tier: 100,000 requests/day. Resend free tier: 3,000 emails/month.

@@ -20,7 +20,7 @@ Two things reach the outside world:
 | Feature | How it works | Needs an account? |
 |---|---|---|
 | **Booking form** (the modal) | Site POSTs JSON to a small Cloudflare Worker, which calls the Resend API and sends two emails: a French notification to the chauffeur and an English confirmation to the customer | **Yes** — Cloudflare + Resend |
-| **Contact form** (bottom of the FAQ/Contact page) | Site POSTs directly to web3forms.com, which forwards the message by email | **Yes** — Web3Forms (free) |
+| **Contact form** (bottom of the FAQ/Contact page) | POSTs to the **same Worker** with `formType: 'contact'`, which sends one French notification to the chauffeur via Resend | No extra account — same Worker |
 | **WhatsApp button** | Plain `https://wa.me/33634301292` link | No. Works with zero setup |
 | **Phone / email links** | Plain `tel:` and `mailto:` links | No |
 
@@ -35,15 +35,14 @@ analytics, install your own — see §6.
 
 ## 2. Accounts to create
 
-Both free at this traffic level.
+All free at this traffic level.
 
 | Service | Why | Cost |
 |---|---|---|
 | **GitHub** | Holds the repo Vercel builds from | Free |
 | **Vercel** | Hosts the site + serves `thedriver.fr` | Free (Hobby) |
 | **Cloudflare** | Hosts the booking Worker only — not the site, not DNS | Free |
-| **Resend** | Actually sends the booking emails | Free up to 3,000/month |
-| **Web3Forms** | Contact form delivery | Free up to 250/month |
+| **Resend** | Actually sends every email the site produces | Free up to 3,000/month |
 
 You also need the login for whoever `thedriver.fr` is registered with, so you
 can point its DNS at Vercel at the end.
@@ -76,12 +75,12 @@ the steps below are done — that is expected.
 ### Step 2 — Decide where DNS lives
 
 You need access to the DNS zone for `thedriver.fr`, because two services want
-records in it: **Resend** (step 3, to send email) and **Vercel** (step 8, to
+records in it: **Resend** (step 3, to send email) and **Vercel** (step 7, to
 serve the site).
 
 Keeping DNS at the current registrar is fine and is the least disruptive
 choice — Vercel only needs one `A` record and one `CNAME`. Do **not** move
-nameservers now; the live site must keep working until step 8.
+nameservers now; the live site must keep working until step 7.
 
 Export or screenshot the existing zone before changing anything.
 
@@ -115,27 +114,23 @@ Wrangler prints a URL like
 The Resend key is stored server-side by Cloudflare. It is never bundled into
 the public site.
 
-### Step 5 — Web3Forms key
+### Step 5 — Fill in .env
 
-Go to https://web3forms.com, enter the email address that should receive
-contact-form messages, and they email you an access key. No password, no
-dashboard.
-
-### Step 6 — Fill in .env
-
-Copy `.env.example` to `.env` and set both values:
+Copy `.env.example` to `.env` and set the one value:
 
 ```
 PUBLIC_WORKER_URL=https://driver-services-form.<your-subdomain>.workers.dev
-PUBLIC_WEB3FORMS_KEY=<key from step 5>
 ```
 
-> **The most common mistake on this project:** these values are compiled into
-> the HTML at build time. They are not read at runtime. Change one and you must
+This single URL powers **both** forms — the booking modal and the contact
+form. There is no second service to sign up for.
+
+> **The most common mistake on this project:** this value is compiled into
+> the HTML at build time. It is not read at runtime. Change it and you must
 > re-run `npm run build` and redeploy. Redeploying without rebuilding does
 > nothing.
 
-### Step 7 — Push to GitHub and deploy on Vercel
+### Step 6 — Push to GitHub and deploy on Vercel
 
 Push the repo to GitHub, then in the Vercel dashboard: **Add New → Project →
 Import**.
@@ -145,11 +140,11 @@ directory (`dist`), the trailing-slash rule and the cache/security headers, so
 leave the build fields at their detected defaults.
 
 The one thing you **must** set by hand: **Settings → Environment Variables** →
-add `PUBLIC_WORKER_URL` and `PUBLIC_WEB3FORMS_KEY`, ticked for **Production,
-Preview and Development**. Vercel does not read your local `.env`.
+add `PUBLIC_WORKER_URL`, ticked for **Production, Preview and Development**.
+Vercel does not read your local `.env`.
 
-> Set the variables **before** the first deploy, or deploy once and then
-> redeploy. They are baked in at build time — adding them without rebuilding
+> Set the variable **before** the first deploy, or deploy once and then
+> redeploy. It is baked in at build time — adding it without rebuilding
 > leaves both forms showing "Missing form config".
 
 Set **Node.js Version** to 22.x or later under Settings → General if the
@@ -158,7 +153,7 @@ detected default is older (`package.json` → `engines` requires ≥ 22.12).
 Deploy. You get a `*.vercel.app` URL — test the whole site there before touching
 DNS.
 
-### Step 8 — Point the domain
+### Step 7 — Point the domain
 
 In the Vercel project: **Settings → Domains** → add both `thedriver.fr` and
 `www.thedriver.fr`. Set the apex `thedriver.fr` as primary so `www` redirects to
@@ -172,7 +167,7 @@ Add those records at the DNS provider from step 2, leaving the Resend records
 untouched. Propagation is typically minutes. Vercel issues the HTTPS certificate
 automatically once the records resolve.
 
-### Step 9 — Test before calling it done
+### Step 8 — Test before calling it done
 
 1. Submit a **real booking** through the modal. Two emails must arrive: one to
    `thedriver.france@gmail.com`, one to the address you entered.
@@ -201,6 +196,7 @@ Resend domain, Worker and hosting project be shut down.
 | **Chauffeur's receiving address** | `worker/worker.js` → `CLIENT_TO` |
 | **Email sender address** | `worker/worker.js` → `FROM_ADDRESS` (its domain must be verified in Resend) |
 | **Booking email design** | `worker/templates/clientEmail.js` (French, to chauffeur), `worker/templates/customerEmail.js` (English, to customer) |
+| **Contact email design** | `worker/templates/contactEmail.js` (French, to chauffeur) |
 | **Phone / WhatsApp number** | Search the repo for `33634301292` |
 | **Contact email shown on the site** | Search for `thedriver.france@gmail.com` |
 | **Global styles** | `src/styles/global.css` |
@@ -250,8 +246,7 @@ mode) do not.
 
 | Symptom | Cause |
 |---|---|
-| "Missing form config" on booking submit | `PUBLIC_WORKER_URL` empty, or set but the site wasn't rebuilt after |
-| "Missing form config" on contact submit | `PUBLIC_WEB3FORMS_KEY` empty, or set but not rebuilt |
+| "Missing form config" on either form | `PUBLIC_WORKER_URL` empty, or set but the site wasn't rebuilt after |
 | Booking form says success, no email arrives | `thedriver.fr` not Verified in Resend, or the Resend key wasn't set as a Worker secret. Run `npx wrangler tail` in `worker/` and submit again to see the real error. |
 | Chauffeur gets the email, customer doesn't | Customer address typo, or it landed in spam — the Resend dashboard logs every send |
 | A page 404s after deploy | Host isn't serving directory-style URLs. On nginx: `try_files $uri $uri/ $uri/index.html =404;` |

@@ -14,6 +14,7 @@
 
 import { buildClientEmailHtml } from './templates/clientEmail.js';
 import { buildCustomerEmailHtml } from './templates/customerEmail.js';
+import { buildContactEmailHtml } from './templates/contactEmail.js';
 
 // CORS — restricted to the production domain, Vercel preview deploys and the
 // local dev server. Add an entry here if the site ever moves host again.
@@ -52,8 +53,8 @@ function corsHeadersFor(origin) {
 // multi-megabyte email out of the free-text `notes` field.
 const MAX_FIELD_LENGTH = 2000;
 
-// Where the chauffeur receives bookings. Hard-coded because the destination
-// is fixed for this business.
+// Where the chauffeur receives bookings AND contact-form messages. Hard-coded
+// because the destination is fixed for this business.
 const CLIENT_TO = 'thedriver.france@gmail.com';
 
 // Sender address. Domain `thedriver.fr` must be verified in Resend
@@ -116,42 +117,64 @@ export default {
       return jsonResponse({ success: true }, 200, cors);
     }
 
-    // Required-field check. Loose — the form already validates client-side,
-    // this is a sanity gate so bad shapes don't reach Resend.
-    const missing = ['firstName', 'email', 'pickup', 'dropoff', 'date', 'time']
-      .filter((k) => !data[k] || String(data[k]).trim() === '');
-    if (missing.length) {
-      return jsonResponse(
-        { success: false, error: `Missing required fields: ${missing.join(', ')}` },
-        400,
-        cors,
-      );
-    }
+    // Two form types share this Worker: the booking modal and the contact
+    // form on the FAQ page. They need different validation and different
+    // emails, so dispatch here. Anything without an explicit `formType` is a
+    // booking — that was the only submitter before the contact form moved
+    // over, and old cached pages may still post the original shape.
+    return data.formType === 'contact'
+      ? handleContact(data, env, cors)
+      : handleBooking(data, env, cors);
+  },
+};
 
-    // ── Send chauffeur notification (REQUIRED — the critical path) ──
-    const clientHtml = buildClientEmailHtml(data);
-    const clientSubject = buildClientSubject(data);
-    const clientResult = await sendEmail(env.RESEND_API_KEY, {
-      from: FROM_ADDRESS,
-      to: CLIENT_TO,
-      replyTo: data.email,
-      subject: clientSubject,
-      html: clientHtml,
-    });
+// ── Booking submissions ───────────────────────────────────────────────────
+//
+// Sends two emails: the chauffeur notification (critical) and the customer
+// auto-confirmation (best-effort).
+async function handleBooking(data, env, cors) {
+  // Required-field check. Loose — the form already validates client-side,
+  // this is a sanity gate so bad shapes don't reach Resend.
+  const missing = ['firstName', 'email', 'pickup', 'dropoff', 'date', 'time']
+    .filter((k) => !data[k] || String(data[k]).trim() === '');
+  if (missing.length) {
+    return jsonResponse(
+      { success: false, error: `Missing required fields: ${missing.join(', ')}` },
+      400,
+      cors,
+    );
+  }
 
-    if (!clientResult.success) {
-      console.error('Chauffeur email failed:', clientResult.error);
-      return jsonResponse(
-        { success: false, error: 'Failed to send notification' },
-        502,
-        cors,
-      );
-    }
+  // ── Send chauffeur notification (REQUIRED — the critical path) ──
+  //
+  // `replyTo` is only passed when the address actually parses. A malformed
+  // one makes Resend reject the whole send, which would fail the booking the
+  // chauffeur needs to receive — losing the reply-to convenience is the far
+  // cheaper failure.
+  const clientHtml = buildClientEmailHtml(data);
+  const clientSubject = buildClientSubject(data);
+  const clientResult = await sendEmail(env.RESEND_API_KEY, {
+    from: FROM_ADDRESS,
+    to: CLIENT_TO,
+    replyTo: isValidEmail(data.email) ? data.email : undefined,
+    subject: clientSubject,
+    html: clientHtml,
+  });
 
-    // ── Send customer auto-confirmation (BEST-EFFORT) ──
-    // If this fails (Resend free tier restricts recipients to verified
-    // addresses until a domain is set up), still return success — the
-    // chauffeur got the booking, that's what matters.
+  if (!clientResult.success) {
+    console.error('Chauffeur email failed:', clientResult.error);
+    return jsonResponse(
+      { success: false, error: 'Failed to send notification' },
+      502,
+      cors,
+    );
+  }
+
+  // ── Send customer auto-confirmation (BEST-EFFORT) ──
+  // If this fails, still return success — the chauffeur got the booking,
+  // that's what matters. Skipped entirely for an unparseable address.
+  let customerSent = false;
+  if (isValidEmail(data.email)) {
     const customerHtml = buildCustomerEmailHtml(data);
     const customerResult = await sendEmail(env.RESEND_API_KEY, {
       from: FROM_ADDRESS,
@@ -160,22 +183,61 @@ export default {
       subject: 'Booking confirmation — Driver Services',
       html: customerHtml,
     });
-
+    customerSent = customerResult.success;
     if (!customerResult.success) {
       console.warn('Customer auto-confirmation failed:', customerResult.error);
     }
+  }
 
+  return jsonResponse(
+    {
+      success: true,
+      message: 'Booking submitted successfully',
+      customerEmailSent: customerSent,
+    },
+    200,
+    cors,
+  );
+}
+
+// ── Contact-form messages ─────────────────────────────────────────────────
+//
+// One email, to the chauffeur. No auto-reply: the form shows an on-page
+// success card, and an enquiry doesn't carry the commitment a booking does.
+async function handleContact(data, env, cors) {
+  const missing = ['firstName', 'email', 'message']
+    .filter((k) => !data[k] || String(data[k]).trim() === '');
+  if (missing.length) {
     return jsonResponse(
-      {
-        success: true,
-        message: 'Booking submitted successfully',
-        customerEmailSent: customerResult.success,
-      },
-      200,
+      { success: false, error: `Missing required fields: ${missing.join(', ')}` },
+      400,
       cors,
     );
-  },
-};
+  }
+
+  const result = await sendEmail(env.RESEND_API_KEY, {
+    from: FROM_ADDRESS,
+    to: CLIENT_TO,
+    replyTo: isValidEmail(data.email) ? data.email : undefined,
+    subject: buildContactSubject(data),
+    html: buildContactEmailHtml(data),
+  });
+
+  if (!result.success) {
+    console.error('Contact email failed:', result.error);
+    return jsonResponse(
+      { success: false, error: 'Failed to send message' },
+      502,
+      cors,
+    );
+  }
+
+  return jsonResponse(
+    { success: true, message: 'Message sent successfully' },
+    200,
+    cors,
+  );
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -186,21 +248,27 @@ function jsonResponse(body, status = 200, cors = corsHeadersFor('')) {
   });
 }
 
+// Deliberately permissive — this is not address verification, just a guard
+// against a value that would make Resend reject the entire send. Anything
+// shaped `x@y.z` with no spaces gets through.
+function isValidEmail(value) {
+  const s = String(value == null ? '' : value).trim();
+  return s.length <= 254 && /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(s);
+}
+
 async function sendEmail(apiKey, { from, to, replyTo, subject, html }) {
   try {
+    const payload = { from, to, subject, html };
+    // Omit rather than send null — Resend rejects a null reply_to outright.
+    if (replyTo) payload.reply_to = replyTo;
+
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from,
-        to,
-        reply_to: replyTo,
-        subject,
-        html,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -226,6 +294,13 @@ function buildClientSubject(data) {
   const ds = formatDateShort(data.date);
   const t = data.time ? ' ' + data.time : '';
   return `Reservation: ${p} / ${d} (${ds}${t})`;
+}
+
+// Contact messages land in the same inbox as bookings, so the subject has to
+// be distinguishable at a glance. Same ASCII-folding reasoning as above.
+function buildContactSubject(data) {
+  const name = asciiFold(data.firstName).trim();
+  return name ? `Message du site: ${name}` : 'Message du site';
 }
 
 function asciiFold(s) {

@@ -12,7 +12,7 @@ Multilingual landing page for **Driver Services**, a private chauffeur / taxi se
 - **Styling:** [Tailwind CSS](https://tailwindcss.com) (v4, via `@tailwindcss/vite`)
 - **Interactivity:** Vanilla JS only — no UI framework.
 - **Booking form:** posts to a [Cloudflare Worker](worker/README.md) that sends two emails via [Resend](https://resend.com).
-- **Contact form:** posts to [Web3Forms](https://web3forms.com) — no backend; goes straight to the client's email.
+- **Contact form:** posts to the same Worker (`formType: 'contact'`), which sends one email via Resend.
 - **Analytics:** none installed. Add your own in [src/layouts/BaseLayout.astro](src/layouts/BaseLayout.astro) if wanted.
 - **Hosting:** [Vercel](https://vercel.com) — settings live in [vercel.json](vercel.json) (build `npm run build`, output `dist`).
 

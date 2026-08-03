@@ -11,9 +11,12 @@ const s = t(locale).pages.faqContact.form;
 
 const uid = 'cf-' + Math.random().toString(36).slice(2, 9);
 
+// Posts to the same Cloudflare Worker as the booking form, which sends the
+// message via Resend from the verified `thedriver.fr` domain. The Worker
+// tells the two apart by `formType` (see worker/worker.js).
 const config = {
-  accessKey: import.meta.env.PUBLIC_WEB3FORMS_KEY ?? '',
-  subjectPrefix: s.subjectPrefix,
+  workerUrl: import.meta.env.PUBLIC_WORKER_URL ?? '',
+  locale,
   labels: {
     sending: s.sending,
     submit: s.submit,
@@ -51,7 +54,6 @@ const config = {
     <form
       data-contact-form
       data-form-id={uid}
-      action="https://api.web3forms.com/submit"
       method="POST"
       class="cf-form mt-8"
       data-reveal
@@ -60,12 +62,8 @@ const config = {
     >
       <script is:inline type="application/json" data-contact-config={uid} set:html={JSON.stringify(config)} />
 
-      {/* Web3Forms required fields */}
-      <input type="hidden" name="access_key" value={config.accessKey} />
-      <input type="hidden" name="subject" data-role="subject" value={s.subjectPrefix} />
-      <input type="hidden" name="from_name" data-role="from-name" value="" />
-      <input type="hidden" name="page" value="faq-contact" />
-      <input type="hidden" name="site_locale" value={locale} />
+      {/* Honeypot — real users never see or fill this. The Worker silently
+          returns success and sends nothing when it's checked. */}
       <input type="checkbox" name="botcheck" class="hidden" tabindex="-1" autocomplete="off" />
 
       <div>
@@ -278,8 +276,8 @@ const config = {
     const cfgEl = document.querySelector<HTMLScriptElement>(`script[data-contact-config="${id}"]`);
     if (!cfgEl?.textContent) return;
     const cfg = JSON.parse(cfgEl.textContent) as {
-      accessKey: string;
-      subjectPrefix: string;
+      workerUrl: string;
+      locale: string;
       labels: { sending: string; submit: string; error: string };
     };
 
@@ -298,28 +296,38 @@ const config = {
         form.reportValidity();
         return;
       }
-      const first = (form.querySelector<HTMLInputElement>('[name="first_name"]')!).value.trim();
-      (form.querySelector<HTMLInputElement>('[data-role="from-name"]')!).value = first;
-      (form.querySelector<HTMLInputElement>('[data-role="subject"]')!).value = `${cfg.subjectPrefix} — ${first}`;
-
-      if (!cfg.accessKey) {
-        errorMsg.textContent = 'Missing form config (PUBLIC_WEB3FORMS_KEY).';
+      if (!cfg.workerUrl) {
+        errorMsg.textContent = 'Missing form config (PUBLIC_WORKER_URL).';
         errorBlock.classList.remove('hidden');
         return;
       }
+
+      // JSON, not FormData — the Worker parses JSON, and it keeps accented
+      // characters in the message body travelling cleanly.
+      const payload = {
+        formType: 'contact',
+        firstName: (form.querySelector<HTMLInputElement>('[name="first_name"]')!).value.trim(),
+        email: (form.querySelector<HTMLInputElement>('[name="email"]')!).value.trim(),
+        preferredLanguage: (form.querySelector<HTMLSelectElement>('[name="preferred_language"]')!).value,
+        message: (form.querySelector<HTMLTextAreaElement>('[name="message"]')!).value.trim(),
+        page: 'faq-contact',
+        locale: cfg.locale,
+        botcheck: !!form.querySelector<HTMLInputElement>('[name="botcheck"]')?.checked,
+      };
 
       submit.disabled = true;
       submitLabel.textContent = cfg.labels.sending;
       spinner.classList.remove('hidden');
 
       try {
-        const res = await fetch('https://api.web3forms.com/submit', {
+        const res = await fetch(cfg.workerUrl, {
           method: 'POST',
-          body: new FormData(form),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         });
         const out = await res.json().catch(() => ({} as any));
         if (!res.ok || out.success === false) {
-          throw new Error(out.message || 'submission failed');
+          throw new Error(out.error || 'submission failed');
         }
         if (successCard) {
           form.hidden = true;
