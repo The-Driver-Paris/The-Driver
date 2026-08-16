@@ -100,10 +100,10 @@
       "typeLabel": "TRIP TYPE",
       "oneWay": "One way",
       "roundTrip": "Round trip",
-      "roundTripBadge": "-5%",
+      "roundTripBadge": "-{roundTripDiscount}%",
       "returnDate": "Return date",
       "returnTime": "Return time",
-      "returnNote": "Save 5% when you book a round trip.",
+      "returnNote": "Save {roundTripDiscount}% when you book a round trip.",
       "intraParisHint": "Intra-Paris transfer (hotel, restaurant, Airbnb, etc.)"
     },
     "when": {
@@ -217,7 +217,7 @@
       "trainStations": "Paris train stations",
       "betweenAirports": "Between airports",
       "hourly": "Paris tour by the hour",
-      "hourlyPrice": "€50 / hour"
+      "hourlyPrice": "€{hourlyRate} / hour"
     },
     "otherPrompt": "Another destination?",
     "otherCta": "WhatsApp us"
@@ -294,7 +294,7 @@
     "hourly": {
       "eyebrow": "BY THE HOUR",
       "title": "Paris on your schedule.",
-      "price": "€50 / hour",
+      "price": "€{hourlyRate} / hour",
       "body": "Your driver, your itinerary. Shopping, sightseeing, dinners — we wait, we drive, you enjoy.",
       "bullets": [
         "3-hour minimum",
@@ -696,7 +696,7 @@
       "grid": {
         "eyebrow": "FULL GRID",
         "heading": "Every route, every price.",
-        "sub": "Price per trip, depending on the number of passengers. Round trip: 5% off if paid in advance.",
+        "sub": "Price per trip, depending on the number of passengers. Round trip: {roundTripDiscount}% off if paid in advance.",
         "fromLabel": "From",
         "routeHeader": "Route",
         "paxUnit": "people",
@@ -704,13 +704,13 @@
         "legendVan": "4–8 — Van",
         "legendCombo": "12+ — Combination",
         "unpriced": "On request",
-        "footnotePrefix": "Prices in euros, per trip, by passenger count. One way. Round trip: −5% if paid in advance. Routes not listed or long-distance:",
+        "footnotePrefix": "Prices in euros, per trip, by passenger count. One way. Round trip: −{roundTripDiscount}% if paid in advance. Routes not listed or long-distance:",
         "footnoteCta": "message us",
         "footnoteSuffix": " for a quote."
       },
       "hourly": {
         "eyebrow": "BY THE HOUR",
-        "price": "€50 / hour",
+        "price": "€{hourlyRate} / hour",
         "sub": "For exploring Paris at your pace, shopping, dinners, events.",
         "bullets": [
           "3-hour minimum",

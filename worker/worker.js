@@ -307,12 +307,20 @@ async function sendEmail(apiKey, { from, to, replyTo, subject, html }) {
 // Inbox-list previews truncate non-ASCII inconsistently across clients,
 // so we strip diacritics + drop the → arrow. The full route + accented
 // place names live in the email body (HTML, charset=UTF-8).
+// Round-trips are prefixed "A/R" and carry the return date so the second leg
+// is visible in the inbox list, not just inside the email.
 function buildClientSubject(data) {
   const p = asciiFold(data.pickup);
   const d = asciiFold(data.dropoff);
   const ds = formatDateShort(data.date);
   const t = data.time ? ' ' + data.time : '';
-  return `Reservation: ${p} / ${d} (${ds}${t})`;
+  const isRoundTrip = data.tripType === 'round-trip' || data.tripType === 'roundTrip';
+  if (!isRoundTrip) return `Reservation: ${p} / ${d} (${ds}${t})`;
+
+  const rs = formatDateShort(data.returnDate);
+  const rt = data.returnTime ? ' ' + data.returnTime : '';
+  const returnPart = rs ? ` + retour ${rs}${rt}` : ' + retour a confirmer';
+  return `Reservation A/R: ${p} / ${d} (${ds}${t}${returnPart})`;
 }
 
 // Contact messages land in the same inbox as bookings, so the subject has to

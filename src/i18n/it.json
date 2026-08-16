@@ -100,10 +100,10 @@
       "typeLabel": "TIPO DI VIAGGIO",
       "oneWay": "Solo andata",
       "roundTrip": "Andata e ritorno",
-      "roundTripBadge": "-5%",
+      "roundTripBadge": "-{roundTripDiscount}%",
       "returnDate": "Data ritorno",
       "returnTime": "Ora ritorno",
-      "returnNote": "Risparmia il 5% prenotando andata e ritorno.",
+      "returnNote": "Risparmia il {roundTripDiscount}% prenotando andata e ritorno.",
       "intraParisHint": "Trasferimento intra-Parigi (hotel, ristorante, Airbnb, ecc.)"
     },
     "when": {
@@ -217,7 +217,7 @@
       "trainStations": "Stazioni di Parigi",
       "betweenAirports": "Tra aeroporti",
       "hourly": "Parigi a ore",
-      "hourlyPrice": "50€ / ora"
+      "hourlyPrice": "{hourlyRate}€ / ora"
     },
     "otherPrompt": "Un'altra destinazione?",
     "otherCta": "Scrivici su WhatsApp"
@@ -294,7 +294,7 @@
     "hourly": {
       "eyebrow": "A DISPOSIZIONE",
       "title": "Parigi al tuo ritmo.",
-      "price": "50€ / ora",
+      "price": "{hourlyRate}€ / ora",
       "body": "Il tuo autista, il tuo itinerario. Shopping, visite, cene — noi aspettiamo, guidiamo, tu ti godi la città.",
       "bullets": [
         "Minimo 3 ore",
@@ -696,7 +696,7 @@
       "grid": {
         "eyebrow": "TABELLA COMPLETA",
         "heading": "Tutti i percorsi, tutti i prezzi.",
-        "sub": "Prezzo per tratta in base al numero di passeggeri. Andata e ritorno: sconto del 5 % se pagato in anticipo.",
+        "sub": "Prezzo per tratta in base al numero di passeggeri. Andata e ritorno: sconto del {roundTripDiscount} % se pagato in anticipo.",
         "fromLabel": "Da",
         "routeHeader": "Tratta",
         "paxUnit": "persone",
@@ -704,13 +704,13 @@
         "legendVan": "4–8 — Furgone",
         "legendCombo": "12+ — Combinazione",
         "unpriced": "Su preventivo",
-        "footnotePrefix": "Prezzi in euro, per tratta, in base al numero di passeggeri. Solo andata. Andata e ritorno: −5 % se pagato in anticipo. Tratte non elencate o lunga distanza:",
+        "footnotePrefix": "Prezzi in euro, per tratta, in base al numero di passeggeri. Solo andata. Andata e ritorno: −{roundTripDiscount} % se pagato in anticipo. Tratte non elencate o lunga distanza:",
         "footnoteCta": "contattaci",
         "footnoteSuffix": " per un preventivo."
       },
       "hourly": {
         "eyebrow": "A ORE",
-        "price": "50 € / ora",
+        "price": "{hourlyRate} € / ora",
         "sub": "Per visitare Parigi al tuo ritmo, shopping, cene, eventi.",
         "bullets": [
           "Minimo 3 ore",

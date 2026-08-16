@@ -139,7 +139,8 @@ time, so copy them from the dashboard rather than from any guide.
 
 ## Where to edit things
 
-- **Prices & route matrix** → [src/data/routes.js](src/data/routes.js). Single source of truth — `PRICES[from][to] = { car, van }`. Update `HOURLY_RATE`, `ROUND_TRIP_DISCOUNT`, and `VEHICLE_CAPACITY` here too.
+- **Every price on the site** → [src/config/prices.js](src/config/prices.js). The only file to touch when a tariff changes. Holds the route matrix (`PRICES[from][to] = { p1to3, p4…p8, p12, p16, p20, p24 }`), `HOURLY_RATE` and `ROUND_TRIP_DISCOUNT_PERCENT`. A number changed here updates the calculator, the full grid, the "From €X" cards, the booking form, and the site copy in all four languages (the `{hourlyRate}` / `{roundTripDiscount}` placeholders in the i18n files are substituted at build time by `src/i18n/index.js`).
+- **Pickup/drop-off points & vehicle capacities** → [src/data/routes.js](src/data/routes.js). No prices here — it re-exports them from `src/config/prices.js`.
 - **Vehicle definitions** → [src/data/vehicles.js](src/data/vehicles.js).
 - **All user-facing text** → [src/i18n/fr.json](src/i18n/fr.json), [en.json](src/i18n/en.json), [es.json](src/i18n/es.json), [it.json](src/i18n/it.json). No hardcoded strings in components — add a key here, reference via `t(locale).section.key`.
 - **Global styles** → [src/styles/global.css](src/styles/global.css).

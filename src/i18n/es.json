@@ -100,10 +100,10 @@
       "typeLabel": "TIPO DE TRAYECTO",
       "oneWay": "Solo ida",
       "roundTrip": "Ida y vuelta",
-      "roundTripBadge": "-5%",
+      "roundTripBadge": "-{roundTripDiscount}%",
       "returnDate": "Fecha de vuelta",
       "returnTime": "Hora de vuelta",
-      "returnNote": "Ahorra un 5 % reservando ida y vuelta.",
+      "returnNote": "Ahorra un {roundTripDiscount} % reservando ida y vuelta.",
       "intraParisHint": "Transferencia intra-París (hotel, restaurante, Airbnb, etc.)"
     },
     "when": {
@@ -217,7 +217,7 @@
       "trainStations": "Estaciones de París",
       "betweenAirports": "Entre aeropuertos",
       "hourly": "París por horas",
-      "hourlyPrice": "50€ / hora"
+      "hourlyPrice": "{hourlyRate}€ / hora"
     },
     "otherPrompt": "¿Otro destino?",
     "otherCta": "Escríbenos por WhatsApp"
@@ -294,7 +294,7 @@
     "hourly": {
       "eyebrow": "POR HORAS",
       "title": "París a tu ritmo.",
-      "price": "50€ / hora",
+      "price": "{hourlyRate}€ / hora",
       "body": "Tu chófer, tu itinerario. Compras, visitas, cenas — esperamos, conducimos, tú disfrutas.",
       "bullets": [
         "Mínimo 3 horas",
@@ -696,7 +696,7 @@
       "grid": {
         "eyebrow": "TABLA COMPLETA",
         "heading": "Todos los trayectos, todos los precios.",
-        "sub": "Precio por trayecto según el número de pasajeros. Ida y vuelta: 5 % de descuento si se paga por adelantado.",
+        "sub": "Precio por trayecto según el número de pasajeros. Ida y vuelta: {roundTripDiscount} % de descuento si se paga por adelantado.",
         "fromLabel": "Desde",
         "routeHeader": "Trayecto",
         "paxUnit": "personas",
@@ -704,13 +704,13 @@
         "legendVan": "4–8 — Furgoneta",
         "legendCombo": "12+ — Combinación",
         "unpriced": "Consultar",
-        "footnotePrefix": "Precios en euros, por trayecto, según el número de pasajeros. Solo ida. Ida y vuelta: −5 % si se paga por adelantado. Trayectos no listados o de larga distancia:",
+        "footnotePrefix": "Precios en euros, por trayecto, según el número de pasajeros. Solo ida. Ida y vuelta: −{roundTripDiscount} % si se paga por adelantado. Trayectos no listados o de larga distancia:",
         "footnoteCta": "contáctanos",
         "footnoteSuffix": " para un presupuesto."
       },
       "hourly": {
         "eyebrow": "POR HORAS",
-        "price": "50 € / hora",
+        "price": "{hourlyRate} € / hora",
         "sub": "Para visitar París a tu ritmo, compras, cenas, eventos.",
         "bullets": [
           "Mínimo 3 horas",

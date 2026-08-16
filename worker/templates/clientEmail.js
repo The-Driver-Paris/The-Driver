@@ -40,6 +40,13 @@ const L = {
   oneWay:         'Aller simple',
   roundTrip:      'Aller-retour',
   passengers:     'passagers',
+  outbound:       'ALLER',
+  inbound:        'RETOUR',
+  legRoute:       'Trajet',
+  legDate:        'Date',
+  legTime:        'Heure',
+  returnDate:     'Date retour',
+  returnTime:     'Heure retour',
   client:         'CLIENT',
   phone:          'T&eacute;l&eacute;phone',
   email:          'Email',
@@ -160,7 +167,16 @@ export function buildClientEmailHtml(data) {
     ? `${esc(data.dropoff)} (${esc(data.dropoffStation)})`
     : esc(data.dropoff || '—');
 
-  const tripTypeLabel = data.tripType === 'round-trip' ? L.roundTrip : L.oneWay;
+  // Round-trip bookings carry a second leg (`returnDate` / `returnTime`) that
+  // the form has always collected but this template used to drop entirely —
+  // the chauffeur received the outbound and nothing else. The return leg runs
+  // the route backwards, so its labels are the outbound pair swapped.
+  const isRoundTrip = data.tripType === 'round-trip' || data.tripType === 'roundTrip';
+  const returnDateLong = formatDateLongFR(data.returnDate);
+  const returnTime = data.returnTime ? esc(data.returnTime) : '';
+  const hasReturnDetails = Boolean(returnDateLong || returnTime);
+
+  const tripTypeLabel = isRoundTrip ? L.roundTrip : L.oneWay;
   const dateLong = formatDateLongFR(data.date);
   const totalText = data.totalPrice ? `${esc(data.totalPrice)} &euro;` : '&mdash;';
   const fullName = [data.firstName, data.lastName].filter(Boolean).join(' ') || L.notProvided;
@@ -178,6 +194,26 @@ export function buildClientEmailHtml(data) {
     ${data.email ? linkRow(L.email, data.email, `mailto:${data.email}`) : ''}
   </table>`;
 
+  // ALLER / RETOUR — only rendered for round-trips. A one-way booking's
+  // single leg is already fully stated in the header band, so repeating it
+  // here would be noise; for a round-trip the two legs need to sit side by
+  // side, with the return route spelled out backwards so there's no doubt
+  // which direction the second drive runs in.
+  if (isRoundTrip) {
+    body += section(
+      L.outbound,
+      row(L.legRoute, `${pickupLabel} &rarr; ${dropoffLabel}`) +
+        (dateLong ? row(L.legDate, esc(dateLong)) : '') +
+        (data.time ? row(L.legTime, esc(data.time)) : ''),
+    );
+    body += section(
+      L.inbound,
+      row(L.legRoute, `${dropoffLabel} &rarr; ${pickupLabel}`) +
+        row(L.legDate, returnDateLong ? esc(returnDateLong) : L.toAsk) +
+        row(L.legTime, returnTime || L.toAsk),
+    );
+  }
+
   // FLIGHT INFO — only renders if a flight number was somehow supplied
   // (the form no longer collects it; kept defensive for legacy payloads).
   if (data.flightNumber) {
@@ -190,10 +226,17 @@ export function buildClientEmailHtml(data) {
   {
     const askFlight = AIRPORTS.includes(data.pickup) && !data.flightNumber;
     const askDropoff = CITIES.includes(data.dropoff) && !data.dropoffAddress;
-    if (askFlight || askDropoff) {
+    // The booking form now requires both return fields on a round-trip, so
+    // these should never fire — they cover payloads from a cached page served
+    // before that rule shipped, where the return leg would otherwise be blank.
+    const askReturnDate = isRoundTrip && !returnDateLong;
+    const askReturnTime = isRoundTrip && !returnTime;
+    if (askFlight || askDropoff || askReturnDate || askReturnTime) {
       let inner = '';
       if (askFlight) inner += row(L.flightNumber, L.toAsk);
       if (askDropoff) inner += row(L.dropoffAddrLbl, L.toAsk);
+      if (askReturnDate) inner += row(L.returnDate, L.toAsk);
+      if (askReturnTime) inner += row(L.returnTime, L.toAsk);
       body += section(L.toConfirm, inner);
     }
   }
@@ -258,17 +301,31 @@ export function buildClientEmailHtml(data) {
     const dropCopy = data.dropoffAddress
       ? esc(data.dropoffAddress)
       : (data.dropoffStation ? `${esc(data.dropoff)} (${esc(data.dropoffStation)})` : esc(data.dropoff || '—'));
+    const rParts = String(data.returnDate || '').split('-'); // YYYY-MM-DD
+    const returnDateShort = rParts.length === 3
+      ? `${rParts[2]}/${rParts[1]}`
+      : (data.returnDate ? esc(data.returnDate) : '—');
+    // Round-trip: the forwarded message has to carry both legs, otherwise the
+    // driver it lands with only ever sees the outbound.
     const shareLines = [
+      isRoundTrip ? `🔁 ALLER-RETOUR` : '',
+      isRoundTrip ? `— ALLER —` : '',
       `📅 Date : ${dateShort}`,
       `🕐 Heure : ${esc(data.time || '—')}`,
+      `📍 Pick up : ${pickupCopy}`,
+      `📍 Drop : ${dropCopy}`,
+      isRoundTrip ? `— RETOUR —` : '',
+      isRoundTrip ? `📅 Date : ${returnDateShort}` : '',
+      isRoundTrip ? `🕐 Heure : ${esc(data.returnTime || '—')}` : '',
+      isRoundTrip ? `📍 Pick up : ${dropCopy}` : '',
+      isRoundTrip ? `📍 Drop : ${pickupCopy}` : '',
+      isRoundTrip ? `—` : '',
       `👤 Client : ${esc(fullName)}`,
       phoneClean ? `📞 T&eacute;l&eacute;phone : ${esc(phoneClean)}` : '',
       data.flightNumber ? `✈️ Vol : ${esc(data.flightNumber)}` : '',
-      `📍 Pick up : ${pickupCopy}`,
-      `📍 Drop : ${dropCopy}`,
       `👥 Passagers : ${esc(String(data.pax || data.passengers || 1))}`,
       `🚗 V&eacute;hicule : ${esc(data.vehicleSummary || '—')}`,
-      data.totalPrice ? `💶 Prix : ${esc(data.totalPrice)} &euro;` : '',
+      data.totalPrice ? `💶 Prix : ${esc(data.totalPrice)} &euro;${isRoundTrip ? ' (A/R)' : ''}` : '',
     ].filter(Boolean).join('<br />');
     body += `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:collapse; margin-top:24px; border-top-width:1px; border-top-style:solid; border-top-color:${COLORS.smoke};">
       <tr><td style="padding-top:20px; padding-right:0; padding-bottom:0; padding-left:0;">
@@ -283,6 +340,22 @@ export function buildClientEmailHtml(data) {
   const submittedAt = formatSubmittedAtFR();
   const vehicleSummary = data.vehicleSummary || '&mdash;';
   const passengerLine = `${tripTypeLabel} &middot; ${esc(String(data.pax || data.passengers || 1))} ${L.passengers}`;
+
+  // Header date line(s). A one-way keeps the single unlabelled line it always
+  // had; a round-trip gets both legs labelled ALLER / RETOUR so the second
+  // drive is visible before the chauffeur scrolls anywhere.
+  const headerDates = (() => {
+    const outbound = `${esc(dateLong)}${data.time ? ' &middot; ' + esc(data.time) : ''}`;
+    const dateLineStyle = `margin-top:6px; margin-right:0; margin-bottom:0; margin-left:0; color:${COLORS.cream}; font-family:${FONT_BODY}; font-size:14px; line-height:20px; mso-line-height-rule:exactly;`;
+    if (!isRoundTrip) {
+      return dateLong || data.time ? `<p style="${dateLineStyle}">${outbound}</p>` : '';
+    }
+    const inbound = hasReturnDetails
+      ? `${esc(returnDateLong)}${returnTime ? ' &middot; ' + returnTime : ''}`
+      : L.toAsk;
+    return `<p style="${dateLineStyle}"><strong>${L.outbound}</strong> &middot; ${outbound}</p>
+              <p style="${dateLineStyle}"><strong>${L.inbound}</strong> &middot; ${inbound}</p>`;
+  })();
 
   // ── Top-level skeleton ─────────────────────────────────────────────
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -313,7 +386,7 @@ export function buildClientEmailHtml(data) {
             <td valign="top" style="padding-top:0; padding-right:16px; padding-bottom:0; padding-left:0;">
               <p style="margin-top:0; margin-right:0; margin-bottom:8px; margin-left:0; color:${COLORS.cream}; font-family:${FONT_BODY}; font-size:11px; font-weight:bold; line-height:14px; mso-line-height-rule:exactly;">${L.eyebrow}</p>
               <h1 style="margin-top:0; margin-right:0; margin-bottom:0; margin-left:0; color:${COLORS.paper}; font-family:${FONT_DISPLAY}; font-size:26px; font-weight:bold; line-height:32px; mso-line-height-rule:exactly;">${pickupLabel} &rarr; ${dropoffLabel}</h1>
-              ${dateLong || data.time ? `<p style="margin-top:6px; margin-right:0; margin-bottom:0; margin-left:0; color:${COLORS.cream}; font-family:${FONT_BODY}; font-size:14px; line-height:20px; mso-line-height-rule:exactly;">${esc(dateLong)}${data.time ? ' &middot; ' + esc(data.time) : ''}</p>` : ''}
+              ${headerDates}
             </td>
             <td valign="top" align="right" width="${LOGO_COL_WIDTH}" style="width:${LOGO_COL_WIDTH}px; padding-top:0; padding-right:0; padding-bottom:0; padding-left:0;">
               <img src="${LOGO_URL}" alt="Driver Services" width="${LOGO_WIDTH}" height="${LOGO_HEIGHT}" border="0" style="display:block; width:${LOGO_WIDTH}px; height:${LOGO_HEIGHT}px; max-width:${LOGO_WIDTH}px; border:0; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic;" />

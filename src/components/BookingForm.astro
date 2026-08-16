@@ -430,15 +430,24 @@ function isoToFlag(iso: string): string {
             </label>
           </div>
 
-          {/* Conditional: return date/time + discount note */}
+          {/* Conditional: return date/time + discount note.
+              Both fields are REQUIRED while this block is visible — see the
+              toggle in refreshConditionals(). A round-trip booking submitted
+              without them leaves the chauffeur with no return leg to drive. */}
           <div data-reveal="return" hidden class="mt-4 space-y-3">
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="meta-label block mb-2" for={`${uid}-return-date`}>{f.trip.returnDate}</label>
+                <label class="meta-label mb-2 flex items-center gap-2" for={`${uid}-return-date`}>
+                  <span>{f.trip.returnDate}</span>
+                  <span class="round-trip-badge bf-required-pill">{f.requiredLabel}</span>
+                </label>
                 <input id={`${uid}-return-date`} name="return_date" type="date" class="field" data-fancy-date />
               </div>
               <div>
-                <label class="meta-label block mb-2" for={`${uid}-return-time`}>{f.trip.returnTime}</label>
+                <label class="meta-label mb-2 flex items-center gap-2" for={`${uid}-return-time`}>
+                  <span>{f.trip.returnTime}</span>
+                  <span class="round-trip-badge bf-required-pill">{f.requiredLabel}</span>
+                </label>
                 <input id={`${uid}-return-time`} name="return_time" type="time" class="field" data-fancy-time />
               </div>
             </div>
@@ -858,7 +867,8 @@ function isoToFlag(iso: string): string {
       setReveal('dropoff-address', isCityDropoff);
       setReveal('dropoff-station', isStationDropoff);
       const tripType = [...tripRadios].find((r) => r.checked)?.value;
-      setReveal('return', tripType === 'round-trip');
+      const isRoundTrip = tripType === 'round-trip';
+      setReveal('return', isRoundTrip);
       setReveal('extra-stop-details', extraStop.checked);
 
       // Fields required only while their reveal is shown. Without this toggle,
@@ -873,6 +883,17 @@ function isoToFlag(iso: string): string {
       if (dropoffAddrInput) dropoffAddrInput.required = isCityDropoff;
       if (pickupStation) pickupStation.required = isStationPickup;
       if (dropoffStation) dropoffStation.required = isStationDropoff;
+      // Return leg — required for round-trips. `min` is pinned to the
+      // outbound date so a return can't be booked before the departure.
+      const returnDateInput = form.querySelector<HTMLInputElement>('[name="return_date"]');
+      if (returnDateInput) {
+        returnDateInput.required = isRoundTrip;
+        const outboundDate = form.querySelector<HTMLInputElement>('[name="date"]')?.value || '';
+        if (outboundDate) returnDateInput.min = outboundDate;
+        else returnDateInput.removeAttribute('min');
+      }
+      const returnTimeInput = form.querySelector<HTMLInputElement>('[name="return_time"]');
+      if (returnTimeInput) returnTimeInput.required = isRoundTrip;
 
       // Disable same-point drop-off, with one explicit exception:
       // Paris → Paris is a valid intra-city transfer (hotel → restaurant,

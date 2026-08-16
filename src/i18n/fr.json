@@ -100,10 +100,10 @@
       "typeLabel": "TYPE DE TRAJET",
       "oneWay": "Aller simple",
       "roundTrip": "Aller-retour",
-      "roundTripBadge": "-5%",
+      "roundTripBadge": "-{roundTripDiscount}%",
       "returnDate": "Date retour",
       "returnTime": "Heure retour",
-      "returnNote": "Économisez 5 % en réservant l'aller-retour.",
+      "returnNote": "Économisez {roundTripDiscount} % en réservant l'aller-retour.",
       "intraParisHint": "Transfert intra-Paris (hôtel, restaurant, Airbnb, etc.)"
     },
     "when": {
@@ -217,7 +217,7 @@
       "trainStations": "Gares parisiennes",
       "betweenAirports": "Entre aéroports",
       "hourly": "Tour de Paris à l'heure",
-      "hourlyPrice": "50€ / heure"
+      "hourlyPrice": "{hourlyRate}€ / heure"
     },
     "otherPrompt": "Autre destination ?",
     "otherCta": "WhatsApp-nous"
@@ -294,7 +294,7 @@
     "hourly": {
       "eyebrow": "MISE À DISPOSITION",
       "title": "Paris à votre rythme.",
-      "price": "50€ / heure",
+      "price": "{hourlyRate}€ / heure",
       "body": "Votre chauffeur, votre itinéraire. Shopping, visites, dîners — on attend, on conduit, vous profitez.",
       "bullets": [
         "Minimum 3 heures",
@@ -696,7 +696,7 @@
       "grid": {
         "eyebrow": "GRILLE COMPLÈTE",
         "heading": "Tous nos trajets, tous nos prix.",
-        "sub": "Prix par trajet, selon le nombre de passagers. Aller-retour : remise de 5 % si paiement à l'avance.",
+        "sub": "Prix par trajet, selon le nombre de passagers. Aller-retour : remise de {roundTripDiscount} % si paiement à l'avance.",
         "fromLabel": "Depuis",
         "routeHeader": "Trajet",
         "paxUnit": "personnes",
@@ -704,13 +704,13 @@
         "legendVan": "4–8 — Van",
         "legendCombo": "12+ — Combinaison",
         "unpriced": "Sur devis",
-        "footnotePrefix": "Prix en euros, par trajet, selon le nombre de passagers. Aller simple. Aller-retour : −5 % si payé à l'avance. Trajets non listés ou longue distance :",
+        "footnotePrefix": "Prix en euros, par trajet, selon le nombre de passagers. Aller simple. Aller-retour : −{roundTripDiscount} % si payé à l'avance. Trajets non listés ou longue distance :",
         "footnoteCta": "nous contacter",
         "footnoteSuffix": " pour un devis."
       },
       "hourly": {
         "eyebrow": "À L'HEURE",
-        "price": "50 € / heure",
+        "price": "{hourlyRate} € / heure",
         "sub": "Pour visiter Paris à votre rythme, shopping, dîners, événements.",
         "bullets": [
           "Minimum 3 heures",

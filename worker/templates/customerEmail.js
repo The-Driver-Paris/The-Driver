@@ -110,8 +110,11 @@ export function buildCustomerEmailHtml(data) {
     ? `${esc(data.dropoff)} (${esc(data.dropoffStation)})`
     : esc(data.dropoff || '—');
 
-  const tripTypeLabel = data.tripType === 'round-trip' ? 'Round-trip' : 'One-way';
+  const isRoundTrip = data.tripType === 'round-trip' || data.tripType === 'roundTrip';
+  const tripTypeLabel = isRoundTrip ? 'Round-trip' : 'One-way';
   const dateLong = formatDateLongEN(data.date);
+  const returnDateLong = formatDateLongEN(data.returnDate);
+  const returnTime = data.returnTime ? esc(data.returnTime) : '';
   const totalText = data.totalPrice ? `${esc(data.totalPrice)} &euro;` : '&mdash;';
   const vehicleSummary = data.vehicleSummary || '&mdash;';
   const passengerLine = `${tripTypeLabel} &middot; ${esc(String(data.pax || data.passengers || 1))} passengers`;
@@ -120,7 +123,6 @@ export function buildCustomerEmailHtml(data) {
   const isAirport = AIRPORTS.includes(data.pickup);
   const isCity = CITIES.includes(data.pickup);
   const isCityDropoff = CITIES.includes(data.dropoff);
-  const isRoundTrip = data.tripType === 'round-trip';
 
   let adviceBlocks = '';
 
@@ -172,8 +174,12 @@ export function buildCustomerEmailHtml(data) {
     adviceBlocks += adviceBlock({
       icon: '&#128260;',
       title: 'ROUND-TRIP DISCOUNT APPLIED',
+      // Deliberately no percentage here. The discount rate lives in exactly
+      // one place — src/config/prices.js on the site — and the Worker deploys
+      // separately, so quoting a number here would be a second copy that
+      // silently goes stale the day the rate changes.
       paragraphs: [
-        "You've benefited from a 5% discount on your return trip with us. Thank you!",
+        "You've benefited from our round-trip discount, already included in the total above. Thank you!",
       ],
     });
   }
@@ -182,13 +188,21 @@ export function buildCustomerEmailHtml(data) {
   let body = '';
 
   // RECAP
+  // Round-trip recaps list both legs — the return runs the route backwards,
+  // and the customer needs to see the return date/time they picked echoed back
+  // so they can spot a mistake before the day of travel.
+  const outboundLabel = isRoundTrip ? 'Outbound' : 'Route';
   body += `<p style="margin-top:0; margin-right:0; margin-bottom:6px; margin-left:0; color:${COLORS.graphite}; font-family:${FONT_BODY}; font-size:11px; font-weight:bold; ${TD_BODY}">YOUR BOOKING</p>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:collapse;">
-    ${row('Route', `${pickupLabel} &rarr; ${dropoffLabel}`)}
+    ${row(outboundLabel, `${pickupLabel} &rarr; ${dropoffLabel}`)}
     ${dateLong ? row('Date &amp; time', `${esc(dateLong)}${data.time ? ' &middot; ' + esc(data.time) : ''}`) : ''}
+    ${isRoundTrip ? row('Return', `${dropoffLabel} &rarr; ${pickupLabel}`) : ''}
+    ${isRoundTrip && (returnDateLong || returnTime)
+      ? row('Return date &amp; time', `${esc(returnDateLong)}${returnTime ? ' &middot; ' + returnTime : ''}`)
+      : ''}
     ${row('Passengers', `${esc(String(data.pax || data.passengers || 1))} (${tripTypeLabel})`)}
     ${data.vehicleSummary ? row('Vehicle', esc(data.vehicleSummary)) : ''}
-    ${data.totalPrice ? row('Total', `${esc(data.totalPrice)} &euro;`) : ''}
+    ${data.totalPrice ? row('Total', `${esc(data.totalPrice)} &euro;${isRoundTrip ? ' (both trips)' : ''}`) : ''}
   </table>`;
 
   // CONDITIONAL ADVICE BLOCKS (airport / hotel / round-trip)

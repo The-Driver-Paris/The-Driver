@@ -189,7 +189,8 @@ Resend domain, Worker and hosting project be shut down.
 
 | What | File |
 |---|---|
-| **Prices and route matrix** | `src/data/routes.js` — `PRICES[from][to] = { car, van }`. Also holds `HOURLY_RATE`, `ROUND_TRIP_DISCOUNT`, `VEHICLE_CAPACITY`. Single source of truth. |
+| **ALL PRICES** | `src/config/prices.js` — the only file to edit to change a tariff. Route matrix (`PRICES[from][to]`), `HOURLY_RATE`, `ROUND_TRIP_DISCOUNT_PERCENT`. One number changed here updates the calculator, the price grid, the "From €X" cards, the booking form and the site copy in all four languages. |
+| **Pickup/drop-off points, vehicle capacities** | `src/data/routes.js` — no prices here; it re-exports them from `src/config/prices.js`. |
 | **Vehicles** | `src/data/vehicles.js` |
 | **All visible text, every language** | `src/i18n/fr.json`, `en.json`, `es.json`, `it.json`. No text is hardcoded in components — add a key here and reference it as `t(locale).section.key`. |
 | **Reviews** | `src/data/reviews.js` |
