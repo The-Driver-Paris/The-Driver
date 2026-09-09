@@ -14,7 +14,9 @@
 // Mobile drawer: static markup toggled by a class; body scroll-lock via
 // position:fixed at the saved offset (not overflow:hidden — iOS rubber-bands);
 // closes on link click, backdrop, Escape, and crossing to >= lg.
-export const prerender = false;
+//
+// This is a component, not a route (underscore prefix) — the pages that use it
+// each set their own `prerender`. All of them prerender except /admin/blog/[id].
 
 interface Props {
   title: string;        // i18n key OR literal — pass an i18n key when possible
@@ -22,6 +24,12 @@ interface Props {
   titleKey?: string;    // preferred: i18n key for the browser tab / topbar
 }
 const { title, section, titleKey } = Astro.props;
+
+// Warm up the connection to Supabase so the first auth/profile round-trip isn't
+// also paying for DNS + TLS. Origin is derived from the public env var; if it's
+// unset (e.g. a preview without env) we simply skip the hints.
+const sbUrl = import.meta.env.PUBLIC_SUPABASE_URL as string | undefined;
+const sbOrigin = sbUrl ? new URL(sbUrl).origin : null;
 ---
 
 <!doctype html>
@@ -32,6 +40,8 @@ const { title, section, titleKey } = Astro.props;
     <meta name="robots" content="noindex,nofollow" />
     <title>{title} · The Driver</title>
     <link rel="icon" href="/favicon.svg" />
+    {sbOrigin && <link rel="preconnect" href={sbOrigin} crossorigin />}
+    {sbOrigin && <link rel="dns-prefetch" href={sbOrigin} />}
     <style is:global>
       :root {
         --a-bg: #0e1a2b;
@@ -109,6 +119,8 @@ const { title, section, titleKey } = Astro.props;
         font: inherit; font-weight: 500; width: 100%;
       }
       .a-foot a:hover, .a-foot button:hover { background: var(--a-bg-soft); color: var(--a-ink); }
+      .a-foot a svg, .a-foot button svg { width: 16px; height: 16px; flex-shrink: 0; opacity: .85; }
+      .a-langsel-label svg { width: 13px; height: 13px; flex-shrink: 0; }
       .a-langsel {
         margin-top: 6px;
         background: var(--a-bg-soft); color: var(--a-ink);
@@ -452,7 +464,24 @@ const { title, section, titleKey } = Astro.props;
         });
       }
 
+      // gate() runs once from the direct call below. Supabase also fires an
+      // INITIAL_SESSION event on subscribe, and SIGNED_IN on tab focus / token
+      // refresh — without these guards each of those re-ran the profile query
+      // AND re-dispatched `admin:ready`, so every page loaded its data twice.
+      let gateReady = false;
+      let gating = false;
+
       async function gate() {
+        if (gating) return;
+        gating = true;
+        try {
+          await runGate();
+        } finally {
+          gating = false;
+        }
+      }
+
+      async function runGate() {
         const { data: { session } } = await sb.auth.getSession();
         if (!session) {
           if (location.pathname !== '/admin/login/') location.href = '/admin/login/';
@@ -475,13 +504,18 @@ const { title, section, titleKey } = Astro.props;
 
         paintNav(isOwner, sections);
         showGate(null);
+        gateReady = true;
         window.dispatchEvent(new CustomEvent('admin:ready', {
           detail: { isOwner, sections, userId: session.user.id, email: session.user.email },
         }));
       }
 
       gate().catch((e) => { console.error(e); toast(t('toast.accessError'), 'err'); });
-      sb.auth.onAuthStateChange(() => { gate().catch(() => {}); });
+      sb.auth.onAuthStateChange((event) => {
+        // INITIAL_SESSION is covered by the direct gate() call above.
+        if (event === 'SIGNED_OUT') { location.href = '/admin/login/'; return; }
+        if (event === 'SIGNED_IN' && !gateReady) gate().catch(() => {});
+      });
     </script>
   </body>
 </html>

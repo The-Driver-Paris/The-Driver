@@ -1,7 +1,8 @@
 ---
 import AdminShell from '../_AdminShell.astro';
 import { GRANTABLE_SECTIONS } from '../../../lib/adminSections';
-export const prerender = false;
+// Client-rendered shell — see src/pages/admin/index.astro.
+export const prerender = true;
 const SECTION_KEYS = GRANTABLE_SECTIONS.map((s) => s.key);
 ---
 

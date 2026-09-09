@@ -1,6 +1,7 @@
 ---
 import AdminShell from '../_AdminShell.astro';
-export const prerender = false;
+// Client-rendered shell — see src/pages/admin/index.astro.
+export const prerender = true;
 
 const PAGES = [
   { key: 'disneyland', i18n: 'content.page.disneyland' },
@@ -17,7 +18,7 @@ const PAGES = [
 
   <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))">
     {PAGES.map((p) => (
-      <a class="a-card" href={`/admin/content/${p.key}`} style="display:flex;flex-direction:column;gap:6px">
+      <a class="a-card" href={`/admin/content/${p.key}/`} style="display:flex;flex-direction:column;gap:6px">
         <strong style="color:#14324f" data-i18n={p.i18n}>{p.key}</strong>
         <span style="color:var(--a-muted)" data-i18n="content.editHint">Edit headings, intros, FAQ…</span>
       </a>

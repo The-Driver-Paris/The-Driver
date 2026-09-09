@@ -1,6 +1,9 @@
 ---
 import AdminShell from './_AdminShell.astro';
-export const prerender = false;
+// Static shell: all data is fetched client-side with the viewer's own session,
+// so there's nothing to render on the server. Prerendering it serves the page
+// from the CDN with no serverless cold start on every navigation.
+export const prerender = true;
 ---
 
 <AdminShell title="Overview" titleKey="nav.overview" section="overview">

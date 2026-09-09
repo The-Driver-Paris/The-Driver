@@ -1,6 +1,7 @@
 ---
 import AdminShell from '../_AdminShell.astro';
-export const prerender = false;
+// Client-rendered shell — see src/pages/admin/index.astro.
+export const prerender = true;
 ---
 
 <AdminShell title="Bookings" titleKey="nav.bookings" section="bookings">

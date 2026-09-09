@@ -2,11 +2,15 @@
 import AdminShell from '../_AdminShell.astro';
 import { t, LOCALES } from '../../../i18n';
 import { flattenCopy } from '../../../lib/pageContent';
-export const prerender = false;
+// Client-rendered shell — see src/pages/admin/index.astro. The editable page set
+// is fixed, so every route is known at build time and prerenders statically.
+export const prerender = true;
 
-const EDITABLE = new Set(['disneyland', 'parisTransfer', 'parisChauffeur']);
+export function getStaticPaths() {
+  // Must be self-contained — Astro runs getStaticPaths in an isolated scope.
+  return ['disneyland', 'parisTransfer', 'parisChauffeur'].map((page) => ({ params: { page } }));
+}
 const pageKey = Astro.params.page ?? '';
-if (!EDITABLE.has(pageKey)) return Astro.redirect('/admin/content/');
 
 const TITLE_KEY: Record<string, string> = {
   disneyland: 'content.page.disneyland',
