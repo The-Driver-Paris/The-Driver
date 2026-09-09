@@ -3,53 +3,120 @@ import AdminShell from '../_AdminShell.astro';
 export const prerender = false;
 ---
 
-<AdminShell title="Blog" section="blog">
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+<AdminShell title="Blog" titleKey="nav.blog" section="blog">
+  <div class="a-page-head a-row">
     <div>
-      <h1 class="a-h1">Blog</h1>
-      <p class="a-sub">Write, schedule and publish articles.</p>
+      <h1 class="a-h1" data-i18n="blog.title">Blog</h1>
+      <p class="a-sub" data-i18n="blog.subtitle">Write, schedule and publish articles.</p>
     </div>
-    <a class="a-btn a-btn-primary" href="/admin/blog/new">+ New article</a>
+    <a class="a-btn a-btn-primary" href="/admin/blog/new/">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      <span data-i18n="blog.new">New article</span>
+    </a>
   </div>
 
-  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-    <select class="a-select" data-filter-locale style="max-width:160px">
-      <option value="">All languages</option>
+  <div class="a-filters">
+    <select class="a-select" data-filter-locale>
+      <option value="" data-i18n="common.allLanguages">All languages</option>
       <option value="en">English</option>
       <option value="fr">Français</option>
       <option value="es">Español</option>
       <option value="it">Italiano</option>
     </select>
-    <select class="a-select" data-filter-status style="max-width:160px">
-      <option value="">All statuses</option>
-      <option value="published">Published</option>
-      <option value="scheduled">Scheduled</option>
-      <option value="draft">Draft</option>
+    <select class="a-select" data-filter-status>
+      <option value="" data-i18n="common.allStatuses">All statuses</option>
+      <option value="published" data-i18n="status.published">Published</option>
+      <option value="scheduled" data-i18n="status.scheduled">Scheduled</option>
+      <option value="draft" data-i18n="status.draft">Draft</option>
     </select>
   </div>
 
-  <table class="a-table">
-    <thead>
-      <tr><th>Title</th><th style="width:70px">Lang</th><th style="width:110px">Status</th><th style="width:130px">Date</th><th style="width:60px"></th></tr>
-    </thead>
-    <tbody data-rows>
-      <tr><td colspan="5" style="color:#5b6774">Loading…</td></tr>
-    </tbody>
-  </table>
+  {/* desktop: table — mobile: card list. One data source, two renderers. */}
+  <div class="a-tablewrap blist-table">
+    <table class="a-table">
+      <thead>
+        <tr>
+          <th data-i18n="blog.colTitle">Title</th>
+          <th style="width:70px" data-i18n="blog.colLang">Lang</th>
+          <th style="width:120px" data-i18n="blog.colStatus">Status</th>
+          <th style="width:130px" data-i18n="blog.colDate">Date</th>
+          <th style="width:48px"></th>
+        </tr>
+      </thead>
+      <tbody data-rows-table></tbody>
+    </table>
+  </div>
+  <ul class="blist-cards" data-rows-cards></ul>
+
+  <style>
+    .blist-cards { list-style: none; margin: 0; padding: 0; display: none; flex-direction: column; gap: 10px; }
+    @media (max-width: 719px) {
+      .blist-table { display: none; }
+      .blist-cards { display: flex; }
+    }
+    .blist-card {
+      background: var(--a-card); border: 1px solid var(--a-border);
+      border-radius: var(--a-radius); padding: 14px 15px; box-shadow: var(--a-shadow);
+    }
+    .blist-card a.t { font-weight: 700; color: var(--a-text); display: block; line-height: 1.35; }
+    .blist-card .meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; color: var(--a-muted); font-size: 12.5px; }
+    .blist-card .slug { color: #98a2b0; font-size: 12px; margin-top: 3px; word-break: break-all; }
+    .blist-card .row2 { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
+    .blist-card .prev { color: var(--a-accent-ink); font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 4px; }
+    .a-table td .t { font-weight: 600; color: #14324f; }
+    .a-table td .slug { color: #98a2b0; font-size: 12px; margin-top: 2px; }
+    .a-table td .prev { color: var(--a-accent-ink); }
+  </style>
 
   <script>
     import { getBrowserClient } from '../../../lib/supabase';
     import { formatPostDate } from '../../../lib/blog';
     const sb = getBrowserClient();
-    const rows = document.querySelector<HTMLElement>('[data-rows]')!;
+    const T = (k: string) => (window as any).adminT(k) as string;
+    const tableBody = document.querySelector<HTMLElement>('[data-rows-table]')!;
+    const cardsBox = document.querySelector<HTMLElement>('[data-rows-cards]')!;
     const fLocale = document.querySelector<HTMLSelectElement>('[data-filter-locale]')!;
     const fStatus = document.querySelector<HTMLSelectElement>('[data-filter-status]')!;
-    const toast = (window as any).adminToast as (m: string, k?: string) => void;
 
-    function esc(s: string) { return (s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!)); }
+    const esc = (s: string) => (s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+    const statusLabel = (s: string) => T('status.' + s);
+    const dateOf = (p: any) => (p.status === 'published' ? formatPostDate(p.published_at, p.locale) : formatPostDate(p.updated_at, p.locale));
+
+    function render(rows: any[]) {
+      if (!rows.length) {
+        tableBody.innerHTML = `<tr><td colspan="5" class="a-empty">${T('blog.empty')}</td></tr>`;
+        cardsBox.innerHTML = `<li class="a-empty">${T('blog.empty')}</li>`;
+        return;
+      }
+      tableBody.innerHTML = rows.map((p) => `
+        <tr>
+          <td>
+            <a class="t" href="/admin/blog/${p.id}/">${esc(p.title) || T('blog.untitled')}</a>
+            <div class="slug">/${esc(p.slug)}</div>
+          </td>
+          <td>${p.locale.toUpperCase()}</td>
+          <td><span class="a-badge ${p.status}">${statusLabel(p.status)}</span></td>
+          <td style="white-space:nowrap">${dateOf(p)}</td>
+          <td><a class="prev" href="/blog/${esc(p.slug)}" target="_blank" rel="noopener" title="${T('common.preview')}">↗</a></td>
+        </tr>`).join('');
+      cardsBox.innerHTML = rows.map((p) => `
+        <li class="blist-card">
+          <a class="t" href="/admin/blog/${p.id}/">${esc(p.title) || T('blog.untitled')}</a>
+          <div class="slug">/${esc(p.slug)}</div>
+          <div class="row2">
+            <span class="meta">
+              <span class="a-badge ${p.status}">${statusLabel(p.status)}</span>
+              <span>${p.locale.toUpperCase()}</span>
+              <span>· ${dateOf(p)}</span>
+            </span>
+            <a class="prev" href="/blog/${esc(p.slug)}" target="_blank" rel="noopener">${T('common.preview')} ↗</a>
+          </div>
+        </li>`).join('');
+    }
 
     async function load() {
-      rows.innerHTML = '<tr><td colspan="5" style="color:#5b6774">Loading…</td></tr>';
+      tableBody.innerHTML = `<tr><td colspan="5" class="a-empty">${T('common.loading')}</td></tr>`;
+      cardsBox.innerHTML = `<li class="a-empty">${T('common.loading')}</li>`;
       let q = sb.from('blog_posts')
         .select('id,slug,locale,status,title,published_at,updated_at')
         .order('updated_at', { ascending: false })
@@ -57,16 +124,12 @@ export const prerender = false;
       if (fLocale.value) q = q.eq('locale', fLocale.value as 'en' | 'fr' | 'es' | 'it');
       if (fStatus.value) q = q.eq('status', fStatus.value as 'draft' | 'scheduled' | 'published');
       const { data, error } = await q;
-      if (error) { rows.innerHTML = '<tr><td colspan="5" style="color:#d9544d">Could not load articles.</td></tr>'; return; }
-      if (!data || !data.length) { rows.innerHTML = '<tr><td colspan="5" style="color:#5b6774">No articles yet.</td></tr>'; return; }
-      rows.innerHTML = data.map((p) => `
-        <tr>
-          <td><a href="/admin/blog/${p.id}" style="font-weight:600;color:#14324f">${esc(p.title) || '(untitled)'}</a><br><span style="color:#8a95a1;font-size:12px">/${esc(p.slug)}</span></td>
-          <td>${p.locale.toUpperCase()}</td>
-          <td><span class="a-badge ${p.status}">${p.status}</span></td>
-          <td>${p.status === 'published' ? formatPostDate(p.published_at, p.locale as any) : formatPostDate(p.updated_at, p.locale as any)}</td>
-          <td><a href="/blog/${esc(p.slug)}" target="_blank" rel="noopener" title="Preview">↗</a></td>
-        </tr>`).join('');
+      if (error) {
+        tableBody.innerHTML = `<tr><td colspan="5" class="a-empty a-error">${T('blog.loadError')}</td></tr>`;
+        cardsBox.innerHTML = `<li class="a-empty a-error">${T('blog.loadError')}</li>`;
+        return;
+      }
+      render(data ?? []);
     }
 
     fLocale.addEventListener('change', load);

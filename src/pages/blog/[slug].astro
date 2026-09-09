@@ -31,6 +31,8 @@ const schema = buildArticleSchema(post, url);
 <BaseLayout
   locale={locale}
   routeKey="blog"
+  hreflang={['en']}
+  canonicalPath={`/blog/${post.slug}/`}
   title={postSeoTitle(post)}
   description={postSeoDescription(post)}
   structuredData={schema}

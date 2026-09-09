@@ -4,7 +4,7 @@ import ParisTransferPage from '../components/ParisTransferPage.astro';
 import { t } from '../i18n';
 import { buildParisTransferSchema } from '../utils/schema.js';
 
-const locale = 'fr' as const;
+const locale = 'en' as const;
 const seo = t(locale).parisTransfer.seo;
 const schema = buildParisTransferSchema({ locale, siteUrl: Astro.site?.toString() ?? '' });
 ---

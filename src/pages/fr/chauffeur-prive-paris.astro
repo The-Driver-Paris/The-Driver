@@ -1,8 +1,8 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import ParisChauffeurPage from '../components/ParisChauffeurPage.astro';
-import { t } from '../i18n';
-import { buildParisChauffeurSchema } from '../utils/schema.js';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ParisChauffeurPage from '../../components/ParisChauffeurPage.astro';
+import { t } from '../../i18n';
+import { buildParisChauffeurSchema } from '../../utils/schema.js';
 
 const locale = 'fr' as const;
 const seo = t(locale).parisChauffeur.seo;

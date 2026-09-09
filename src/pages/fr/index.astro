@@ -16,24 +16,26 @@ import BookingForm from '../../components/BookingForm.astro';
 ---
 
 <BaseLayout
-  locale="en"
+  locale="fr"
   routeKey="home"
-  title="Private chauffeur in Paris — Airport transfers, day tours · Driver Services"
-  description="Private chauffeur and taxi service in Paris. Airport transfers, day tours, Disneyland, Versailles. Fixed prices, child seats included, pay on arrival."
+  title="Chauffeur privé à Paris — Transferts CDG, Orly, Disneyland · Driver Services"
+  description="Service VTC privé à Paris. Transferts aéroport, journées découverte, Disneyland, Versailles. Prix fixes, sièges enfants offerts, paiement à l'arrivée."
 >
   <IntroOverlay slot="intro-overlay" />
-  <Hero locale="en" />
-  <TrustMarquee locale="en" />
-  <WhyUs locale="en" />
-  <HowItWorks locale="en" />
-  <Destinations locale="en" />
-  <Fleet locale="en" />
-  <MoreServices locale="en" />
-  <Reviews locale="en" />
-  <FAQ locale="en" />
-  <FinalCTA locale="en" />
+  <Hero locale="fr" />
+  <TrustMarquee locale="fr" />
+  <WhyUs locale="fr" />
+  <HowItWorks locale="fr" />
+  <Destinations locale="fr" />
+  <Fleet locale="fr" />
+  <MoreServices locale="fr" />
+  <Reviews locale="fr" />
+  <FAQ locale="fr" />
+  <FinalCTA locale="fr" />
 
-  <BookingModal locale="en">
-    <BookingForm locale="en" />
+  {/* BookingForm lives INSIDE the modal — opens on any "Réserver" CTA,
+      closed by default, closes on Esc / backdrop / X. Form logic unchanged. */}
+  <BookingModal locale="fr">
+    <BookingForm locale="fr" />
   </BookingModal>
 </BaseLayout>

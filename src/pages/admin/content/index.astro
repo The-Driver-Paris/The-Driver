@@ -3,21 +3,23 @@ import AdminShell from '../_AdminShell.astro';
 export const prerender = false;
 
 const PAGES = [
-  { key: 'disneyland', label: 'Disneyland Paris page' },
-  { key: 'parisTransfer', label: 'Paris airport transfer page' },
-  { key: 'parisChauffeur', label: 'Paris chauffeur hire page' },
+  { key: 'disneyland', i18n: 'content.page.disneyland' },
+  { key: 'parisTransfer', i18n: 'content.page.parisTransfer' },
+  { key: 'parisChauffeur', i18n: 'content.page.parisChauffeur' },
 ];
 ---
 
-<AdminShell title="Page text" section="content">
-  <h1 class="a-h1">Edit page text</h1>
-  <p class="a-sub">Change the wording on the landing pages, per language. Leaving a box empty keeps the original text.</p>
+<AdminShell title="Page text" titleKey="nav.content" section="content">
+  <div class="a-page-head">
+    <h1 class="a-h1" data-i18n="content.title">Edit page text</h1>
+    <p class="a-sub" data-i18n="content.subtitle">Change the wording on the landing pages, per language. Leaving a box empty keeps the original text.</p>
+  </div>
 
-  <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+  <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))">
     {PAGES.map((p) => (
-      <a class="a-card" href={`/admin/content/${p.key}`} style="text-decoration:none">
-        <strong style="color:#14324f">{p.label}</strong>
-        <div style="color:#5b6774;margin-top:4px">Edit headings, intros, FAQ…</div>
+      <a class="a-card" href={`/admin/content/${p.key}`} style="display:flex;flex-direction:column;gap:6px">
+        <strong style="color:#14324f" data-i18n={p.i18n}>{p.key}</strong>
+        <span style="color:var(--a-muted)" data-i18n="content.editHint">Edit headings, intros, FAQ…</span>
       </a>
     ))}
   </div>

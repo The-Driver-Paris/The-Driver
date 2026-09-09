@@ -1,27 +1,27 @@
 ---
-// Admin dashboard shell — sidebar + mobile drawer + auth gate + toast.
+// Admin dashboard shell — sidebar + mobile drawer + auth gate + toast + i18n.
 //
-// Not prerendered. No <Nav>/<Footer> from the public site. Never linked from
-// the marketing pages; robots.txt disallows /admin.
+// Not prerendered. No public Nav/Footer. Never linked from the marketing site;
+// robots.txt disallows /admin and vercel.json sends X-Robots-Tag: noindex.
 //
-// Auth model: this shell renders a loading screen, then a client script checks
-// the Supabase session and the caller's admin_profiles row. RLS is the real
-// boundary — every data call fails/returns nothing without an active profile —
-// so this gate is purely UX (don't flash an empty dashboard).
+// Auth: renders a loading screen, then checks the Supabase session + the
+// caller's admin_profiles row. RLS is the real boundary (queries return nothing
+// without an active profile) — this gate is UX only.
 //
-// Mobile-drawer correctness (learned the hard way on a previous build):
-//   • the drawer markup is static in the DOM, toggled by a class — never
-//     re-created per render, so a slow tap can't land on a swapped node
-//   • body scroll-lock uses position:fixed at the saved offset, not
-//     overflow:hidden (iOS Safari rubber-bands otherwise and the tap misses)
-//   • closes on: link click, backdrop, Escape, and crossing to >= lg
+// i18n: UI language is client-side, stored in localStorage. window.adminT(key)
+// for JS strings; [data-i18n] / [data-i18n-ph] attributes for static markup.
+//
+// Mobile drawer: static markup toggled by a class; body scroll-lock via
+// position:fixed at the saved offset (not overflow:hidden — iOS rubber-bands);
+// closes on link click, backdrop, Escape, and crossing to >= lg.
 export const prerender = false;
 
 interface Props {
-  title: string;
-  section: string; // adminSections key of the current page
+  title: string;        // i18n key OR literal — pass an i18n key when possible
+  section: string;      // adminSections key of the current page
+  titleKey?: string;    // preferred: i18n key for the browser tab / topbar
 }
-const { title, section } = Astro.props;
+const { title, section, titleKey } = Astro.props;
 ---
 
 <!doctype html>
@@ -30,147 +30,294 @@ const { title, section } = Astro.props;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex,nofollow" />
-    <title>{title} · The Driver admin</title>
+    <title>{title} · The Driver</title>
     <link rel="icon" href="/favicon.svg" />
     <style is:global>
       :root {
-        --a-bg: #0f1b2d; --a-panel: #14202f; --a-line: #24313f;
-        --a-ink: #e8edf2; --a-dim: #9fb0c0; --a-accent: #c88a3b; --a-accent-ink: #b0762c;
-        --a-danger: #d9544d; --a-ok: #3ea672; --a-radius: 10px;
+        --a-bg: #0e1a2b;
+        --a-bg-soft: #16243a;
+        --a-line: #26374f;
+        --a-ink: #eef2f7;
+        --a-dim: #93a4b8;
+        --a-accent: #d69a4c;
+        --a-accent-ink: #c1863a;
+        --a-accent-weak: rgba(214, 154, 76, 0.14);
+        --a-danger: #d9544d;
+        --a-danger-weak: #fbeceb;
+        --a-ok: #2f9e6b;
+        --a-page: #f5f6f8;
+        --a-card: #ffffff;
+        --a-border: #e4e8ee;
+        --a-text: #1d2733;
+        --a-muted: #667487;
+        --a-radius: 12px;
+        --a-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 6px 20px -12px rgba(16, 24, 40, 0.12);
+        --a-shadow-lg: 0 12px 40px -12px rgba(16, 24, 40, 0.22);
+        --a-font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Arial, sans-serif;
       }
       * { box-sizing: border-box; }
       html, body { margin: 0; height: 100%; }
       body {
-        font: 14px/1.55 "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
-        background: #f4f6f8; color: #1c2530;
+        font-family: var(--a-font);
+        font-size: 14px;
+        line-height: 1.55;
+        background: var(--a-page);
+        color: var(--a-text);
+        -webkit-font-smoothing: antialiased;
       }
-      a { color: inherit; }
+      a { color: inherit; text-decoration: none; }
+      h1, h2, h3 { margin: 0; }
+
       .a-shell { display: flex; height: 100dvh; overflow: hidden; }
-      /* sidebar */
+
+      /* ── Sidebar ───────────────────────────────────────────── */
       .a-aside {
-        width: 244px; flex-shrink: 0; display: none; flex-direction: column;
+        width: 258px; flex-shrink: 0;
+        display: none; flex-direction: column;
         background: var(--a-bg); color: var(--a-ink);
-        border-inline-end: 1px solid var(--a-line); padding: 18px 14px;
+        padding: 20px 14px 16px;
         overflow: hidden;
       }
       @media (min-width: 1024px) { .a-aside { display: flex; } }
-      .a-wordmark { font-weight: 700; letter-spacing: .14em; font-size: 13px; text-transform: uppercase; flex-shrink: 0; padding: 4px 8px 16px; }
-      .a-wordmark b { color: var(--a-accent); }
-      .a-nav { min-height: 0; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+      .a-wordmark {
+        display: flex; align-items: center; gap: 9px;
+        padding: 4px 8px 20px; flex-shrink: 0;
+        font-weight: 700; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase;
+      }
+      .a-wordmark .dot { width: 8px; height: 8px; border-radius: 999px; background: var(--a-accent); box-shadow: 0 0 0 4px var(--a-accent-weak); flex-shrink: 0; }
+      .a-wordmark .sfx { color: var(--a-dim); font-weight: 500; letter-spacing: 0.1em; }
+      .a-nav { min-height: 0; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; margin: 0 -4px; padding: 0 4px; }
+      .a-nav::-webkit-scrollbar { width: 0; }
       .a-nav a {
-        display: flex; align-items: center; gap: 10px; padding: 9px 10px;
-        border-radius: 8px; color: var(--a-dim); text-decoration: none; font-weight: 500;
+        display: flex; align-items: center; gap: 11px;
+        padding: 9px 11px; border-radius: 9px;
+        color: var(--a-dim); font-weight: 500;
+        position: relative; transition: background .14s, color .14s;
       }
-      .a-nav a:hover { background: var(--a-panel); color: var(--a-ink); }
-      .a-nav a[aria-current="page"] { background: var(--a-panel); color: var(--a-ink); }
-      .a-nav a[hidden] { display: none; }
-      .a-foot { flex-shrink: 0; margin-top: 12px; border-top: 1px solid var(--a-line); padding-top: 12px; display: flex; flex-direction: column; gap: 6px; }
-      .a-foot button, .a-foot a {
+      .a-nav a svg { width: 17px; height: 17px; flex-shrink: 0; opacity: .85; }
+      .a-nav a:hover { background: var(--a-bg-soft); color: var(--a-ink); }
+      .a-nav a[aria-current="page"] { background: var(--a-bg-soft); color: var(--a-ink); }
+      .a-nav a[aria-current="page"]::before {
+        content: ""; position: absolute; left: -4px; top: 8px; bottom: 8px;
+        width: 3px; border-radius: 999px; background: var(--a-accent);
+      }
+      .a-foot { flex-shrink: 0; margin-top: 14px; border-top: 1px solid var(--a-line); padding-top: 12px; display: flex; flex-direction: column; gap: 4px; }
+      .a-foot a, .a-foot button {
+        display: flex; align-items: center; gap: 9px;
         text-align: start; background: none; border: 0; color: var(--a-dim);
-        padding: 8px 10px; border-radius: 8px; cursor: pointer; font: inherit;
+        padding: 8px 11px; border-radius: 9px; cursor: pointer;
+        font: inherit; font-weight: 500; width: 100%;
       }
-      .a-foot button:hover, .a-foot a:hover { background: var(--a-panel); color: var(--a-ink); }
-      /* main */
+      .a-foot a:hover, .a-foot button:hover { background: var(--a-bg-soft); color: var(--a-ink); }
+      .a-langsel {
+        margin-top: 6px;
+        background: var(--a-bg-soft); color: var(--a-ink);
+        border: 1px solid var(--a-line); border-radius: 9px;
+        padding: 8px 10px; font: inherit; font-size: 13px; width: 100%;
+        cursor: pointer;
+      }
+      .a-langsel-label { display: flex; align-items: center; gap: 9px; padding: 4px 11px 4px; color: var(--a-dim); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+
+      /* ── Main ──────────────────────────────────────────────── */
       .a-main { flex: 1; overflow-y: auto; }
       .a-topbar {
-        display: flex; align-items: center; gap: 12px; padding: 12px 16px;
-        background: #fff; border-bottom: 1px solid #e2e7ec; position: sticky; top: 0; z-index: 5;
+        display: flex; align-items: center; gap: 12px;
+        padding: 11px 16px; background: var(--a-card);
+        border-bottom: 1px solid var(--a-border);
+        position: sticky; top: 0; z-index: 5;
       }
       @media (min-width: 1024px) { .a-topbar { display: none; } }
-      .a-burger { width: 40px; height: 40px; border: 1px solid #d7dde3; border-radius: 8px; background: #fff; cursor: pointer; }
-      .a-content { padding: 20px 16px 64px; max-width: 1040px; margin: 0 auto; }
-      @media (min-width: 768px) { .a-content { padding: 28px 24px 80px; } }
-      /* drawer */
-      .a-drawer-backdrop { position: fixed; inset: 0; background: rgba(6,12,20,.5); z-index: 40; opacity: 0; pointer-events: none; transition: opacity .2s; }
+      .a-burger {
+        width: 40px; height: 40px; flex-shrink: 0;
+        border: 1px solid var(--a-border); border-radius: 10px;
+        background: var(--a-card); cursor: pointer;
+        display: inline-flex; align-items: center; justify-content: center;
+      }
+      .a-burger svg { width: 20px; height: 20px; }
+      .a-topbar strong { flex: 1; font-size: 15px; }
+      .a-content { padding: 22px 16px 72px; max-width: 1080px; margin: 0 auto; }
+      @media (min-width: 768px) { .a-content { padding: 32px 28px 88px; } }
+
+      /* ── Drawer ────────────────────────────────────────────── */
+      .a-drawer-backdrop { position: fixed; inset: 0; background: rgba(6, 12, 20, .55); z-index: 40; opacity: 0; pointer-events: none; transition: opacity .2s; }
       body.a-drawer-open .a-drawer-backdrop { opacity: 1; pointer-events: auto; }
       .a-drawer {
-        position: fixed; inset-block: 0; inset-inline-start: 0; width: 260px; z-index: 41;
-        background: var(--a-bg); color: var(--a-ink); padding: 18px 14px;
+        position: fixed; inset-block: 0; inset-inline-start: 0; width: 272px; z-index: 41;
+        background: var(--a-bg); color: var(--a-ink); padding: 20px 14px 16px;
         display: flex; flex-direction: column; overflow: hidden;
-        transform: translateX(-100%); transition: transform .24s ease;
+        transform: translateX(-100%); transition: transform .24s cubic-bezier(.2,.8,.2,1);
       }
       body.a-drawer-open .a-drawer { transform: translateX(0); }
       @media (min-width: 1024px) { .a-drawer, .a-drawer-backdrop { display: none; } }
-      .a-drawer .a-close { align-self: flex-end; margin: -8px; padding: 8px; background: none; border: 0; color: var(--a-dim); cursor: pointer; }
-      /* shared UI */
-      .a-h1 { font-size: 20px; font-weight: 700; margin: 0 0 4px; }
-      .a-sub { color: #5b6774; margin: 0 0 20px; }
-      .a-card { background: #fff; border: 1px solid #e2e7ec; border-radius: var(--a-radius); padding: 18px; }
+      .a-drawer .a-close { align-self: flex-end; margin: -6px -4px 2px; padding: 8px; background: none; border: 0; color: var(--a-dim); cursor: pointer; display: inline-flex; }
+      .a-drawer .a-close svg { width: 18px; height: 18px; }
+
+      /* ── Shared UI ─────────────────────────────────────────── */
+      .a-page-head { margin-bottom: 22px; }
+      .a-h1 { font-size: 21px; font-weight: 700; letter-spacing: -0.01em; }
+      .a-sub { color: var(--a-muted); margin-top: 3px; max-width: 62ch; }
+      .a-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+
+      .a-card {
+        background: var(--a-card); border: 1px solid var(--a-border);
+        border-radius: var(--a-radius); padding: 18px;
+        box-shadow: var(--a-shadow);
+      }
+      @media (min-width: 768px) { .a-card { padding: 20px; } }
+
       .a-btn {
-        display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px;
-        border-radius: 8px; border: 1px solid #d7dde3; background: #fff; cursor: pointer; font: inherit; font-weight: 600;
+        display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+        height: 40px; padding: 0 16px; border-radius: 10px;
+        border: 1px solid var(--a-border); background: var(--a-card);
+        color: var(--a-text); cursor: pointer; font: inherit; font-weight: 600;
+        transition: background .14s, border-color .14s, box-shadow .14s, transform .06s;
+        white-space: nowrap;
       }
+      .a-btn:hover { background: #fafbfc; border-color: #d3d9e2; }
+      .a-btn:active { transform: translateY(1px); }
+      .a-btn:disabled { opacity: .55; cursor: default; }
       .a-btn-primary { background: var(--a-accent); border-color: var(--a-accent); color: #fff; }
-      .a-btn-primary:hover { background: var(--a-accent-ink); }
-      .a-btn-danger { color: var(--a-danger); border-color: #f0c9c6; }
+      .a-btn-primary:hover { background: var(--a-accent-ink); border-color: var(--a-accent-ink); }
+      .a-btn-danger { color: var(--a-danger); border-color: var(--a-danger-weak); background: var(--a-danger-weak); }
+      .a-btn-danger:hover { background: #f7dedc; border-color: #f0c9c6; }
+      .a-btn-sm { height: 34px; padding: 0 12px; font-size: 13px; border-radius: 9px; }
+
       .a-input, .a-textarea, .a-select {
-        width: 100%; padding: 9px 11px; border: 1px solid #d7dde3; border-radius: 8px; font: inherit; background: #fff;
+        width: 100%; padding: 9px 12px;
+        border: 1px solid var(--a-border); border-radius: 10px;
+        font: inherit; background: var(--a-card); color: var(--a-text);
+        transition: border-color .14s, box-shadow .14s;
       }
-      .a-textarea { min-height: 120px; resize: vertical; }
+      .a-input:focus, .a-textarea:focus, .a-select:focus {
+        outline: none; border-color: var(--a-accent);
+        box-shadow: 0 0 0 3px var(--a-accent-weak);
+      }
+      .a-input::placeholder, .a-textarea::placeholder { color: #9aa6b4; }
+      .a-textarea { min-height: 120px; resize: vertical; line-height: 1.6; }
+      .a-select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23667487' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 32px; }
       .a-label { display: block; font-weight: 600; margin: 14px 0 5px; font-size: 13px; }
-      .a-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e2e7ec; border-radius: var(--a-radius); overflow: hidden; }
-      .a-table th { text-align: start; background: #f4f6f8; padding: 10px 12px; font-size: 12px; letter-spacing: .03em; color: #5b6774; }
-      .a-table td { padding: 10px 12px; border-top: 1px solid #eef1f4; }
-      .a-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #eef1f4; color: #46525f; }
-      .a-badge.new { background: #e5f0ff; color: #1f5fbf; }
+      .a-label:first-child { margin-top: 0; }
+      .a-hint { color: var(--a-muted); font-size: 12px; margin-top: 4px; }
+
+      .a-filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+      .a-filters .a-select, .a-filters .a-input { max-width: 200px; height: 38px; }
+
+      .a-tablewrap { overflow-x: auto; border: 1px solid var(--a-border); border-radius: var(--a-radius); box-shadow: var(--a-shadow); }
+      .a-table { width: 100%; border-collapse: collapse; background: var(--a-card); }
+      .a-table th {
+        text-align: start; background: #fafbfc; padding: 11px 14px;
+        font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--a-muted);
+        border-bottom: 1px solid var(--a-border); white-space: nowrap;
+      }
+      .a-table td { padding: 12px 14px; border-bottom: 1px solid #eef1f4; vertical-align: top; }
+      .a-table tr:last-child td { border-bottom: 0; }
+      .a-table tbody tr:hover td { background: #fafbfc; }
+
+      .a-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600;
+        background: #eef1f4; color: #46525f; white-space: nowrap;
+      }
+      .a-badge::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: currentColor; opacity: .7; }
+      .a-badge.new { background: #e6f0ff; color: #1f5fbf; }
       .a-badge.published, .a-badge.confirmed, .a-badge.done { background: #e4f5ec; color: #1f7a4d; }
-      .a-badge.draft, .a-badge.cancelled { background: #f4f6f8; color: #6b7682; }
+      .a-badge.draft, .a-badge.cancelled { background: #eef1f4; color: #6b7682; }
       .a-badge.scheduled, .a-badge.contacted { background: #fdf1df; color: #a26a1c; }
-      /* toast */
-      .a-toasts { position: fixed; inset-block-end: 16px; inset-inline: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 60; pointer-events: none; }
-      .a-toast { pointer-events: auto; background: #12202f; color: #fff; padding: 10px 16px; border-radius: 999px; font-weight: 600; box-shadow: 0 10px 30px -10px rgba(0,0,0,.4); }
+
+      .a-empty { padding: 40px 20px; text-align: center; color: var(--a-muted); }
+      .a-error { color: var(--a-danger); }
+
+      /* stat cards on the overview */
+      .a-stats { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+      .a-stat { display: block; }
+      .a-stat .k { color: var(--a-muted); font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase; }
+      .a-stat .v { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; margin: 2px 0; }
+      .a-stat .d { color: var(--a-muted); font-size: 13px; }
+
+      /* ── Toasts ────────────────────────────────────────────── */
+      .a-toasts { position: fixed; inset-block-end: 20px; inset-inline: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 60; pointer-events: none; }
+      .a-toast {
+        pointer-events: auto; background: #11202f; color: #fff;
+        padding: 11px 18px; border-radius: 999px; font-weight: 600; font-size: 13.5px;
+        box-shadow: var(--a-shadow-lg);
+        animation: a-toast-in .22s cubic-bezier(.2,.8,.2,1);
+      }
       .a-toast.err { background: var(--a-danger); }
       .a-toast.ok { background: var(--a-ok); }
-      /* gate screens */
+      @keyframes a-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+      /* ── Gate screens ──────────────────────────────────────── */
       .a-gate { display: grid; place-items: center; height: 100dvh; text-align: center; padding: 24px; }
-      .a-gate .a-card { max-width: 380px; }
-      [data-gate-loading] .a-shell, [data-gate-denied] .a-shell { display: none; }
-      body:not([data-gate-loading]):not([data-gate-denied]) .a-gate { display: none; }
+      .a-gate .a-card { max-width: 380px; box-shadow: var(--a-shadow-lg); }
+      .a-spin { width: 22px; height: 22px; border: 2.5px solid var(--a-border); border-top-color: var(--a-accent); border-radius: 999px; margin: 0 auto 12px; animation: a-spin 0.7s linear infinite; }
+      @keyframes a-spin { to { transform: rotate(360deg); } }
       .a-hide { display: none !important; }
     </style>
   </head>
-  <body data-gate-loading data-section={section}>
-    <!-- loading gate -->
+  <body data-section={section} data-titlekey={titleKey ?? ''}>
+    <!-- gates -->
     <div class="a-gate" data-gate="loading">
-      <div class="a-card"><p>Checking your access…</p></div>
+      <div class="a-card"><div class="a-spin"></div><p data-i18n="gate.checking">Checking your access…</p></div>
     </div>
-    <!-- denied gate -->
     <div class="a-gate a-hide" data-gate="denied">
       <div class="a-card">
-        <h1 class="a-h1">No access</h1>
-        <p class="a-sub">This account isn't allowed into the dashboard. Ask the owner to add you.</p>
-        <button class="a-btn" data-signout>Sign out</button>
+        <h1 class="a-h1" data-i18n="gate.deniedTitle">No access</h1>
+        <p class="a-sub" style="margin:8px auto 16px" data-i18n="gate.deniedBody">This account isn't allowed into the dashboard. Ask the owner to add you.</p>
+        <button class="a-btn" data-signout data-i18n="nav.signOut">Sign out</button>
       </div>
     </div>
 
-    <div class="a-shell">
+    <div class="a-shell a-hide" data-shell>
       <aside class="a-aside">
-        <div class="a-wordmark">THE&nbsp;<b>DRIVER</b> · admin</div>
+        <div class="a-wordmark"><span class="dot"></span>THE&nbsp;DRIVER <span class="sfx" data-i18n="brand.suffix">admin</span></div>
         <nav class="a-nav" data-nav></nav>
         <div class="a-foot">
-          <a href="/" target="_blank" rel="noopener">↗ View site</a>
-          <button data-signout>Sign out</button>
+          <a href="/" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 17 17 7M8 7h9v9"/></svg>
+            <span data-i18n="nav.viewSite">View site</span>
+          </a>
+          <button data-signout>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+            <span data-i18n="nav.signOut">Sign out</span>
+          </button>
+          <div class="a-langsel-label">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"/></svg>
+            <span data-i18n="nav.language">Language</span>
+          </div>
+          <select class="a-langsel" data-langsel></select>
         </div>
       </aside>
 
       <main class="a-main">
         <div class="a-topbar">
-          <button class="a-burger" data-burger aria-label="Menu">☰</button>
-          <strong>{title}</strong>
+          <button class="a-burger" data-burger aria-label="Menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          </button>
+          <strong data-topbar-title>{title}</strong>
         </div>
         <div class="a-content"><slot /></div>
       </main>
     </div>
 
-    <!-- mobile drawer (static markup, class-toggled) -->
+    <!-- mobile drawer -->
     <div class="a-drawer-backdrop" data-backdrop></div>
     <div class="a-drawer" data-drawer>
-      <button class="a-close" data-close aria-label="Close">✕</button>
-      <div class="a-wordmark">THE&nbsp;<b>DRIVER</b> · admin</div>
+      <button class="a-close" data-close aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+      <div class="a-wordmark"><span class="dot"></span>THE&nbsp;DRIVER <span class="sfx" data-i18n="brand.suffix">admin</span></div>
       <nav class="a-nav" data-nav></nav>
       <div class="a-foot">
-        <a href="/" target="_blank" rel="noopener">↗ View site</a>
-        <button data-signout>Sign out</button>
+        <a href="/" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 17 17 7M8 7h9v9"/></svg>
+          <span data-i18n="nav.viewSite">View site</span>
+        </a>
+        <button data-signout>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          <span data-i18n="nav.signOut">Sign out</span>
+        </button>
+        <div class="a-langsel-label"><span data-i18n="nav.language">Language</span></div>
+        <select class="a-langsel" data-langsel></select>
       </div>
     </div>
 
@@ -179,40 +326,75 @@ const { title, section } = Astro.props;
     <script>
       import { getBrowserClient } from '../../lib/supabase';
       import { ADMIN_SECTIONS, canAccess, routeToSection } from '../../lib/adminSections';
+      import { ADMIN_STRINGS, ADMIN_LANGS, type AdminLang } from '../../lib/adminI18n';
 
-      const SECTION_LABELS: Record<string, string> = {
-        overview: 'Overview', blog: 'Blog', content: 'Page text',
-        bookings: 'Bookings', messages: 'Messages', team: 'Team',
-      };
+      // ── i18n runtime ──────────────────────────────────────────
+      const LANG_KEY = 'thedriver-admin-lang';
+      let lang: AdminLang = 'en';
+      try {
+        const stored = localStorage.getItem(LANG_KEY);
+        if (stored && stored in ADMIN_STRINGS) lang = stored as AdminLang;
+      } catch {}
+      const dict = ADMIN_STRINGS[lang];
+      const t = (k: string): string => dict[k] ?? ADMIN_STRINGS.en[k] ?? k;
+      (window as any).adminT = t;
+      (window as any).adminLang = lang;
+      document.documentElement.lang = lang;
 
-      // ---- toast (module-scoped; survives navigation within the island) ----
+      function applyI18n(root: ParentNode = document) {
+        root.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => {
+          const k = el.getAttribute('data-i18n');
+          if (k) el.textContent = t(k);
+        });
+        root.querySelectorAll<HTMLElement>('[data-i18n-ph]').forEach((el) => {
+          const k = el.getAttribute('data-i18n-ph');
+          if (k) el.setAttribute('placeholder', t(k));
+        });
+      }
+      (window as any).adminApplyI18n = applyI18n;
+
+      // language selector (both copies)
+      document.querySelectorAll<HTMLSelectElement>('[data-langsel]').forEach((sel) => {
+        sel.innerHTML = ADMIN_LANGS.map((l) => `<option value="${l.code}">${l.label}</option>`).join('');
+        sel.value = lang;
+        sel.addEventListener('change', () => {
+          try { localStorage.setItem(LANG_KEY, sel.value); } catch {}
+          location.reload();
+        });
+      });
+
+      // topbar / tab title from a key if given
+      const tk = document.body.dataset.titlekey;
+      if (tk) {
+        const tt = document.querySelector('[data-topbar-title]');
+        if (tt) tt.textContent = t(tk);
+        document.title = `${t(tk)} · The Driver`;
+      }
+
+      applyI18n();
+
+      // ── toast ─────────────────────────────────────────────────
       const toastHost = document.querySelector<HTMLElement>('[data-toasts]')!;
       function toast(msg: string, kind: 'ok' | 'err' | '' = '') {
         const el = document.createElement('div');
         el.className = 'a-toast ' + kind;
         el.textContent = msg;
         toastHost.appendChild(el);
-        setTimeout(() => el.remove(), 4200);
+        setTimeout(() => { el.style.transition = 'opacity .2s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 200); }, 4000);
       }
-      (window as unknown as { adminToast: typeof toast }).adminToast = toast;
+      (window as any).adminToast = toast;
 
-      // ---- drawer ----
+      // ── drawer ────────────────────────────────────────────────
       const body = document.body;
       let savedScroll = 0;
       function openDrawer() {
         savedScroll = window.scrollY;
         body.classList.add('a-drawer-open');
-        body.style.position = 'fixed';
-        body.style.top = `-${savedScroll}px`;
-        body.style.width = '100%';
-        body.style.overflow = 'hidden';
+        Object.assign(body.style, { position: 'fixed', top: `-${savedScroll}px`, width: '100%', overflow: 'hidden' });
       }
       function closeDrawer() {
         body.classList.remove('a-drawer-open');
-        body.style.position = '';
-        body.style.top = '';
-        body.style.width = '';
-        body.style.overflow = '';
+        Object.assign(body.style, { position: '', top: '', width: '', overflow: '' });
         window.scrollTo(0, savedScroll);
       }
       document.querySelector('[data-burger]')?.addEventListener('click', openDrawer);
@@ -224,22 +406,33 @@ const { title, section } = Astro.props;
         if ((e.target as HTMLElement).closest('a[href^="/admin"]')) closeDrawer();
       });
 
-      // ---- auth gate ----
+      // ── section icons ─────────────────────────────────────────
+      const ICONS: Record<string, string> = {
+        overview: '<path d="M3 13h8V3H3zM13 21h8V11h-8zM13 3v6h8V3zM3 21h8v-6H3z"/>',
+        blog: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+        content: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+        bookings: '<path d="M19 17h2l.64-2.54a6 6 0 0 0 0-2.92l-1.07-4.27A3 3 0 0 0 17.66 5H6.34a3 3 0 0 0-2.91 2.27L2.36 11.54a6 6 0 0 0 0 2.92L3 17h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17h10"/>',
+        messages: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+        team: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+      };
+      const svg = (k: string) =>
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS[k] ?? ''}</svg>`;
+
+      // ── auth gate ─────────────────────────────────────────────
       const sb = getBrowserClient();
       const currentSection = body.dataset.section || 'overview';
 
       function paintNav(isOwner: boolean, sections: string[]) {
-        const here = location.pathname;
+        const here = location.pathname.replace(/\/+$/, '') || '/admin';
         for (const host of document.querySelectorAll<HTMLElement>('[data-nav]')) {
           host.innerHTML = '';
           for (const s of ADMIN_SECTIONS) {
             if (!canAccess(s, { isOwner, sections })) continue;
             const a = document.createElement('a');
-            a.href = s.route;
-            a.textContent = SECTION_LABELS[s.key] ?? s.key;
-            if ((s.exact && here.replace(/\/+$/, '') === s.route) || (!s.exact && here.startsWith(s.route))) {
-              a.setAttribute('aria-current', 'page');
-            }
+            a.href = s.route === '/admin' ? '/admin/' : s.route + '/';
+            a.innerHTML = svg(s.key) + `<span>${t('nav.' + s.key)}</span>`;
+            const active = s.exact ? here === s.route : here.startsWith(s.route);
+            if (active) a.setAttribute('aria-current', 'page');
             host.appendChild(a);
           }
         }
@@ -249,23 +442,20 @@ const { title, section } = Astro.props;
         document.querySelectorAll<HTMLElement>('[data-gate]').forEach((g) => {
           g.classList.toggle('a-hide', g.dataset.gate !== name);
         });
-        body.removeAttribute('data-gate-loading');
-        body.removeAttribute('data-gate-denied');
-        if (name === 'loading') body.setAttribute('data-gate-loading', '');
-        if (name === 'denied') body.setAttribute('data-gate-denied', '');
+        document.querySelector('[data-shell]')?.classList.toggle('a-hide', name !== null);
       }
 
       for (const btn of document.querySelectorAll('[data-signout]')) {
         btn.addEventListener('click', async () => {
           await sb.auth.signOut();
-          location.href = '/admin/login';
+          location.href = '/admin/login/';
         });
       }
 
       async function gate() {
         const { data: { session } } = await sb.auth.getSession();
         if (!session) {
-          if (location.pathname !== '/admin/login') location.href = '/admin/login';
+          if (location.pathname !== '/admin/login/') location.href = '/admin/login/';
           return;
         }
         const { data: profile } = await sb
@@ -279,24 +469,18 @@ const { title, section } = Astro.props;
         const isOwner = !!profile.is_owner;
         const sections: string[] = profile.sections ?? [];
 
-        // direct-URL guard: mirror routeToSection + canAccess
         const key = routeToSection(location.pathname) ?? currentSection;
         const sec = ADMIN_SECTIONS.find((s) => s.key === key);
-        if (sec && !canAccess(sec, { isOwner, sections })) {
-          location.href = '/admin';
-          return;
-        }
+        if (sec && !canAccess(sec, { isOwner, sections })) { location.href = '/admin/'; return; }
 
         paintNav(isOwner, sections);
         showGate(null);
-        (window as unknown as { adminReady?: (p: { isOwner: boolean; sections: string[]; userId: string; email: string | undefined }) => void })
-          .adminReady?.({ isOwner, sections, userId: session.user.id, email: session.user.email });
-        window.dispatchEvent(new CustomEvent('admin:ready', { detail: { isOwner, sections, userId: session.user.id } }));
+        window.dispatchEvent(new CustomEvent('admin:ready', {
+          detail: { isOwner, sections, userId: session.user.id, email: session.user.email },
+        }));
       }
 
-      // login page renders its own form; it still runs gate() to bounce an
-      // already-signed-in admin straight to the dashboard.
-      gate().catch((e) => { console.error(e); toast('Could not verify access', 'err'); });
+      gate().catch((e) => { console.error(e); toast(t('toast.accessError'), 'err'); });
       sb.auth.onAuthStateChange(() => { gate().catch(() => {}); });
     </script>
   </body>

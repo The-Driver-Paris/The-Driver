@@ -6,12 +6,12 @@ export const prerender = false;
 
 const EDITABLE = new Set(['disneyland', 'parisTransfer', 'parisChauffeur']);
 const pageKey = Astro.params.page ?? '';
-if (!EDITABLE.has(pageKey)) return Astro.redirect('/admin/content');
+if (!EDITABLE.has(pageKey)) return Astro.redirect('/admin/content/');
 
-const LABELS: Record<string, string> = {
-  disneyland: 'Disneyland Paris page',
-  parisTransfer: 'Paris airport transfer page',
-  parisChauffeur: 'Paris chauffeur hire page',
+const TITLE_KEY: Record<string, string> = {
+  disneyland: 'content.page.disneyland',
+  parisTransfer: 'content.page.parisTransfer',
+  parisChauffeur: 'content.page.parisChauffeur',
 };
 
 // Compiled copy per locale, flattened to editable leaves. The client shows each
@@ -22,24 +22,36 @@ for (const l of LOCALES) {
 }
 ---
 
-<AdminShell title={LABELS[pageKey]} section="content">
-  <a href="/admin/content" style="color:#5b6774;text-decoration:none">← All pages</a>
-  <h1 class="a-h1" style="margin-top:8px">{LABELS[pageKey]}</h1>
-  <p class="a-sub">Each row shows the current wording as faint placeholder text. Type to override it; clear the box to restore the original.</p>
+<AdminShell title="Page text" titleKey={TITLE_KEY[pageKey]} section="content">
+  <a href="/admin/content/" class="a-sub" style="display:inline-flex;align-items:center;gap:5px">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    <span data-i18n="content.allPages">All pages</span>
+  </a>
+  <h1 class="a-h1" style="margin-top:10px" data-i18n={TITLE_KEY[pageKey]}>Page text</h1>
+  <p class="a-sub" data-i18n="content.rowHint">Each row shows the current wording as faint placeholder text. Type to override it; clear the box to restore the original.</p>
 
-  <div style="display:flex;gap:8px;margin-bottom:16px">
+  <div class="seg" style="margin:18px 0">
     {LOCALES.map((l, i) => (
-      <button class="a-btn" data-tab={l} aria-pressed={i === 0 ? 'true' : 'false'}>{l.toUpperCase()}</button>
+      <button class="seg-btn" data-tab={l} aria-pressed={i === 0 ? 'true' : 'false'}>{l.toUpperCase()}</button>
     ))}
   </div>
 
   <form data-form>
-    <div data-fields>Loading…</div>
-    <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
-      <button type="submit" class="a-btn a-btn-primary" data-save>Save changes</button>
-      <span data-count style="color:#5b6774;font-size:13px"></span>
+    <div data-fields class="a-card"><span data-i18n="common.loading">Loading…</span></div>
+    <div style="margin-top:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;bottom:0;background:var(--a-page);padding:10px 0;border-top:1px solid var(--a-border)">
+      <button type="submit" class="a-btn a-btn-primary" data-save data-i18n="common.saveChanges">Save changes</button>
+      <span data-count class="a-hint"></span>
     </div>
   </form>
+
+  <style>
+    .seg { display: inline-flex; background: #eceff3; border-radius: 10px; padding: 3px; gap: 2px; }
+    .seg-btn { border: 0; background: none; padding: 7px 16px; border-radius: 8px; font: inherit; font-weight: 600; font-size: 13px; color: var(--a-muted); cursor: pointer; }
+    .seg-btn[aria-pressed="true"] { background: var(--a-card); color: var(--a-text); box-shadow: var(--a-shadow); }
+    [data-fields] .fld { margin-bottom: 14px; }
+    [data-fields] .fld:last-child { margin-bottom: 0; }
+    [data-fields] .fld label { display: block; font-size: 12px; font-weight: 600; color: var(--a-muted); margin-bottom: 4px; }
+  </style>
 
   <script is:inline define:vars={{ pageKey, compiled, locales: LOCALES }}>
     window.__contentEditor = { pageKey, compiled, locales };
@@ -52,9 +64,10 @@ for (const l of LOCALES) {
     };
     const sb = getBrowserClient();
     const toast = (window as any).adminToast as (m: string, k?: string) => void;
+    const T = (k: string) => (window as any).adminT(k) as string;
     const fields = document.querySelector<HTMLElement>('[data-fields]')!;
     const count = document.querySelector<HTMLElement>('[data-count]')!;
-    let overrides: Record<string, Record<string, string>> = {};   // locale -> path -> value
+    let overrides: Record<string, Record<string, string>> = {};
     let active = locales[0];
 
     const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
@@ -68,13 +81,13 @@ for (const l of LOCALES) {
         const input = multiline
           ? `<textarea class="a-textarea" data-path="${esc(leaf.path)}" placeholder="${esc(leaf.text)}" style="min-height:64px">${esc(val)}</textarea>`
           : `<input class="a-input" data-path="${esc(leaf.path)}" placeholder="${esc(leaf.text)}" value="${esc(val)}" />`;
-        return `<div style="margin-bottom:12px"><label class="a-label" style="margin:0 0 4px">${esc(labelFor(leaf.path))}</label>${input}</div>`;
+        return `<div class="fld"><label>${esc(labelFor(leaf.path))}</label>${input}</div>`;
       }).join('');
       updateCount();
     }
     function updateCount() {
       const n = Object.values(overrides).reduce((a, m) => a + Object.keys(m).length, 0);
-      count.textContent = n ? `${n} override${n === 1 ? '' : 's'} set` : 'No overrides — page shows the original text';
+      count.textContent = n ? `${n} ${T('content.overridesSet')}` : T('content.noOverrides');
     }
 
     fields.addEventListener('input', (e) => {
@@ -98,7 +111,7 @@ for (const l of LOCALES) {
     async function load() {
       const { data, error } = await sb.from('page_overrides')
         .select('field_key, locale, value').eq('page_key', pageKey);
-      if (error) { toast('Could not load current text', 'err'); }
+      if (error) toast(T('toast.loadError'), 'err');
       overrides = {};
       for (const row of data ?? []) {
         if (row.value && row.value.trim() !== '') {
@@ -114,28 +127,25 @@ for (const l of LOCALES) {
       const save = document.querySelector<HTMLButtonElement>('[data-save]')!;
       save.disabled = true;
       try {
-        // desired state = every (locale,path) currently in `overrides`
         const desired: { page_key: string; field_key: string; locale: string; value: string }[] = [];
         for (const [loc, m] of Object.entries(overrides))
           for (const [path, value] of Object.entries(m))
             desired.push({ page_key: pageKey, field_key: path, locale: loc, value });
 
-        // upsert the ones we have
         if (desired.length) {
           const { error } = await sb.from('page_overrides')
             .upsert(desired, { onConflict: 'page_key,field_key,locale' });
-          if (error) { toast('Save failed', 'err'); return; }
+          if (error) { toast(T('toast.saveError'), 'err'); return; }
         }
-        // delete any override row for this page that is no longer desired
         const keep = new Set(desired.map((d) => `${d.locale}::${d.field_key}`));
         const { data: existing } = await sb.from('page_overrides')
           .select('id, field_key, locale').eq('page_key', pageKey);
         const stale = (existing ?? []).filter((r) => !keep.has(`${r.locale}::${r.field_key}`)).map((r) => r.id);
         if (stale.length) {
           const { error } = await sb.from('page_overrides').delete().in('id', stale);
-          if (error) { toast('Saved, but could not clear some old text', 'err'); return; }
+          if (error) { toast(T('toast.saveError'), 'err'); return; }
         }
-        toast('Saved', 'ok');
+        toast(T('toast.saved'), 'ok');
       } finally { save.disabled = false; }
     });
 

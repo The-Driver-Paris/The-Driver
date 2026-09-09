@@ -21,8 +21,8 @@ export default defineConfig({
   trailingSlash: 'always',
 
   i18n: {
-    defaultLocale: 'fr',
-    locales: ['fr', 'en', 'es', 'it'],
+    defaultLocale: 'en',
+    locales: ['en', 'fr', 'es', 'it'],
     routing: {
       prefixDefaultLocale: false,
     },
@@ -35,10 +35,10 @@ export default defineConfig({
       // "Submitted URL marked 'noindex'", so keep it out. `/admin` is private.
       filter: (page) => !page.includes('/thank-you') && !page.includes('/admin'),
       i18n: {
-        defaultLocale: 'fr',
+        defaultLocale: 'en',
         locales: {
-          fr: 'fr-FR',
           en: 'en-US',
+          fr: 'fr-FR',
           es: 'es-ES',
           it: 'it-IT',
         },

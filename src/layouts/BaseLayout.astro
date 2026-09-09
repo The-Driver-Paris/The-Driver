@@ -27,6 +27,18 @@ interface Props {
    * shouldn't appear in search results.
    */
   noindex?: boolean;
+  /**
+   * Which locales to emit `<link rel="alternate" hreflang>` for. Defaults to
+   * every locale. Pass a subset (e.g. `['en']`) for pages that only exist in
+   * some languages — the blog — so no alternate points at a 404.
+   */
+  hreflang?: ('fr' | 'en' | 'es' | 'it')[];
+  /**
+   * Override the canonical / og:url path. Dynamic routes (a blog post at
+   * `/blog/:slug/`) must pass this, or every one canonicalises to the index.
+   * A site-absolute path with a trailing slash, e.g. `/blog/my-post/`.
+   */
+  canonicalPath?: string;
 }
 
 const {
@@ -36,14 +48,18 @@ const {
   routeKey = 'home',
   structuredData,
   noindex = false,
+  hreflang,
+  canonicalPath,
 } = Astro.props;
+
+const hreflangLocales = hreflang ?? LOCALES;
 
 if (!ROUTE_KEYS.includes(routeKey)) {
   throw new Error(`BaseLayout: unknown routeKey "${routeKey}". Add it to src/i18n/routes.js.`);
 }
 
 const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? '';
-const canonical = `${siteUrl}${pathForRoute(routeKey, locale)}`;
+const canonical = `${siteUrl}${canonicalPath ?? pathForRoute(routeKey, locale)}`;
 const ogImage = `${siteUrl}/images/og-default.jpg`;
 
 // LocalBusiness / TaxiService structured data — every page ships this so
@@ -80,12 +96,10 @@ const extraSchemas = Array.isArray(structuredData)
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="generator" content={Astro.generator} />
 
-    {/* Browser-locale redirect — runs SYNCHRONOUSLY on `/` (FR root) only.
-        Site is a static build on Vercel (no Astro adapter), so we can't use
-        request-time middleware. Client-side redirect happens before paint so
-        users don't see the FR root flash before landing on /en/.
-        Respects a localStorage flag set when the user manually switches
-        language via the picker — they stay where they chose. */}
+    {/* Browser-locale redirect — runs SYNCHRONOUSLY on `/` (the EN root) only.
+        English is the default, so a non-English browser is sent to its locale
+        root before paint. Respects a localStorage flag set when the user
+        manually picks a language — they stay where they chose. */}
     <script is:inline>
       (function () {
         if (window.location.pathname !== '/') return;
@@ -93,9 +107,9 @@ const extraSchemas = Array.isArray(structuredData)
           if (localStorage.getItem('locale-manual') === '1') return;
         } catch (e) { /* private mode — fall through */ }
         var lang = (navigator.language || '').toLowerCase();
-        if (!lang.startsWith('fr')) {
-          window.location.replace('/en/');
-        }
+        if (lang.startsWith('fr')) window.location.replace('/fr/');
+        else if (lang.startsWith('es')) window.location.replace('/es/');
+        else if (lang.startsWith('it')) window.location.replace('/it/');
       })();
     </script>
 
@@ -124,7 +138,7 @@ const extraSchemas = Array.isArray(structuredData)
         var path = window.location.pathname;
         var isHome = (
           path === '/' ||
-          path === '/en/' || path === '/en' ||
+          path === '/fr/' || path === '/fr' ||
           path === '/es/' || path === '/es' ||
           path === '/it/' || path === '/it'
         );
@@ -186,9 +200,9 @@ const extraSchemas = Array.isArray(structuredData)
     <meta name="theme-color" content="#C94F3A" />
     <meta name="apple-mobile-web-app-title" content="Driver Services" />
 
-    {/* hreflang alternates — x-default points to EN since the site auto-
-        redirects non-FR browsers there; FR browsers stay on the root URL. */}
-    {LOCALES.map((l) => (
+    {/* hreflang alternates — English is the default, so x-default points at the
+        unprefixed EN URL; non-EN browsers are auto-redirected to their prefix. */}
+    {hreflangLocales.map((l) => (
       <link rel="alternate" hreflang={l} href={`${siteUrl}${pathForRoute(routeKey, l)}`} />
     ))}
     <link rel="alternate" hreflang="x-default" href={`${siteUrl}${pathForRoute(routeKey, 'en')}`} />

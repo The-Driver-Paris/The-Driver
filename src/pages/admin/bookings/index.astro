@@ -3,33 +3,34 @@ import AdminShell from '../_AdminShell.astro';
 export const prerender = false;
 ---
 
-<AdminShell title="Bookings" section="bookings">
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+<AdminShell title="Bookings" titleKey="nav.bookings" section="bookings">
+  <div class="a-page-head a-row">
     <div>
-      <h1 class="a-h1">Bookings</h1>
-      <p class="a-sub">Every booking request, also kept here in case an email is missed.</p>
+      <h1 class="a-h1" data-i18n="bookings.title">Bookings</h1>
+      <p class="a-sub" data-i18n="bookings.subtitle">Every booking request, also kept here in case an email is missed.</p>
     </div>
-    <button class="a-btn" data-export>Export CSV</button>
+    <button class="a-btn" data-export data-i18n="common.export">Export CSV</button>
   </div>
 
-  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-    <select class="a-select" data-filter style="max-width:180px">
-      <option value="">All statuses</option>
-      <option value="new">New</option>
-      <option value="contacted">Contacted</option>
-      <option value="confirmed">Confirmed</option>
-      <option value="done">Done</option>
-      <option value="cancelled">Cancelled</option>
+  <div class="a-filters">
+    <select class="a-select" data-filter>
+      <option value="" data-i18n="common.allStatuses">All statuses</option>
+      <option value="new" data-i18n="status.new">New</option>
+      <option value="contacted" data-i18n="status.contacted">Contacted</option>
+      <option value="confirmed" data-i18n="status.confirmed">Confirmed</option>
+      <option value="done" data-i18n="status.done">Done</option>
+      <option value="cancelled" data-i18n="status.cancelled">Cancelled</option>
     </select>
-    <input class="a-input" data-search placeholder="Search name, email, route…" style="max-width:260px" />
+    <input class="a-input" data-search data-i18n-ph="bookings.searchPh" placeholder="Search name, email, route…" />
   </div>
 
-  <div data-list>Loading…</div>
+  <div data-list><div class="a-empty" data-i18n="common.loading">Loading…</div></div>
 
   <script>
     import { getBrowserClient } from '../../../lib/supabase';
     const sb = getBrowserClient();
     const toast = (window as any).adminToast as (m: string, k?: string) => void;
+    const T = (k: string) => (window as any).adminT(k) as string;
     const list = document.querySelector<HTMLElement>('[data-list]')!;
     const filter = document.querySelector<HTMLSelectElement>('[data-filter]')!;
     const search = document.querySelector<HTMLInputElement>('[data-search]')!;
@@ -37,7 +38,7 @@ export const prerender = false;
     let cache: any[] = [];
 
     const esc = (s: any) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
-    const fmt = (iso: string) => new Date(iso).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+    const fmt = (iso: string) => new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 
     function render() {
       const term = search.value.trim().toLowerCase();
@@ -46,34 +47,32 @@ export const prerender = false;
         if (!term) return true;
         return [b.first_name, b.last_name, b.email, b.from_loc, b.to_loc, b.phone].join(' ').toLowerCase().includes(term);
       });
-      if (!rows.length) { list.innerHTML = '<div class="a-card" style="color:#5b6774">Nothing here.</div>'; return; }
+      if (!rows.length) { list.innerHTML = `<div class="a-card a-empty">${T('common.none')}</div>`; return; }
       list.innerHTML = rows.map((b) => `
         <div class="a-card" style="margin-bottom:10px">
-          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div class="a-row" style="align-items:flex-start">
             <div>
               <strong>${esc(b.first_name)} ${esc(b.last_name)}</strong>
-              <span class="a-badge ${b.status}">${b.status}</span><br>
-              <span style="color:#5b6774">${esc(b.from_loc)} → ${esc(b.to_loc)} · ${esc(b.pax)} pax · ${esc(b.trip_date) || ''} ${esc(b.trip_time) || ''}</span><br>
-              <span style="color:#8a95a1;font-size:12px">${fmt(b.created_at)} · ${esc(b.email)} · ${esc(b.phone)} · ${b.price_estimate ? '€' + b.price_estimate : ''}</span>
+              <span class="a-badge ${b.status}">${T('status.' + b.status)}</span><br>
+              <span style="color:var(--a-muted)">${esc(b.from_loc)} → ${esc(b.to_loc)} · ${esc(b.pax)} pax · ${esc(b.trip_date) || ''} ${esc(b.trip_time) || ''}</span><br>
+              <span style="color:#98a2b0;font-size:12px">${fmt(b.created_at)} · ${esc(b.email)} · ${esc(b.phone)} · ${b.price_estimate ? '€' + b.price_estimate : ''}</span>
             </div>
-            <div style="min-width:160px">
-              <select class="a-select" data-status data-id="${b.id}">
-                ${STATUSES.map((s) => `<option value="${s}" ${s === b.status ? 'selected' : ''}>${s}</option>`).join('')}
-              </select>
-            </div>
+            <select class="a-select a-btn-sm" data-status data-id="${b.id}" style="min-width:150px;max-width:170px">
+              ${STATUSES.map((s) => `<option value="${s}" ${s === b.status ? 'selected' : ''}>${T('status.' + s)}</option>`).join('')}
+            </select>
           </div>
-          <details style="margin-top:8px">
-            <summary style="cursor:pointer;color:#5b6774">Details &amp; notes</summary>
-            <pre style="white-space:pre-wrap;font-size:12px;color:#46525f;background:#f7f9fa;padding:10px;border-radius:6px">${esc(JSON.stringify({ flight: b.flight_number, train: b.train_number, pickup: b.pickup_address, dropoff: b.dropoff_address, trip_type: b.trip_type, return: [b.return_date, b.return_time], child_seats: b.child_seats, extra_stop: b.extra_stop, locale: b.locale, source: b.source }, null, 2))}</pre>
-            <textarea class="a-textarea" data-notes data-id="${b.id}" style="min-height:60px" placeholder="Private notes">${esc(b.notes)}</textarea>
-            <button class="a-btn" data-savenotes data-id="${b.id}" style="margin-top:6px;height:34px">Save notes</button>
+          <details style="margin-top:10px">
+            <summary style="cursor:pointer;color:var(--a-muted)">${T('bookings.details')}</summary>
+            <pre style="white-space:pre-wrap;font-size:12px;color:#46525f;background:#f6f8fa;padding:10px;border-radius:8px;overflow-x:auto">${esc(JSON.stringify({ flight: b.flight_number, train: b.train_number, pickup: b.pickup_address, dropoff: b.dropoff_address, trip_type: b.trip_type, return: [b.return_date, b.return_time], child_seats: b.child_seats, extra_stop: b.extra_stop, locale: b.locale, source: b.source }, null, 2))}</pre>
+            <textarea class="a-textarea" data-notes data-id="${b.id}" style="min-height:60px" placeholder="${T('bookings.notesPh')}">${esc(b.notes)}</textarea>
+            <button class="a-btn a-btn-sm" data-savenotes data-id="${b.id}" style="margin-top:6px">${T('bookings.saveNotes')}</button>
           </details>
         </div>`).join('');
     }
 
     async function load() {
       const { data, error } = await sb.from('bookings').select('*').order('created_at', { ascending: false }).limit(500);
-      if (error) { list.innerHTML = '<div class="a-card" style="color:#d9544d">Could not load bookings.</div>'; return; }
+      if (error) { list.innerHTML = `<div class="a-card a-empty a-error">${T('bookings.loadError')}</div>`; return; }
       cache = data ?? [];
       render();
     }
@@ -85,9 +84,9 @@ export const prerender = false;
       const { error } = await sb.from('bookings')
         .update({ status: sel.value as 'new' | 'contacted' | 'confirmed' | 'done' | 'cancelled' })
         .eq('id', id);
-      if (error) { toast('Could not update status', 'err'); load(); return; }
+      if (error) { toast(T('bookings.statusError'), 'err'); load(); return; }
       const row = cache.find((b) => b.id === id); if (row) row.status = sel.value;
-      toast('Updated', 'ok');
+      toast(T('toast.updated'), 'ok');
     });
     list.addEventListener('click', async (e) => {
       const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-savenotes]');
@@ -95,7 +94,7 @@ export const prerender = false;
       const id = btn.dataset.id!;
       const ta = list.querySelector<HTMLTextAreaElement>(`[data-notes][data-id="${id}"]`)!;
       const { error } = await sb.from('bookings').update({ notes: ta.value }).eq('id', id);
-      toast(error ? 'Could not save notes' : 'Notes saved', error ? 'err' : 'ok');
+      toast(error ? T('bookings.notesError') : T('bookings.notesSaved'), error ? 'err' : 'ok');
       if (!error) { const row = cache.find((b) => b.id === id); if (row) row.notes = ta.value; }
     });
     filter.addEventListener('change', render);

@@ -1,11 +1,11 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import FleetHero from '../../components/FleetHero.astro';
-import FleetVehicle from '../../components/FleetVehicle.astro';
-import GroupCombos from '../../components/GroupCombos.astro';
-import AlwaysIncluded from '../../components/AlwaysIncluded.astro';
-import PageCloseCTA from '../../components/PageCloseCTA.astro';
-import { t, pathForRoute } from '../../i18n';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import FleetHero from '../components/FleetHero.astro';
+import FleetVehicle from '../components/FleetVehicle.astro';
+import GroupCombos from '../components/GroupCombos.astro';
+import AlwaysIncluded from '../components/AlwaysIncluded.astro';
+import PageCloseCTA from '../components/PageCloseCTA.astro';
+import { t, pathForRoute } from '../i18n';
 
 const locale = 'en' as const;
 const cta = t(locale).pages.fleet.finalCta;

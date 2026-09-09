@@ -6,98 +6,106 @@ const { id } = Astro.params;
 const isNew = id === 'new';
 ---
 
-<AdminShell title={isNew ? 'New article' : 'Edit article'} section="blog">
-  <a href="/admin/blog" style="color:#5b6774;text-decoration:none">← All articles</a>
-  <h1 class="a-h1" style="margin-top:8px">{isNew ? 'New article' : 'Edit article'}</h1>
+<AdminShell title="Article" titleKey={isNew ? 'blog.newTitle' : 'blog.editTitle'} section="blog">
+  <a href="/admin/blog/" class="a-sub" style="display:inline-flex;align-items:center;gap:5px">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    <span data-i18n="blog.allArticles">All articles</span>
+  </a>
+  <h1 class="a-h1" style="margin-top:10px" data-i18n={isNew ? 'blog.newTitle' : 'blog.editTitle'}>Article</h1>
 
-  <div data-loaderr class="a-hide" style="color:#d9544d;margin:12px 0">
-    Could not load this article. <a href="/admin/blog">Go back</a>.
+  <div data-loaderr class="a-card a-hide" style="margin:14px 0;border-color:#f0c9c6;background:#fbeceb">
+    <span class="a-error" data-i18n="blog.loadOneError">Could not load this article.</span>
+    <a href="/admin/blog/" data-i18n="blog.goBack" style="color:var(--a-accent-ink);font-weight:600">Go back</a>
   </div>
 
-  <form data-form class:list={["a-hide"]}>
-    <div style="display:grid;gap:18px;grid-template-columns:1fr;max-width:760px">
-      <div class="a-card">
-        <label class="a-label" for="title">Title</label>
-        <input class="a-input" id="title" name="title" required />
+  <form data-form class="a-hide" style="display:grid;gap:16px;max-width:780px;margin-top:16px">
+    <div class="a-card">
+      <label class="a-label" for="title" data-i18n="blog.fTitle">Title</label>
+      <input class="a-input" id="title" name="title" required />
 
-        <label class="a-label" for="slug">Web address (slug)</label>
-        <input class="a-input" id="slug" name="slug" pattern="[a-z0-9-]+" required />
-        <small style="color:#8a95a1">Lowercase, words separated by hyphens. Lives at <code>/blog/&lt;slug&gt;</code>.</small>
+      <label class="a-label" for="slug" data-i18n="blog.fSlug">Web address (slug)</label>
+      <input class="a-input" id="slug" name="slug" pattern="[a-z0-9-]+" required />
+      <p class="a-hint" data-i18n="blog.fSlugHint">Lowercase, words separated by hyphens.</p>
 
-        <div style="display:flex;gap:14px;flex-wrap:wrap">
-          <div style="flex:1;min-width:140px">
-            <label class="a-label" for="locale">Language</label>
-            <select class="a-select" id="locale" name="locale">
-              <option value="en">English</option>
-              <option value="fr">Français</option>
-              <option value="es">Español</option>
-              <option value="it">Italiano</option>
-            </select>
-          </div>
-          <div style="flex:1;min-width:140px">
-            <label class="a-label" for="status">Status</label>
-            <select class="a-select" id="status" name="status">
-              <option value="draft">Draft</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="published">Published</option>
-            </select>
-          </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:4px">
+        <div style="flex:1;min-width:150px">
+          <label class="a-label" for="locale" data-i18n="blog.fLanguage">Language</label>
+          <select class="a-select" id="locale" name="locale">
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+            <option value="it">Italiano</option>
+          </select>
         </div>
-
-        <div data-when-wrap class="a-hide">
-          <label class="a-label" for="published_at">Publish date &amp; time</label>
-          <input class="a-input" id="published_at" name="published_at" type="datetime-local" />
+        <div style="flex:1;min-width:150px">
+          <label class="a-label" for="status" data-i18n="blog.fStatus">Status</label>
+          <select class="a-select" id="status" name="status">
+            <option value="draft" data-i18n="status.draft">Draft</option>
+            <option value="scheduled" data-i18n="status.scheduled">Scheduled</option>
+            <option value="published" data-i18n="status.published">Published</option>
+          </select>
         </div>
       </div>
 
-      <div class="a-card">
-        <label class="a-label">Cover image</label>
-        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-          <img data-cover-preview alt="" style="width:160px;height:100px;object-fit:cover;border-radius:8px;background:#eef1f4" />
-          <div>
-            <input type="file" data-cover-file accept="image/jpeg,image/png,image/webp,image/avif" />
-            <p style="color:#8a95a1;font-size:12px;margin:6px 0 0">JPG/PNG/WebP/AVIF, up to 5 MB. Compressed on upload.</p>
-          </div>
+      <div data-when-wrap class="a-hide">
+        <label class="a-label" for="published_at" data-i18n="blog.fWhen">Publish date &amp; time</label>
+        <input class="a-input" id="published_at" name="published_at" type="datetime-local" />
+      </div>
+    </div>
+
+    <div class="a-card">
+      <label class="a-label" data-i18n="blog.fCover">Cover image</label>
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        <img data-cover-preview alt="" style="width:168px;height:104px;object-fit:cover;border-radius:10px;background:#eef1f4;border:1px solid var(--a-border)" />
+        <div>
+          <input type="file" data-cover-file accept="image/jpeg,image/png,image/webp,image/avif" />
+          <p class="a-hint" data-i18n="blog.fCoverHint">JPG/PNG/WebP/AVIF, up to 5 MB. Compressed on upload.</p>
         </div>
-        <input type="hidden" name="cover_image" />
-        <label class="a-label" for="cover_alt">Cover image description (for accessibility &amp; SEO)</label>
-        <input class="a-input" id="cover_alt" name="cover_alt" />
       </div>
+      <input type="hidden" name="cover_image" />
+      <label class="a-label" for="cover_alt" data-i18n="blog.fCoverAlt">Cover image description (for accessibility &amp; SEO)</label>
+      <input class="a-input" id="cover_alt" name="cover_alt" />
+    </div>
 
-      <div class="a-card">
-        <label class="a-label" for="excerpt">Summary</label>
-        <textarea class="a-textarea" id="excerpt" name="excerpt" style="min-height:70px" placeholder="One or two sentences shown on the blog index and in search results."></textarea>
+    <div class="a-card">
+      <label class="a-label" for="excerpt" data-i18n="blog.fSummary">Summary</label>
+      <textarea class="a-textarea" id="excerpt" name="excerpt" style="min-height:70px" data-i18n-ph="blog.fSummaryPh" placeholder="One or two sentences shown on the blog index and in search results."></textarea>
 
-        <label class="a-label" for="body_md">Article (Markdown)</label>
-        <textarea class="a-textarea" id="body_md" name="body_md" style="min-height:340px;font-family:ui-monospace,Menlo,Consolas,monospace"></textarea>
-        <details style="margin-top:8px">
-          <summary style="cursor:pointer;color:#5b6774">Formatting help &amp; live preview</summary>
-          <p style="color:#8a95a1;font-size:12px"><code>## Heading</code> · <code>**bold**</code> · <code>*italic*</code> · <code>[text](https://…)</code> · <code>![alt](image-url)</code> · <code>&gt; quote</code> · <code>- list</code></p>
-          <div data-preview style="border:1px solid #e2e7ec;border-radius:8px;padding:14px;background:#fff"></div>
-        </details>
-      </div>
+      <label class="a-label" for="body_md" data-i18n="blog.fBody">Article (Markdown)</label>
+      <textarea class="a-textarea" id="body_md" name="body_md" style="min-height:360px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px"></textarea>
+      <details style="margin-top:10px">
+        <summary style="cursor:pointer;color:var(--a-muted)" data-i18n="blog.fFormatHelp">Formatting help &amp; live preview</summary>
+        <p class="a-hint"><code>## Heading</code> · <code>**bold**</code> · <code>*italic*</code> · <code>[text](https://…)</code> · <code>![alt](image-url)</code> · <code>&gt; quote</code> · <code>- list</code></p>
+        <div data-preview style="border:1px solid var(--a-border);border-radius:10px;padding:16px;background:#fff"></div>
+      </details>
+    </div>
 
-      <div class="a-card">
-        <label class="a-label" for="tags">Tags</label>
-        <input class="a-input" id="tags" name="tags" placeholder="disneyland, family travel, cdg" />
-        <small style="color:#8a95a1">Comma-separated.</small>
+    <div class="a-card">
+      <label class="a-label" for="tags" data-i18n="blog.fTags">Tags</label>
+      <input class="a-input" id="tags" name="tags" placeholder="disneyland, family travel, cdg" />
+      <p class="a-hint" data-i18n="blog.fTagsHint">Comma-separated.</p>
 
-        <label class="a-label" for="author_name">Author</label>
-        <input class="a-input" id="author_name" name="author_name" value="The Driver" />
+      <label class="a-label" for="author_name" data-i18n="blog.fAuthor">Author</label>
+      <input class="a-input" id="author_name" name="author_name" value="The Driver" />
 
-        <label class="a-label" for="seo_title">SEO title <span style="color:#8a95a1;font-weight:400">(optional — defaults to the title)</span></label>
-        <input class="a-input" id="seo_title" name="seo_title" maxlength="70" />
+      <label class="a-label" for="seo_title">
+        <span data-i18n="blog.fSeoTitle">SEO title</span>
+        <span class="a-hint" style="font-weight:400">— <span data-i18n="blog.fSeoDefault">defaults to the title</span></span>
+      </label>
+      <input class="a-input" id="seo_title" name="seo_title" maxlength="70" />
 
-        <label class="a-label" for="seo_description">SEO description <span style="color:#8a95a1;font-weight:400">(optional — defaults to the summary)</span></label>
-        <textarea class="a-textarea" id="seo_description" name="seo_description" maxlength="160" style="min-height:60px"></textarea>
-      </div>
+      <label class="a-label" for="seo_description">
+        <span data-i18n="blog.fSeoDesc">SEO description</span>
+        <span class="a-hint" style="font-weight:400">— <span data-i18n="blog.fSeoDescDefault">defaults to the summary</span></span>
+      </label>
+      <textarea class="a-textarea" id="seo_description" name="seo_description" maxlength="160" style="min-height:60px"></textarea>
+    </div>
 
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <button type="submit" class="a-btn a-btn-primary" data-save>Save</button>
-        <a class="a-btn" data-preview-link href="#" target="_blank" rel="noopener">Preview ↗</a>
-        <button type="button" class="a-btn a-btn-danger a-hide" data-delete>Delete</button>
-        <span data-dirty style="color:#a26a1c;font-size:13px"></span>
-      </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;bottom:0;background:var(--a-page);padding:10px 0;border-top:1px solid var(--a-border)">
+      <button type="submit" class="a-btn a-btn-primary" data-save data-i18n="common.save">Save</button>
+      <a class="a-btn" data-preview-link href="#" target="_blank" rel="noopener"><span data-i18n="common.preview">Preview</span> ↗</a>
+      <button type="button" class="a-btn a-btn-danger a-hide" data-delete data-i18n="common.delete">Delete</button>
+      <span data-dirty style="color:#a26a1c;font-size:13px"></span>
     </div>
   </form>
 
@@ -112,10 +120,11 @@ const isNew = id === 'new';
     const { paramId, isNew } = (window as any).__blogEditor as { paramId: string; isNew: boolean };
     const sb = getBrowserClient();
     const toast = (window as any).adminToast as (m: string, k?: string) => void;
+    const T = (k: string) => (window as any).adminT(k) as string;
 
     const form = document.querySelector<HTMLFormElement>('[data-form]')!;
     const loadErr = document.querySelector<HTMLElement>('[data-loaderr]')!;
-    const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
+    const $ = <E extends HTMLElement>(sel: string) => document.querySelector<E>(sel)!;
     const el = {
       title: $('#title') as HTMLInputElement,
       slug: $('#slug') as HTMLInputElement,
@@ -143,7 +152,7 @@ const isNew = id === 'new';
     let currentId: string | null = isNew ? null : paramId;
     let slugTouched = false;
     let dirty = false;
-    const markDirty = () => { dirty = true; el.dirty.textContent = 'Unsaved changes'; };
+    const markDirty = () => { dirty = true; el.dirty.textContent = T('blog.unsaved'); };
     form.addEventListener('input', markDirty);
     window.addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 
@@ -163,11 +172,9 @@ const isNew = id === 'new';
     el.body.addEventListener('input', renderPreview);
     el.slug.addEventListener('input', renderPreview);
 
-    // ---- image upload: compress then upload to blog-images ----
     async function compress(file: File): Promise<Blob> {
       const bmp = await createImageBitmap(file);
-      const maxW = 1600;
-      const scale = Math.min(1, maxW / bmp.width);
+      const scale = Math.min(1, 1600 / bmp.width);
       const c = document.createElement('canvas');
       c.width = Math.round(bmp.width * scale);
       c.height = Math.round(bmp.height * scale);
@@ -177,13 +184,13 @@ const isNew = id === 'new';
     el.coverFile.addEventListener('change', async () => {
       const file = el.coverFile.files?.[0];
       if (!file) return;
-      if (file.size > 5 * 1024 * 1024) { toast('Image is over 5 MB', 'err'); return; }
+      if (file.size > 5 * 1024 * 1024) { toast(T('toast.uploadError'), 'err'); return; }
       el.save.disabled = true;
       try {
         const blob = await compress(file);
         const path = `${el.locale.value}/${Date.now()}-${slugify(file.name.replace(/\.[^.]+$/, ''))}.webp`;
         const { error } = await sb.storage.from('blog-images').upload(path, blob, { contentType: 'image/webp', upsert: false });
-        if (error) { toast('Upload failed', 'err'); return; }
+        if (error) { toast(T('toast.uploadError'), 'err'); return; }
         const { data } = sb.storage.from('blog-images').getPublicUrl(path);
         el.coverHidden.value = data.publicUrl;
         el.coverPreview.src = data.publicUrl;
@@ -191,7 +198,6 @@ const isNew = id === 'new';
       } finally { el.save.disabled = false; }
     });
 
-    // ---- load existing ----
     function fillForm(p: any) {
       el.title.value = p.title ?? '';
       el.slug.value = p.slug ?? '';
@@ -222,7 +228,6 @@ const isNew = id === 'new';
     }
     window.addEventListener('admin:ready', boot);
 
-    // ---- save (explicit column map — never spread a select('*') row) ----
     function collect() {
       const status = el.status.value as 'draft' | 'scheduled' | 'published';
       let published_at: string | null = null;
@@ -238,7 +243,7 @@ const isNew = id === 'new';
         cover_alt: el.coverAlt.value.trim(),
         excerpt: el.excerpt.value.trim(),
         body_md: el.body.value,
-        tags: el.tags.value.split(',').map((t) => t.trim()).filter(Boolean),
+        tags: el.tags.value.split(',').map((x) => x.trim()).filter(Boolean),
         author_name: el.author.value.trim() || 'The Driver',
         seo_title: el.seoTitle.value.trim() || null,
         seo_description: el.seoDesc.value.trim() || null,
@@ -247,32 +252,32 @@ const isNew = id === 'new';
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!el.slug.value.match(/^[a-z0-9-]+$/)) { toast('Slug must be lowercase letters, numbers and hyphens', 'err'); return; }
+      if (!el.slug.value.match(/^[a-z0-9-]+$/)) { toast(T('blog.slugError'), 'err'); return; }
       el.save.disabled = true;
       const payload = collect();
       try {
         if (currentId) {
           const { error } = await sb.from('blog_posts').update(payload).eq('id', currentId);
-          if (error) { toast(error.code === '23505' ? 'That slug is already used for this language' : 'Save failed', 'err'); return; }
-          toast('Saved', 'ok');
+          if (error) { toast(error.code === '23505' ? T('blog.slugTaken') : T('toast.saveError'), 'err'); return; }
+          toast(T('toast.saved'), 'ok');
         } else {
           const { data, error } = await sb.from('blog_posts').insert(payload).select('id').single();
-          if (error || !data) { toast(error?.code === '23505' ? 'That slug is already used for this language' : 'Save failed', 'err'); return; }
+          if (error || !data) { toast(error?.code === '23505' ? T('blog.slugTaken') : T('toast.saveError'), 'err'); return; }
           currentId = data.id;
-          history.replaceState(null, '', `/admin/blog/${data.id}`);
+          history.replaceState(null, '', `/admin/blog/${data.id}/`);
           el.del.classList.remove('a-hide');
-          toast('Created', 'ok');
+          toast(T('toast.created'), 'ok');
         }
         dirty = false; el.dirty.textContent = '';
       } finally { el.save.disabled = false; }
     });
 
     el.del.addEventListener('click', async () => {
-      if (!currentId || !confirm('Delete this article? This cannot be undone.')) return;
+      if (!currentId || !confirm(T('blog.deleteConfirm'))) return;
       const { error } = await sb.from('blog_posts').delete().eq('id', currentId);
-      if (error) { toast('Delete failed', 'err'); return; }
+      if (error) { toast(T('toast.deleteError'), 'err'); return; }
       dirty = false;
-      location.href = '/admin/blog';
+      location.href = '/admin/blog/';
     });
   </script>
 </AdminShell>

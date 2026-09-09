@@ -1,8 +1,8 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import DisneylandPage from '../components/DisneylandPage.astro';
-import { t } from '../i18n';
-import { buildDisneylandSchema } from '../utils/schema.js';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import DisneylandPage from '../../components/DisneylandPage.astro';
+import { t } from '../../i18n';
+import { buildDisneylandSchema } from '../../utils/schema.js';
 
 const locale = 'fr' as const;
 const seo = t(locale).disneyland.seo;

@@ -4,8 +4,8 @@ import es from './es.json';
 import it from './it.json';
 import { HOURLY_RATE, ROUND_TRIP_DISCOUNT_PERCENT } from '../config/prices.js';
 
-export const LOCALES = ['fr', 'en', 'es', 'it'];
-export const DEFAULT_LOCALE = 'fr';
+export const LOCALES = ['en', 'fr', 'es', 'it'];
+export const DEFAULT_LOCALE = 'en';
 
 const STRINGS = { fr, en, es, it };
 

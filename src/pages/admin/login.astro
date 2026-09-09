@@ -8,57 +8,81 @@ export const prerender = false;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex,nofollow" />
-    <title>Sign in · The Driver admin</title>
+    <title>Sign in · The Driver</title>
     <link rel="icon" href="/favicon.svg" />
     <style>
+      :root {
+        --a-bg: #0e1a2b; --a-soft: #16243a; --a-line: #33475a;
+        --a-ink: #eef2f7; --a-dim: #93a4b8; --a-accent: #d69a4c;
+        --a-font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Arial, sans-serif;
+      }
       * { box-sizing: border-box; }
       body {
         margin: 0; min-height: 100dvh; display: grid; place-items: center;
-        background: #0f1b2d; color: #e8edf2;
-        font: 14px/1.55 "Segoe UI", system-ui, Arial, sans-serif; padding: 24px;
+        background: radial-gradient(120% 120% at 50% 0%, #16263c 0%, var(--a-bg) 60%);
+        color: var(--a-ink); font: 14px/1.55 var(--a-font); padding: 24px;
       }
       form {
-        width: 100%; max-width: 340px; background: #14202f;
-        border: 1px solid #24313f; border-radius: 14px; padding: 26px;
+        width: 100%; max-width: 344px; background: var(--a-soft);
+        border: 1px solid var(--a-line); border-radius: 16px; padding: 28px;
+        box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.5);
       }
-      .wm { font-weight: 700; letter-spacing: .14em; font-size: 13px; text-transform: uppercase; margin-bottom: 18px; }
-      .wm b { color: #c88a3b; }
+      .wm { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 22px; }
+      .wm .dot { width: 8px; height: 8px; border-radius: 999px; background: var(--a-accent); box-shadow: 0 0 0 4px rgba(214, 154, 76, 0.16); }
       label { display: block; font-weight: 600; margin: 14px 0 5px; font-size: 13px; }
       input {
-        width: 100%; padding: 10px 12px; border: 1px solid #33475a; border-radius: 8px;
-        background: #0f1b2d; color: #e8edf2; font: inherit;
+        width: 100%; padding: 11px 12px; border: 1px solid var(--a-line); border-radius: 10px;
+        background: #0e1a2b; color: var(--a-ink); font: inherit;
+        transition: border-color .14s, box-shadow .14s;
       }
+      input:focus { outline: none; border-color: var(--a-accent); box-shadow: 0 0 0 3px rgba(214, 154, 76, 0.18); }
       button {
-        width: 100%; margin-top: 20px; height: 42px; border: 0; border-radius: 8px;
-        background: #c88a3b; color: #fff; font: inherit; font-weight: 700; cursor: pointer;
+        width: 100%; margin-top: 22px; height: 44px; border: 0; border-radius: 10px;
+        background: var(--a-accent); color: #fff; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;
+        transition: background .14s;
       }
+      button:hover { background: #c1863a; }
       button:disabled { opacity: .6; cursor: default; }
       .msg { margin-top: 14px; font-size: 13px; min-height: 18px; }
       .msg.err { color: #ff9a94; }
-      a.reset { display: inline-block; margin-top: 14px; color: #9fb0c0; font-size: 13px; }
+      a.reset { display: inline-block; margin-top: 14px; color: var(--a-dim); font-size: 13px; text-decoration: none; }
+      a.reset:hover { color: var(--a-ink); }
     </style>
   </head>
   <body>
     <form data-login>
-      <div class="wm">THE&nbsp;<b>DRIVER</b> · admin</div>
-      <label for="email">Email</label>
+      <div class="wm"><span class="dot"></span>THE&nbsp;DRIVER</div>
+      <label for="email" data-i18n="login.email">Email</label>
       <input id="email" name="email" type="email" autocomplete="username" required />
-      <label for="password">Password</label>
+      <label for="password" data-i18n="login.password">Password</label>
       <input id="password" name="password" type="password" autocomplete="current-password" required />
-      <button type="submit" data-submit>Sign in</button>
+      <button type="submit" data-submit data-i18n="login.submit">Sign in</button>
       <p class="msg" data-msg></p>
-      <a class="reset" href="#" data-reset>Forgot password?</a>
+      <a class="reset" href="#" data-reset data-i18n="login.forgot">Forgot password?</a>
     </form>
 
     <script>
       import { getBrowserClient } from '../../lib/supabase';
+      import { ADMIN_STRINGS, type AdminLang } from '../../lib/adminI18n';
+
+      let lang: AdminLang = 'en';
+      try {
+        const s = localStorage.getItem('thedriver-admin-lang');
+        if (s && s in ADMIN_STRINGS) lang = s as AdminLang;
+      } catch {}
+      const T = (k: string) => ADMIN_STRINGS[lang][k] ?? ADMIN_STRINGS.en[k] ?? k;
+      document.documentElement.lang = lang;
+      document.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => {
+        const k = el.getAttribute('data-i18n'); if (k) el.textContent = T(k);
+      });
+      document.title = `${T('login.title')} · The Driver`;
+
       const sb = getBrowserClient();
       const form = document.querySelector<HTMLFormElement>('[data-login]')!;
       const msg = document.querySelector<HTMLElement>('[data-msg]')!;
       const btn = document.querySelector<HTMLButtonElement>('[data-submit]')!;
 
-      // already signed in? go straight in.
-      sb.auth.getSession().then(({ data }) => { if (data.session) location.href = '/admin'; });
+      sb.auth.getSession().then(({ data }) => { if (data.session) location.href = '/admin/'; });
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -70,17 +94,17 @@ export const prerender = false;
           password: String(fd.get('password')),
         });
         btn.disabled = false;
-        if (error) { msg.textContent = 'Wrong email or password.'; msg.className = 'msg err'; return; }
-        location.href = '/admin';
+        if (error) { msg.textContent = T('login.wrong'); msg.className = 'msg err'; return; }
+        location.href = '/admin/';
       });
 
       document.querySelector('[data-reset]')?.addEventListener('click', async (e) => {
         e.preventDefault();
         const email = (document.querySelector<HTMLInputElement>('#email')!).value.trim();
-        if (!email) { msg.textContent = 'Enter your email first, then click again.'; msg.className = 'msg err'; return; }
-        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/admin/login' });
+        if (!email) { msg.textContent = T('login.enterEmail'); msg.className = 'msg err'; return; }
+        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/admin/login/' });
         msg.className = 'msg';
-        msg.textContent = error ? 'Could not send the reset email.' : 'Check your inbox for a reset link.';
+        msg.textContent = error ? T('login.resetError') : T('login.resetSent');
       });
     </script>
   </body>
