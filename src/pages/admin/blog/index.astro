@@ -1,0 +1,76 @@
+---
+import AdminShell from '../_AdminShell.astro';
+export const prerender = false;
+---
+
+<AdminShell title="Blog" section="blog">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <div>
+      <h1 class="a-h1">Blog</h1>
+      <p class="a-sub">Write, schedule and publish articles.</p>
+    </div>
+    <a class="a-btn a-btn-primary" href="/admin/blog/new">+ New article</a>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <select class="a-select" data-filter-locale style="max-width:160px">
+      <option value="">All languages</option>
+      <option value="en">English</option>
+      <option value="fr">Français</option>
+      <option value="es">Español</option>
+      <option value="it">Italiano</option>
+    </select>
+    <select class="a-select" data-filter-status style="max-width:160px">
+      <option value="">All statuses</option>
+      <option value="published">Published</option>
+      <option value="scheduled">Scheduled</option>
+      <option value="draft">Draft</option>
+    </select>
+  </div>
+
+  <table class="a-table">
+    <thead>
+      <tr><th>Title</th><th style="width:70px">Lang</th><th style="width:110px">Status</th><th style="width:130px">Date</th><th style="width:60px"></th></tr>
+    </thead>
+    <tbody data-rows>
+      <tr><td colspan="5" style="color:#5b6774">Loading…</td></tr>
+    </tbody>
+  </table>
+
+  <script>
+    import { getBrowserClient } from '../../../lib/supabase';
+    import { formatPostDate } from '../../../lib/blog';
+    const sb = getBrowserClient();
+    const rows = document.querySelector<HTMLElement>('[data-rows]')!;
+    const fLocale = document.querySelector<HTMLSelectElement>('[data-filter-locale]')!;
+    const fStatus = document.querySelector<HTMLSelectElement>('[data-filter-status]')!;
+    const toast = (window as any).adminToast as (m: string, k?: string) => void;
+
+    function esc(s: string) { return (s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!)); }
+
+    async function load() {
+      rows.innerHTML = '<tr><td colspan="5" style="color:#5b6774">Loading…</td></tr>';
+      let q = sb.from('blog_posts')
+        .select('id,slug,locale,status,title,published_at,updated_at')
+        .order('updated_at', { ascending: false })
+        .limit(200);
+      if (fLocale.value) q = q.eq('locale', fLocale.value as 'en' | 'fr' | 'es' | 'it');
+      if (fStatus.value) q = q.eq('status', fStatus.value as 'draft' | 'scheduled' | 'published');
+      const { data, error } = await q;
+      if (error) { rows.innerHTML = '<tr><td colspan="5" style="color:#d9544d">Could not load articles.</td></tr>'; return; }
+      if (!data || !data.length) { rows.innerHTML = '<tr><td colspan="5" style="color:#5b6774">No articles yet.</td></tr>'; return; }
+      rows.innerHTML = data.map((p) => `
+        <tr>
+          <td><a href="/admin/blog/${p.id}" style="font-weight:600;color:#14324f">${esc(p.title) || '(untitled)'}</a><br><span style="color:#8a95a1;font-size:12px">/${esc(p.slug)}</span></td>
+          <td>${p.locale.toUpperCase()}</td>
+          <td><span class="a-badge ${p.status}">${p.status}</span></td>
+          <td>${p.status === 'published' ? formatPostDate(p.published_at, p.locale as any) : formatPostDate(p.updated_at, p.locale as any)}</td>
+          <td><a href="/blog/${esc(p.slug)}" target="_blank" rel="noopener" title="Preview">↗</a></td>
+        </tr>`).join('');
+    }
+
+    fLocale.addEventListener('change', load);
+    fStatus.addEventListener('change', load);
+    window.addEventListener('admin:ready', load);
+  </script>
+</AdminShell>

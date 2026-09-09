@@ -18,6 +18,7 @@
   "flag": "🇬🇧",
   "nav": {
     "home": "Home",
+    "disneyland": "Disneyland Paris",
     "fleet": "Our fleet",
     "routes": "Routes & pricing",
     "about": "About",
@@ -376,6 +377,18 @@
       "title": "Book your transfer directly.",
       "sub": "Click to pre-fill your booking.",
       "items": [
+        {
+          "label": "Disneyland Paris transfer",
+          "routeKey": "disneyland"
+        },
+        {
+          "label": "Paris airport transfer",
+          "routeKey": "parisTransfer"
+        },
+        {
+          "label": "Paris chauffeur hire by the hour",
+          "routeKey": "parisChauffeur"
+        },
         {
           "label": "Family chauffeur Paris",
           "routeKey": "childSeats"
@@ -1125,5 +1138,356 @@
       }
     },
     "availability": "Available 24/7"
+  },
+  "disneyland": {
+    "seo": {
+      "title": "Disneyland Paris Private Transfer — CDG, Orly, Beauvais & Paris | The Driver",
+      "description": "Private car and van transfers to Disneyland Paris. Fixed fares from Charles de Gaulle (CDG), Orly, Beauvais and central Paris. Free child seats, flight tracking and an English-speaking chauffeur. Book in 2 minutes."
+    },
+    "hero": {
+      "eyebrow": "DISNEYLAND PARIS TRANSFERS",
+      "title": "Private transfers to Disneyland Paris.",
+      "sub": "Door-to-door private car and van transfers from Charles de Gaulle (CDG), Orly, Beauvais and central Paris. Fixed price, free child seats, and an English-speaking chauffeur waiting when you land.",
+      "pills": [
+        "Fixed fares",
+        "Free child & booster seats",
+        "Flight tracking",
+        "English-speaking driver"
+      ],
+      "primaryCta": "Get my price",
+      "secondaryCta": "WhatsApp us",
+      "imageAlt": "Sleeping Beauty Castle at Disneyland Paris"
+    },
+    "routes": {
+      "eyebrow": "POPULAR ROUTES",
+      "heading": "Every way in to Disneyland Paris.",
+      "sub": "One flat fare per vehicle — tolls, taxes and luggage included. Prices below are the starting fare for a private car (1–3 passengers); the van fare covers up to 8.",
+      "fromLabel": "Private car from",
+      "vanLabel": "Van (up to 8) from",
+      "timeLabel": "Journey",
+      "distanceLabel": "Distance",
+      "bookCta": "Book this transfer",
+      "items": [
+        {
+          "from": "CDG",
+          "to": "Disneyland",
+          "name": "Charles de Gaulle (CDG) to Disneyland Paris",
+          "time": "45–55 min",
+          "distance": "46 km",
+          "blurb": "Our most-booked route. Your chauffeur meets you in the arrivals hall with a name sign and tracks your flight, so a delay costs you nothing."
+        },
+        {
+          "from": "Orly",
+          "to": "Disneyland",
+          "name": "Orly Airport (ORY) to Disneyland Paris",
+          "time": "45–60 min",
+          "distance": "45 km",
+          "blurb": "A direct ride around the south and east of Paris — no RER B connection at Châtelet with suitcases and a pushchair."
+        },
+        {
+          "from": "Beauvais",
+          "to": "Disneyland",
+          "name": "Beauvais Airport (BVA) to Disneyland Paris",
+          "time": "1 h 15 – 1 h 40",
+          "distance": "110 km",
+          "blurb": "Beauvais has almost no direct public transport to the parks. A private transfer turns a three-leg trip into one quiet ride."
+        },
+        {
+          "from": "Paris",
+          "to": "Disneyland",
+          "name": "Central Paris to Disneyland Paris",
+          "time": "40–55 min",
+          "distance": "40 km",
+          "blurb": "Pick-up at any Paris hotel or apartment. Ideal for a park day or a Disney-hotel check-in without the RER A crowds."
+        }
+      ]
+    },
+    "families": {
+      "eyebrow": "BUILT FOR FAMILIES",
+      "heading": "The easy way to arrive with children.",
+      "sub": "Most of our Disneyland passengers travel with kids. Everything below is included in the fare — no add-ons.",
+      "items": [
+        {
+          "icon": "baby",
+          "title": "Free child, baby & booster seats",
+          "body": "Infant carrier (0–1 yr), baby seat (1–3 yr) and booster (4–10 yr), fitted before you arrive. Tell us each child's age when you book — no charge, ever."
+        },
+        {
+          "icon": "plane",
+          "title": "Meet & greet, flight tracked",
+          "body": "Your driver waits in the arrivals hall with a sign bearing your name and follows your flight in real time. Up to 60 minutes' free wait after landing."
+        },
+        {
+          "icon": "briefcase",
+          "title": "Room for cases and pushchairs",
+          "body": "Choose the van and there's a separate luggage area for suitcases, a folded pram, and the Disney shopping on the way home."
+        },
+        {
+          "icon": "map-pin",
+          "title": "One ride, door to door",
+          "body": "No RER A, no RER B, no changes, no stairs. Straight from the terminal or your Paris hotel to the drop-off at Disneyland Paris."
+        }
+      ]
+    },
+    "vehicles": {
+      "eyebrow": "CHOOSE YOUR VEHICLE",
+      "heading": "A private car or a family van.",
+      "sub": "Pick by group size — the right vehicle is assigned automatically when you book.",
+      "priceFromLabel": "CDG → Disneyland from",
+      "car": {
+        "label": "PRIVATE CAR",
+        "model": "Tesla Model Y",
+        "capacity": "1–3 passengers · 3 cases",
+        "body": "Ideal for a couple or a small family. Quiet, all-electric, with child seats on request."
+      },
+      "van": {
+        "label": "FAMILY VAN",
+        "model": "Mercedes Vito / Renault Trafic",
+        "capacity": "4–8 passengers · up to 8 cases",
+        "body": "The right call with a pushchair, several children or lots of luggage. Individual seats, separate boot."
+      },
+      "note": "More than 8 travelling together? We combine vehicles at the same per-vehicle fare — just tell us your group size."
+    },
+    "how": {
+      "eyebrow": "HOW IT WORKS",
+      "heading": "Booked in 2 minutes.",
+      "steps": [
+        {
+          "title": "Get your price",
+          "body": "Pick your route and passenger count. The fixed fare shows instantly — no account needed."
+        },
+        {
+          "title": "Send your details",
+          "body": "Flight or train number, date, time, and the children's ages for the seats. That's it."
+        },
+        {
+          "title": "Get confirmation",
+          "body": "Within the hour by email and WhatsApp, with your driver's name, photo and number."
+        },
+        {
+          "title": "Arrive and enjoy",
+          "body": "Meet your driver, get in, and pay by cash or card on the day. Off to the parks."
+        }
+      ]
+    },
+    "faq": {
+      "eyebrow": "DISNEYLAND TRANSFER FAQ",
+      "heading": "Questions families ask us.",
+      "items": [
+        {
+          "q": "How much is a private transfer from CDG to Disneyland Paris?",
+          "a": "A private car for 1–3 passengers starts at €{priceCarCdg}, and a van for up to 8 passengers at €{priceVanCdg}, one way. It is a fixed price per vehicle — tolls, taxes and luggage included, nothing to add on arrival."
+        },
+        {
+          "q": "Where exactly does the driver drop us at Disneyland Paris?",
+          "a": "Straight to the entrance of your Disney hotel, or to the coach and taxi drop-off beside the park entrance and Disney Village. Tell us your hotel when you book and the driver takes you to the door."
+        },
+        {
+          "q": "How long does the drive from CDG to Disneyland Paris take?",
+          "a": "Usually 45 to 55 minutes for the 46 km via the A104. Allow 45–60 minutes from Orly, and around 1 h 15 to 1 h 40 from Beauvais."
+        },
+        {
+          "q": "Do you provide child seats and booster seats?",
+          "a": "Yes — infant carriers, baby seats and boosters, all free of charge. Give us each child's age when booking and the correct seat is fitted before pick-up."
+        },
+        {
+          "q": "What happens if our flight is delayed?",
+          "a": "Your driver tracks the flight and adjusts the pick-up time. Waiting is free for up to 60 minutes after you land, and there is no surcharge for a delayed or early arrival."
+        },
+        {
+          "q": "Can you collect us from a Disney hotel for the return trip?",
+          "a": "Yes. We pick you up from your hotel lobby at Disneyland Paris for the trip back to CDG, Orly, Beauvais or central Paris. Book the return at the same time to get the round-trip discount."
+        },
+        {
+          "q": "Is the price fixed, or is it per person?",
+          "a": "It is a fixed price per vehicle, agreed when you book — never per person and never metered. The fare you see is the fare you pay."
+        },
+        {
+          "q": "How far in advance should we book?",
+          "a": "24 hours or more is ideal, especially during school holidays. Last-minute requests are accepted subject to availability — message us on WhatsApp for the fastest answer."
+        },
+        {
+          "q": "How do we pay?",
+          "a": "Cash or card to the driver on arrival. No prepayment is required; an optional online deposit is available if you want to lock in the round-trip discount."
+        }
+      ]
+    },
+    "finalCta": {
+      "heading": "Your ride to Disneyland Paris is ready.",
+      "sub": "Fixed fare, free child seats, English-speaking driver. Get your price in 10 seconds.",
+      "primary": "Get my price",
+      "whatsapp": "WhatsApp",
+      "footnote": "Available 24/7 · Reply within 1 hour · Fixed price guaranteed"
+    }
+  },
+  "parisTransfer": {
+    "seo": {
+      "title": "Paris Airport Transfer — Private Car & Van from CDG, Orly, Beauvais | The Driver",
+      "description": "Private airport transfers in Paris. Fixed fares between Charles de Gaulle (CDG), Orly, Beauvais and your Paris hotel. Meet & greet, flight tracking, free child seats, English-speaking driver."
+    },
+    "hero": {
+      "eyebrow": "PARIS AIRPORT TRANSFERS",
+      "title": "Private airport transfers in Paris.",
+      "sub": "A fixed-price private car or van between Paris and every airport — Charles de Gaulle, Orly and Beauvais — plus the main train stations. Your driver meets you on arrival, tracks your flight, and takes you straight to the door.",
+      "pills": ["Fixed fares", "Meet & greet included", "Flight tracking", "Free child seats"],
+      "primaryCta": "Get my price",
+      "secondaryCta": "WhatsApp us"
+    },
+    "routes": {
+      "eyebrow": "POPULAR ROUTES",
+      "heading": "Paris airport transfers, both directions.",
+      "sub": "One flat fare per vehicle — tolls, taxes and luggage included. Prices below are the starting fare for a private car (1–3 passengers); the van fare covers up to 8.",
+      "fromLabel": "Private car from",
+      "vanLabel": "Van (up to 8) from",
+      "timeLabel": "Journey",
+      "distanceLabel": "Distance",
+      "bookCta": "Book this transfer",
+      "items": [
+        { "from": "CDG", "to": "Paris", "name": "Charles de Gaulle (CDG) to central Paris", "time": "45–70 min", "distance": "27 km", "blurb": "Meet & greet in the arrivals hall with a name sign. We track your flight, so a late landing costs you nothing." },
+        { "from": "Orly", "to": "Paris", "name": "Orly Airport (ORY) to central Paris", "time": "30–50 min", "distance": "18 km", "blurb": "The quickest airport run into the city. Straight to your hotel — no Orlyval, no RER B change." },
+        { "from": "Beauvais", "to": "Paris", "name": "Beauvais Airport (BVA) to central Paris", "time": "1 h 15 – 1 h 45", "distance": "85 km", "blurb": "Skip the shuttle bus to Porte Maillot. A private car takes you door to door for a fixed fare." },
+        { "from": "Paris", "to": "CDG", "name": "Central Paris to Charles de Gaulle (CDG)", "time": "45–70 min", "distance": "27 km", "blurb": "Pick-up at your hotel or apartment at the time you choose, with a buffer built in for check-in." },
+        { "from": "CDG", "to": "Orly", "name": "Between the airports — CDG to Orly", "time": "50–80 min", "distance": "50 km", "blurb": "A tight connection between two flights? We handle the airport-to-airport transfer with your bags." }
+      ]
+    },
+    "included": {
+      "eyebrow": "IN EVERY TRANSFER",
+      "heading": "The fare is the fare.",
+      "sub": "No metering, no airport surcharge, no surprise at the end of the ride.",
+      "items": [
+        { "icon": "lock", "title": "Fixed price, agreed upfront", "body": "Confirmed when you book. Tolls, taxes and luggage are already in it — nothing to add on arrival." },
+        { "icon": "user-check", "title": "Meet & greet in arrivals", "body": "Your driver waits past customs with a sign bearing your name, and sends their photo and number 24h before." },
+        { "icon": "clock", "title": "Flight tracked, waiting free", "body": "We follow your flight in real time. Up to 60 minutes' free wait after landing, 30 minutes for train stations." },
+        { "icon": "baby", "title": "Free child & booster seats", "body": "Infant carrier, baby seat or booster, fitted before pick-up. Just give us the ages when you book." }
+      ]
+    },
+    "vehicles": {
+      "eyebrow": "CHOOSE YOUR VEHICLE",
+      "heading": "A private car or a family van.",
+      "sub": "Pick by group size — the right vehicle is assigned automatically when you book.",
+      "car": { "label": "PRIVATE CAR", "model": "Tesla Model Y", "capacity": "1–3 passengers · 3 cases", "body": "Ideal for a couple, a solo traveller or a business trip. Quiet, all-electric." },
+      "van": { "label": "FAMILY VAN", "model": "Mercedes Vito / Renault Trafic", "capacity": "4–8 passengers · up to 8 cases", "body": "For families, groups or a lot of luggage. Individual seats, separate boot." },
+      "note": "More than 8 travelling together? We combine vehicles at the same per-vehicle fare."
+    },
+    "how": {
+      "eyebrow": "HOW IT WORKS",
+      "heading": "Booked in 2 minutes.",
+      "steps": [
+        { "title": "Get your price", "body": "Pick your route and passenger count. The fixed fare shows instantly — no account needed." },
+        { "title": "Send your details", "body": "Flight or train number, date, time, pick-up address. That's it." },
+        { "title": "Get confirmation", "body": "Within the hour by email and WhatsApp, with your driver's name, photo and number." },
+        { "title": "Meet and go", "body": "Find your driver, get in, and pay by cash or card on the day." }
+      ]
+    },
+    "crosslinks": {
+      "disneyland": "Going to the parks? See our Disneyland Paris transfers",
+      "chauffeur": "Staying a while? Hire a chauffeur by the hour"
+    },
+    "faq": {
+      "eyebrow": "PARIS TRANSFER FAQ",
+      "heading": "Questions travellers ask us.",
+      "items": [
+        { "q": "How much is a taxi from CDG to central Paris?", "a": "Our private transfer from Charles de Gaulle to central Paris is a fixed €{priceCarCdg} for a car (1–3 passengers) and €{priceVanCdg} for a van (up to 8), one way. It's agreed when you book — tolls and taxes included, not metered." },
+        { "q": "Where does the driver meet me at the airport?", "a": "In the arrivals hall, past customs and baggage reclaim, holding a sign with your name. You get the driver's photo and phone number 24 hours before the trip." },
+        { "q": "What if my flight is delayed?", "a": "We track the flight and adjust. Waiting is free for up to 60 minutes after you land, with no surcharge for a delayed or early arrival." },
+        { "q": "How long does the transfer take?", "a": "Charles de Gaulle to central Paris is usually 45–70 minutes depending on traffic, Orly 30–50 minutes, and Beauvais 1 h 15 to 1 h 45." },
+        { "q": "Is the price per person or per vehicle?", "a": "Per vehicle — the fare covers everyone in the car, up to its capacity. Never per person, never metered." },
+        { "q": "Can you do very early or late-night pick-ups?", "a": "Yes. The service runs 24/7 with the same flat pricing — no night or weekend surcharge." },
+        { "q": "How do I pay?", "a": "Cash or card to the driver on arrival. No prepayment is required; an optional online deposit is available for the round-trip discount." },
+        { "q": "How far ahead should I book?", "a": "24 hours or more is ideal. Last-minute requests are taken subject to availability — WhatsApp is the fastest way to reach us." }
+      ]
+    },
+    "finalCta": {
+      "heading": "Your Paris transfer, sorted.",
+      "sub": "Fixed fare, meet & greet, English-speaking driver. Get your price in 10 seconds.",
+      "primary": "Get my price",
+      "whatsapp": "WhatsApp",
+      "footnote": "Available 24/7 · Reply within 1 hour · Fixed price guaranteed"
+    }
+  },
+  "parisChauffeur": {
+    "seo": {
+      "title": "Private Chauffeur Hire in Paris — By the Hour, Day Tours & Sightseeing | The Driver",
+      "description": "Hire a private chauffeur in Paris by the hour from €{hourlyRate}/hour. City sightseeing, Versailles and Champagne day trips, shopping runs. English-speaking driver, fixed hourly rate, 3-hour minimum."
+    },
+    "hero": {
+      "eyebrow": "PRIVATE CHAUFFEUR · BY THE HOUR",
+      "title": "A private chauffeur in Paris, for as long as you need.",
+      "sub": "Keep the same car and driver for a few hours or a full day. Sightseeing, shopping, dinners, a day trip to Versailles or Champagne — you set the route, we drive and wait.",
+      "pills": ["From €{hourlyRate} / hour", "3-hour minimum", "English-speaking driver", "Anywhere in Île-de-France"],
+      "primaryCta": "Check availability",
+      "secondaryCta": "Plan it on WhatsApp",
+      "whatsappMessage": "Hi, I'd like to hire a chauffeur by the hour in Paris. Here's roughly what I have in mind:"
+    },
+    "rate": {
+      "eyebrow": "THE RATE",
+      "heading": "One hourly rate, everything in.",
+      "sub": "Fuel, tolls within Île-de-France, the driver's waiting time and a child seat if you need one — all included in the hourly rate. Longer day trips outside the region are quoted as a flat price.",
+      "priceLine": "€{hourlyRate} / hour",
+      "minimum": "3-hour minimum booking",
+      "bullets": ["Same car and driver for the whole booking", "The driver waits while you visit, shop or eat", "Change the plan as you go"]
+    },
+    "itineraries": {
+      "eyebrow": "POPULAR PLANS",
+      "heading": "A few ways people use it.",
+      "sub": "Starting points, not fixed packages — tell us what you want to see and we build the day around it.",
+      "items": [
+        { "duration": "3–4 hours", "title": "Paris highlights by car", "body": "Eiffel Tower, Trocadéro, Champs-Élysées, Louvre, Notre-Dame, Montmartre — the icons, with photo stops, at your pace." },
+        { "duration": "Half day", "title": "Shopping run", "body": "La Vallée Village outlets, the Champs-Élysées or Le Marais. The driver keeps the bags and the car so you carry nothing." },
+        { "duration": "Full day", "title": "Versailles & Giverny", "body": "The Palace and gardens of Versailles, and Monet's house and gardens at Giverny, without the coach-tour timetable." },
+        { "duration": "Full day", "title": "Champagne day trip", "body": "Reims and Épernay — the great Champagne houses and a village grower, about 1 h 30 each way. Quoted as a flat price." }
+      ]
+    },
+    "included": {
+      "eyebrow": "WHAT YOU GET",
+      "heading": "A driver for the day, not a taxi meter.",
+      "items": [
+        { "icon": "user-check", "title": "One dedicated driver", "body": "The same English-speaking chauffeur for the whole booking. They learn the plan and adapt to it." },
+        { "icon": "clock", "title": "Wait-and-drive", "body": "The car stays with you. Stop for lunch, a museum or a shop and the driver is there when you come out." },
+        { "icon": "map-pin", "title": "Your route, flexible", "body": "Add a stop, skip one, change the order. The plan is yours to move around during the day." },
+        { "icon": "baby", "title": "Family-ready", "body": "Free child and booster seats, room for pushchairs and shopping in the van." }
+      ]
+    },
+    "vehicles": {
+      "eyebrow": "CHOOSE YOUR VEHICLE",
+      "heading": "A private car or a family van.",
+      "sub": "Same hourly rate for both — pick by how many of you there are.",
+      "car": { "label": "PRIVATE CAR", "model": "Tesla Model Y", "capacity": "1–3 passengers", "body": "Ideal for a couple or a small family exploring the city." },
+      "van": { "label": "FAMILY VAN", "model": "Mercedes Vito / Renault Trafic", "capacity": "4–8 passengers", "body": "For a family or a group who want to stay together all day." },
+      "note": "Bigger group? We can add a second vehicle with its own driver."
+    },
+    "how": {
+      "eyebrow": "HOW IT WORKS",
+      "heading": "Set it up in a message.",
+      "steps": [
+        { "title": "Tell us the day", "body": "Date, start time, how many hours, roughly what you'd like to see or do." },
+        { "title": "Get a quote", "body": "A fixed price for the booking — the hourly rate, or a flat price for a long day trip." },
+        { "title": "Confirm", "body": "By email and WhatsApp, with your driver's name, photo and number." },
+        { "title": "Enjoy the day", "body": "Your driver picks you up and the day is yours. Pay by cash or card at the end." }
+      ]
+    },
+    "crosslinks": {
+      "transfer": "Just need an airport run? See Paris airport transfers",
+      "disneyland": "Heading to the parks? See Disneyland Paris transfers"
+    },
+    "faq": {
+      "eyebrow": "CHAUFFEUR HIRE FAQ",
+      "heading": "Questions before you book.",
+      "items": [
+        { "q": "How much does it cost to hire a chauffeur by the hour in Paris?", "a": "€{hourlyRate} per hour, with a 3-hour minimum. Fuel, tolls within Île-de-France and the driver's waiting time are included. Day trips outside the region (Champagne, the Loire, Normandy) are quoted as a flat price." },
+        { "q": "Is there a minimum booking?", "a": "Yes, 3 hours. Beyond that you book by the hour, or as a half-day or full day at the same rate." },
+        { "q": "Can the driver act as a tour guide?", "a": "Your driver knows Paris well and will share what they know and suggest stops, but they are a chauffeur, not a licensed guide. We can arrange a licensed guide to join you on request." },
+        { "q": "Can we change the plan during the day?", "a": "Yes. Add or drop a stop, change the order, extend the booking if the driver's schedule allows. It's your day." },
+        { "q": "Do day trips outside Paris cost extra?", "a": "Long trips (Champagne, Giverny, the Loire, Mont-Saint-Michel) are priced as a flat fare based on distance and hours rather than the hourly rate. You get the price before you confirm." },
+        { "q": "How do we pay?", "a": "Cash or card to the driver at the end of the booking. No prepayment is required for a standard hourly booking." }
+      ]
+    },
+    "finalCta": {
+      "heading": "Plan your day with a private driver.",
+      "sub": "From €{hourlyRate}/hour, 3-hour minimum. Tell us the day and we'll send a fixed price.",
+      "primary": "Check availability",
+      "whatsapp": "WhatsApp",
+      "footnote": "Available 24/7 · Reply within 1 hour · Fixed price before you confirm"
+    }
   }
 }

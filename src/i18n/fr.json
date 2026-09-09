@@ -18,6 +18,7 @@
   },
   "nav": {
     "home": "Accueil",
+    "disneyland": "Disneyland Paris",
     "fleet": "Notre flotte",
     "routes": "Trajets & tarifs",
     "about": "À propos",
@@ -376,6 +377,18 @@
       "title": "Réservez votre trajet directement.",
       "sub": "Cliquez pour pré-remplir votre demande.",
       "items": [
+        {
+          "label": "Transfert Disneyland Paris",
+          "routeKey": "disneyland"
+        },
+        {
+          "label": "Transfert aéroport Paris",
+          "routeKey": "parisTransfer"
+        },
+        {
+          "label": "Chauffeur privé Paris à l'heure",
+          "routeKey": "parisChauffeur"
+        },
         {
           "label": "Taxi siège bébé Paris",
           "routeKey": "childSeats"
@@ -1125,5 +1138,356 @@
       }
     },
     "availability": "Disponible 24h/24 · 7j/7"
+  },
+  "disneyland": {
+    "seo": {
+      "title": "Transfert privé Disneyland Paris — CDG, Orly, Beauvais & Paris | The Driver",
+      "description": "Transferts privés en voiture et en van vers Disneyland Paris. Tarifs fixes depuis Roissy-Charles de Gaulle (CDG), Orly, Beauvais et Paris centre. Sièges enfant offerts, suivi des vols, chauffeur anglophone. Réservation en 2 minutes."
+    },
+    "hero": {
+      "eyebrow": "TRANSFERTS DISNEYLAND PARIS",
+      "title": "Transferts privés vers Disneyland Paris.",
+      "sub": "Transferts privés porte-à-porte, en voiture ou en van, depuis Roissy-Charles de Gaulle (CDG), Orly, Beauvais et Paris centre. Prix fixe, sièges enfant offerts et un chauffeur anglophone qui vous attend à l'arrivée.",
+      "pills": [
+        "Tarifs fixes",
+        "Sièges enfant & réhausseurs offerts",
+        "Suivi des vols",
+        "Chauffeur anglophone"
+      ],
+      "primaryCta": "Obtenir mon prix",
+      "secondaryCta": "Nous écrire sur WhatsApp",
+      "imageAlt": "Le Château de la Belle au Bois Dormant à Disneyland Paris"
+    },
+    "routes": {
+      "eyebrow": "TRAJETS POPULAIRES",
+      "heading": "Tous les accès à Disneyland Paris.",
+      "sub": "Un tarif fixe par véhicule — péages, taxes et bagages inclus. Les prix ci-dessous correspondent au tarif de départ pour une voiture privée (1 à 3 passagers) ; le tarif van couvre jusqu'à 8 personnes.",
+      "fromLabel": "Voiture privée dès",
+      "vanLabel": "Van (jusqu'à 8) dès",
+      "timeLabel": "Trajet",
+      "distanceLabel": "Distance",
+      "bookCta": "Réserver ce transfert",
+      "items": [
+        {
+          "from": "CDG",
+          "to": "Disneyland",
+          "name": "Roissy-Charles de Gaulle (CDG) vers Disneyland Paris",
+          "time": "45–55 min",
+          "distance": "46 km",
+          "blurb": "Notre trajet le plus réservé. Votre chauffeur vous accueille dans le hall d'arrivée avec une pancarte à votre nom et suit votre vol : un retard ne vous coûte rien."
+        },
+        {
+          "from": "Orly",
+          "to": "Disneyland",
+          "name": "Aéroport d'Orly (ORY) vers Disneyland Paris",
+          "time": "45–60 min",
+          "distance": "45 km",
+          "blurb": "Un trajet direct par le sud et l'est de Paris — sans changement RER B à Châtelet avec les valises et la poussette."
+        },
+        {
+          "from": "Beauvais",
+          "to": "Disneyland",
+          "name": "Aéroport de Beauvais (BVA) vers Disneyland Paris",
+          "time": "1 h 15 – 1 h 40",
+          "distance": "110 km",
+          "blurb": "Beauvais n'a quasiment aucun transport direct vers les parcs. Un transfert privé remplace un trajet en trois étapes par un seul voyage tranquille."
+        },
+        {
+          "from": "Paris",
+          "to": "Disneyland",
+          "name": "Paris centre vers Disneyland Paris",
+          "time": "40–55 min",
+          "distance": "40 km",
+          "blurb": "Prise en charge à n'importe quel hôtel ou appartement de Paris. Idéal pour une journée au parc ou un check-in à l'hôtel Disney sans la foule du RER A."
+        }
+      ]
+    },
+    "families": {
+      "eyebrow": "PENSÉ POUR LES FAMILLES",
+      "heading": "Arriver avec des enfants, en toute simplicité.",
+      "sub": "La plupart de nos passagers vers Disneyland voyagent avec des enfants. Tout ce qui suit est compris dans le tarif — sans supplément.",
+      "items": [
+        {
+          "icon": "baby",
+          "title": "Sièges bébé & réhausseurs offerts",
+          "body": "Coque (0–1 an), siège bébé (1–3 ans) et réhausseur (4–10 ans), installés avant votre arrivée. Indiquez l'âge de chaque enfant à la réservation — c'est toujours gratuit."
+        },
+        {
+          "icon": "plane",
+          "title": "Accueil personnalisé, vol suivi",
+          "body": "Votre chauffeur vous attend dans le hall d'arrivée avec une pancarte à votre nom et suit votre vol en temps réel. Jusqu'à 60 minutes d'attente offertes après l'atterrissage."
+        },
+        {
+          "icon": "briefcase",
+          "title": "De la place pour valises et poussettes",
+          "body": "Choisissez le van et profitez d'un coffre séparé pour les valises, une poussette pliée et les achats Disney au retour."
+        },
+        {
+          "icon": "map-pin",
+          "title": "Un seul trajet, de porte à porte",
+          "body": "Ni RER A, ni RER B, aucun changement, aucun escalier. Directement du terminal ou de votre hôtel parisien jusqu'à la dépose à Disneyland Paris."
+        }
+      ]
+    },
+    "vehicles": {
+      "eyebrow": "CHOISISSEZ VOTRE VÉHICULE",
+      "heading": "Une voiture privée ou un van familial.",
+      "sub": "Choisissez selon la taille du groupe — le bon véhicule est attribué automatiquement à la réservation.",
+      "priceFromLabel": "CDG → Disneyland dès",
+      "car": {
+        "label": "VOITURE PRIVÉE",
+        "model": "Tesla Model Y",
+        "capacity": "1 à 3 passagers · 3 valises",
+        "body": "Idéale pour un couple ou une petite famille. Silencieuse, 100 % électrique, sièges enfant sur demande."
+      },
+      "van": {
+        "label": "VAN FAMILIAL",
+        "model": "Mercedes Vito / Renault Trafic",
+        "capacity": "4 à 8 passagers · jusqu'à 8 valises",
+        "body": "Le bon choix avec une poussette, plusieurs enfants ou beaucoup de bagages. Sièges individuels, coffre séparé."
+      },
+      "note": "Plus de 8 personnes ensemble ? Nous combinons plusieurs véhicules au même tarif par véhicule — indiquez-nous simplement la taille du groupe."
+    },
+    "how": {
+      "eyebrow": "COMMENT ÇA MARCHE",
+      "heading": "Réservé en 2 minutes.",
+      "steps": [
+        {
+          "title": "Obtenez votre prix",
+          "body": "Choisissez votre trajet et le nombre de passagers. Le tarif fixe s'affiche aussitôt — sans créer de compte."
+        },
+        {
+          "title": "Envoyez vos informations",
+          "body": "Numéro de vol ou de train, date, heure, et l'âge des enfants pour les sièges. C'est tout."
+        },
+        {
+          "title": "Recevez la confirmation",
+          "body": "Dans l'heure, par email et WhatsApp, avec le nom, la photo et le numéro de votre chauffeur."
+        },
+        {
+          "title": "Arrivez et profitez",
+          "body": "Retrouvez votre chauffeur, montez à bord, réglez en espèces ou par carte le jour même. Direction les parcs."
+        }
+      ]
+    },
+    "faq": {
+      "eyebrow": "FAQ TRANSFERT DISNEYLAND",
+      "heading": "Les questions des familles.",
+      "items": [
+        {
+          "q": "Combien coûte un transfert privé de CDG à Disneyland Paris ?",
+          "a": "Une voiture privée pour 1 à 3 passagers démarre à {priceCarCdg} €, et un van pour 8 personnes maximum à {priceVanCdg} €, l'aller simple. C'est un prix fixe par véhicule — péages, taxes et bagages inclus, rien à ajouter à l'arrivée."
+        },
+        {
+          "q": "Où exactement le chauffeur nous dépose-t-il à Disneyland Paris ?",
+          "a": "Directement à l'entrée de votre hôtel Disney, ou à la dépose autocars et taxis à côté de l'entrée du parc et du Disney Village. Indiquez votre hôtel à la réservation et le chauffeur vous amène à la porte."
+        },
+        {
+          "q": "Combien de temps dure le trajet de CDG à Disneyland Paris ?",
+          "a": "En général 45 à 55 minutes pour les 46 km par l'A104. Comptez 45 à 60 minutes depuis Orly, et environ 1 h 15 à 1 h 40 depuis Beauvais."
+        },
+        {
+          "q": "Fournissez-vous les sièges bébé et les réhausseurs ?",
+          "a": "Oui — coques, sièges bébé et réhausseurs, tous gratuits. Indiquez l'âge de chaque enfant à la réservation et le siège adapté est installé avant la prise en charge."
+        },
+        {
+          "q": "Que se passe-t-il si notre vol est retardé ?",
+          "a": "Votre chauffeur suit le vol et ajuste l'heure de prise en charge. L'attente est offerte jusqu'à 60 minutes après l'atterrissage, et il n'y a aucun supplément pour une arrivée retardée ou en avance."
+        },
+        {
+          "q": "Pouvez-vous venir nous chercher à un hôtel Disney pour le retour ?",
+          "a": "Oui. Nous vous récupérons dans le hall de votre hôtel à Disneyland Paris pour le retour vers CDG, Orly, Beauvais ou Paris centre. Réservez l'aller-retour en une fois pour bénéficier de la remise."
+        },
+        {
+          "q": "Le prix est-il fixe, ou par personne ?",
+          "a": "C'est un prix fixe par véhicule, convenu à la réservation — jamais par personne et jamais au compteur. Le tarif affiché est le tarif payé."
+        },
+        {
+          "q": "Combien de temps à l'avance faut-il réserver ?",
+          "a": "24 heures ou plus, c'est l'idéal, surtout pendant les vacances scolaires. Les demandes de dernière minute sont acceptées selon les disponibilités — écrivez-nous sur WhatsApp pour une réponse rapide."
+        },
+        {
+          "q": "Comment régler ?",
+          "a": "En espèces ou par carte, directement au chauffeur à l'arrivée. Aucun prépaiement n'est exigé ; un acompte en ligne facultatif permet de verrouiller la remise aller-retour."
+        }
+      ]
+    },
+    "finalCta": {
+      "heading": "Votre trajet vers Disneyland Paris est prêt.",
+      "sub": "Tarif fixe, sièges enfant offerts, chauffeur anglophone. Obtenez votre prix en 10 secondes.",
+      "primary": "Obtenir mon prix",
+      "whatsapp": "WhatsApp",
+      "footnote": "Disponible 24/7 · Réponse en 1 h · Prix fixe garanti"
+    }
+  },
+  "parisTransfer": {
+    "seo": {
+      "title": "Transfert aéroport Paris — Voiture & van privés depuis CDG, Orly, Beauvais | The Driver",
+      "description": "Transferts privés depuis les aéroports de Paris. Tarifs fixes entre Roissy-Charles de Gaulle (CDG), Orly, Beauvais et votre hôtel parisien. Accueil personnalisé, suivi des vols, sièges enfant offerts, chauffeur anglophone."
+    },
+    "hero": {
+      "eyebrow": "TRANSFERTS AÉROPORT PARIS",
+      "title": "Transferts privés depuis les aéroports de Paris.",
+      "sub": "Une voiture ou un van privé à prix fixe entre Paris et tous les aéroports — Roissy-Charles de Gaulle, Orly et Beauvais — ainsi que les principales gares. Votre chauffeur vous accueille à l'arrivée, suit votre vol et vous conduit directement à la porte.",
+      "pills": ["Tarifs fixes", "Accueil personnalisé inclus", "Suivi des vols", "Sièges enfant offerts"],
+      "primaryCta": "Obtenir mon prix",
+      "secondaryCta": "Nous écrire sur WhatsApp"
+    },
+    "routes": {
+      "eyebrow": "TRAJETS POPULAIRES",
+      "heading": "Transferts aéroport de Paris, dans les deux sens.",
+      "sub": "Un tarif fixe par véhicule — péages, taxes et bagages inclus. Les prix ci-dessous correspondent au tarif de départ pour une voiture privée (1 à 3 passagers) ; le tarif van couvre jusqu'à 8 personnes.",
+      "fromLabel": "Voiture privée dès",
+      "vanLabel": "Van (jusqu'à 8) dès",
+      "timeLabel": "Trajet",
+      "distanceLabel": "Distance",
+      "bookCta": "Réserver ce transfert",
+      "items": [
+        { "from": "CDG", "to": "Paris", "name": "Roissy-Charles de Gaulle (CDG) vers Paris centre", "time": "45–70 min", "distance": "27 km", "blurb": "Accueil personnalisé dans le hall d'arrivée avec une pancarte à votre nom. Nous suivons votre vol : un atterrissage tardif ne vous coûte rien." },
+        { "from": "Orly", "to": "Paris", "name": "Aéroport d'Orly (ORY) vers Paris centre", "time": "30–50 min", "distance": "18 km", "blurb": "Le trajet le plus rapide vers la ville. Directement à votre hôtel — sans Orlyval, sans changement de RER B." },
+        { "from": "Beauvais", "to": "Paris", "name": "Aéroport de Beauvais (BVA) vers Paris centre", "time": "1 h 15 – 1 h 45", "distance": "85 km", "blurb": "Oubliez la navette vers la Porte Maillot. Une voiture privée vous conduit de porte à porte pour un tarif fixe." },
+        { "from": "Paris", "to": "CDG", "name": "Paris centre vers Roissy-Charles de Gaulle (CDG)", "time": "45–70 min", "distance": "27 km", "blurb": "Prise en charge à votre hôtel ou appartement à l'heure que vous choisissez, avec une marge prévue pour l'enregistrement." },
+        { "from": "CDG", "to": "Orly", "name": "Entre les aéroports — CDG vers Orly", "time": "50–80 min", "distance": "50 km", "blurb": "Une correspondance serrée entre deux vols ? Nous gérons le transfert d'aéroport à aéroport avec vos bagages." }
+      ]
+    },
+    "included": {
+      "eyebrow": "DANS CHAQUE TRANSFERT",
+      "heading": "Le tarif, c'est le tarif.",
+      "sub": "Pas de compteur, pas de supplément aéroport, aucune surprise à la fin du trajet.",
+      "items": [
+        { "icon": "lock", "title": "Prix fixe, convenu à l'avance", "body": "Confirmé à la réservation. Péages, taxes et bagages sont déjà inclus — rien à ajouter à l'arrivée." },
+        { "icon": "user-check", "title": "Accueil personnalisé aux arrivées", "body": "Votre chauffeur vous attend après la douane avec une pancarte à votre nom, et vous envoie sa photo et son numéro 24 h avant." },
+        { "icon": "clock", "title": "Vol suivi, attente offerte", "body": "Nous suivons votre vol en temps réel. Jusqu'à 60 minutes d'attente offertes après l'atterrissage, 30 minutes pour les gares." },
+        { "icon": "baby", "title": "Sièges bébé & réhausseurs offerts", "body": "Coque, siège bébé ou réhausseur, installé avant la prise en charge. Indiquez-nous simplement les âges à la réservation." }
+      ]
+    },
+    "vehicles": {
+      "eyebrow": "CHOISISSEZ VOTRE VÉHICULE",
+      "heading": "Une voiture privée ou un van familial.",
+      "sub": "Choisissez selon la taille du groupe — le bon véhicule est attribué automatiquement à la réservation.",
+      "car": { "label": "VOITURE PRIVÉE", "model": "Tesla Model Y", "capacity": "1 à 3 passagers · 3 valises", "body": "Idéale pour un couple, un voyageur seul ou un déplacement professionnel. Silencieuse, 100 % électrique." },
+      "van": { "label": "VAN FAMILIAL", "model": "Mercedes Vito / Renault Trafic", "capacity": "4 à 8 passagers · jusqu'à 8 valises", "body": "Pour les familles, les groupes ou beaucoup de bagages. Sièges individuels, coffre séparé." },
+      "note": "Plus de 8 personnes ensemble ? Nous combinons plusieurs véhicules au même tarif par véhicule."
+    },
+    "how": {
+      "eyebrow": "COMMENT ÇA MARCHE",
+      "heading": "Réservé en 2 minutes.",
+      "steps": [
+        { "title": "Obtenez votre prix", "body": "Choisissez votre trajet et le nombre de passagers. Le tarif fixe s'affiche aussitôt — sans créer de compte." },
+        { "title": "Envoyez vos informations", "body": "Numéro de vol ou de train, date, heure, adresse de prise en charge. C'est tout." },
+        { "title": "Recevez la confirmation", "body": "Dans l'heure, par email et WhatsApp, avec le nom, la photo et le numéro de votre chauffeur." },
+        { "title": "Retrouvez-le et partez", "body": "Rejoignez votre chauffeur, montez à bord, réglez en espèces ou par carte le jour même." }
+      ]
+    },
+    "crosslinks": {
+      "disneyland": "En route pour les parcs ? Voir nos transferts Disneyland Paris",
+      "chauffeur": "Vous restez quelques jours ? Réservez un chauffeur à l'heure"
+    },
+    "faq": {
+      "eyebrow": "FAQ TRANSFERT PARIS",
+      "heading": "Les questions des voyageurs.",
+      "items": [
+        { "q": "Combien coûte un taxi de CDG au centre de Paris ?", "a": "Notre transfert privé de Roissy-Charles de Gaulle au centre de Paris est à prix fixe : {priceCarCdg} € pour une voiture (1 à 3 passagers) et {priceVanCdg} € pour un van (jusqu'à 8), l'aller simple. Il est convenu à la réservation — péages et taxes inclus, sans compteur." },
+        { "q": "Où le chauffeur m'attend-il à l'aéroport ?", "a": "Dans le hall d'arrivée, après la douane et la récupération des bagages, avec une pancarte à votre nom. Vous recevez sa photo et son numéro 24 heures avant le trajet." },
+        { "q": "Que se passe-t-il si mon vol est retardé ?", "a": "Nous suivons le vol et ajustons. L'attente est offerte jusqu'à 60 minutes après l'atterrissage, sans supplément pour une arrivée retardée ou en avance." },
+        { "q": "Combien de temps dure le transfert ?", "a": "Roissy-Charles de Gaulle vers le centre de Paris prend en général 45 à 70 minutes selon le trafic, Orly 30 à 50 minutes, et Beauvais 1 h 15 à 1 h 45." },
+        { "q": "Le prix est-il par personne ou par véhicule ?", "a": "Par véhicule — le tarif couvre tous les passagers, dans la limite de la capacité. Jamais par personne, jamais au compteur." },
+        { "q": "Pouvez-vous assurer des prises en charge très tôt ou tard le soir ?", "a": "Oui. Le service fonctionne 24/7 au même tarif fixe — aucun supplément de nuit ou de week-end." },
+        { "q": "Comment régler ?", "a": "En espèces ou par carte, au chauffeur à l'arrivée. Aucun prépaiement exigé ; un acompte en ligne facultatif permet de bénéficier de la remise aller-retour." },
+        { "q": "Combien de temps à l'avance faut-il réserver ?", "a": "24 heures ou plus, c'est l'idéal. Les demandes de dernière minute sont acceptées selon les disponibilités — WhatsApp est le moyen le plus rapide de nous joindre." }
+      ]
+    },
+    "finalCta": {
+      "heading": "Votre transfert parisien, réglé.",
+      "sub": "Tarif fixe, accueil personnalisé, chauffeur anglophone. Obtenez votre prix en 10 secondes.",
+      "primary": "Obtenir mon prix",
+      "whatsapp": "WhatsApp",
+      "footnote": "Disponible 24/7 · Réponse en 1 h · Prix fixe garanti"
+    }
+  },
+  "parisChauffeur": {
+    "seo": {
+      "title": "Chauffeur privé à Paris — Mise à disposition à l'heure, excursions & visites | The Driver",
+      "description": "Réservez un chauffeur privé à Paris à l'heure dès {hourlyRate} €/heure. Visites de la ville, excursions à Versailles et en Champagne, sessions shopping. Chauffeur anglophone, tarif horaire fixe, 3 heures minimum."
+    },
+    "hero": {
+      "eyebrow": "CHAUFFEUR PRIVÉ · À L'HEURE",
+      "title": "Un chauffeur privé à Paris, aussi longtemps qu'il le faut.",
+      "sub": "Gardez la même voiture et le même chauffeur quelques heures ou une journée entière. Visites, shopping, dîners, une excursion à Versailles ou en Champagne — vous fixez l'itinéraire, nous conduisons et attendons.",
+      "pills": ["Dès {hourlyRate} € / heure", "3 heures minimum", "Chauffeur anglophone", "Partout en Île-de-France"],
+      "primaryCta": "Vérifier les disponibilités",
+      "secondaryCta": "Organiser sur WhatsApp",
+      "whatsappMessage": "Bonjour, je souhaite réserver un chauffeur à l'heure à Paris. Voici en gros ce que j'ai en tête :"
+    },
+    "rate": {
+      "eyebrow": "LE TARIF",
+      "heading": "Un tarif horaire, tout compris.",
+      "sub": "Le carburant, les péages en Île-de-France, le temps d'attente du chauffeur et un siège enfant si besoin — tout est inclus dans le tarif horaire. Les excursions plus longues hors de la région sont chiffrées à prix forfaitaire.",
+      "priceLine": "{hourlyRate} € / heure",
+      "minimum": "Réservation de 3 heures minimum",
+      "bullets": ["Même voiture et même chauffeur pour toute la réservation", "Le chauffeur attend pendant que vous visitez, faites du shopping ou dînez", "Modifiez le programme au fil de la journée"]
+    },
+    "itineraries": {
+      "eyebrow": "PROGRAMMES POPULAIRES",
+      "heading": "Quelques façons de l'utiliser.",
+      "sub": "Des points de départ, pas des forfaits figés — dites-nous ce que vous voulez voir et nous construisons la journée autour.",
+      "items": [
+        { "duration": "3–4 heures", "title": "Les incontournables de Paris en voiture", "body": "Tour Eiffel, Trocadéro, Champs-Élysées, Louvre, Notre-Dame, Montmartre — les icônes, avec des arrêts photo, à votre rythme." },
+        { "duration": "Demi-journée", "title": "Session shopping", "body": "Les boutiques de La Vallée Village, les Champs-Élysées ou le Marais. Le chauffeur garde les sacs et la voiture, vous ne portez rien." },
+        { "duration": "Journée entière", "title": "Versailles & Giverny", "body": "Le Château et les jardins de Versailles, puis la maison et les jardins de Monet à Giverny, sans les horaires des autocars." },
+        { "duration": "Journée entière", "title": "Excursion en Champagne", "body": "Reims et Épernay — les grandes maisons de Champagne et un vigneron de village, environ 1 h 30 de trajet dans chaque sens. Chiffrée à prix forfaitaire." }
+      ]
+    },
+    "included": {
+      "eyebrow": "CE QUE VOUS OBTENEZ",
+      "heading": "Un chauffeur pour la journée, pas un compteur de taxi.",
+      "items": [
+        { "icon": "user-check", "title": "Un chauffeur dédié", "body": "Le même chauffeur anglophone pour toute la réservation. Il assimile le programme et s'y adapte." },
+        { "icon": "clock", "title": "Attente et conduite", "body": "La voiture reste avec vous. Arrêtez-vous pour déjeuner, un musée ou une boutique : le chauffeur est là à votre sortie." },
+        { "icon": "map-pin", "title": "Votre itinéraire, flexible", "body": "Ajoutez un arrêt, supprimez-en un, changez l'ordre. Le programme est à vous, modifiable pendant la journée." },
+        { "icon": "baby", "title": "Prêt pour les familles", "body": "Sièges bébé et réhausseurs offerts, de la place pour les poussettes et le shopping dans le van." }
+      ]
+    },
+    "vehicles": {
+      "eyebrow": "CHOISISSEZ VOTRE VÉHICULE",
+      "heading": "Une voiture privée ou un van familial.",
+      "sub": "Même tarif horaire pour les deux — choisissez selon votre nombre.",
+      "car": { "label": "VOITURE PRIVÉE", "model": "Tesla Model Y", "capacity": "1 à 3 passagers", "body": "Idéale pour un couple ou une petite famille qui explore la ville." },
+      "van": { "label": "VAN FAMILIAL", "model": "Mercedes Vito / Renault Trafic", "capacity": "4 à 8 passagers", "body": "Pour une famille ou un groupe qui veut rester ensemble toute la journée." },
+      "note": "Groupe plus important ? Nous pouvons ajouter un second véhicule avec son propre chauffeur."
+    },
+    "how": {
+      "eyebrow": "COMMENT ÇA MARCHE",
+      "heading": "Organisez tout en un message.",
+      "steps": [
+        { "title": "Dites-nous la journée", "body": "Date, heure de début, nombre d'heures, en gros ce que vous aimeriez voir ou faire." },
+        { "title": "Recevez un devis", "body": "Un prix fixe pour la réservation — le tarif horaire, ou un forfait pour une longue excursion." },
+        { "title": "Confirmez", "body": "Par email et WhatsApp, avec le nom, la photo et le numéro de votre chauffeur." },
+        { "title": "Profitez de la journée", "body": "Votre chauffeur vient vous chercher et la journée est à vous. Réglez en espèces ou par carte à la fin." }
+      ]
+    },
+    "crosslinks": {
+      "transfer": "Juste un trajet aéroport ? Voir les transferts aéroport de Paris",
+      "disneyland": "Direction les parcs ? Voir les transferts Disneyland Paris"
+    },
+    "faq": {
+      "eyebrow": "FAQ CHAUFFEUR À L'HEURE",
+      "heading": "Les questions avant de réserver.",
+      "items": [
+        { "q": "Combien coûte un chauffeur privé à l'heure à Paris ?", "a": "{hourlyRate} € par heure, avec 3 heures minimum. Le carburant, les péages en Île-de-France et le temps d'attente du chauffeur sont inclus. Les excursions hors région (Champagne, Loire, Normandie) sont chiffrées à prix forfaitaire." },
+        { "q": "Y a-t-il une réservation minimum ?", "a": "Oui, 3 heures. Au-delà, vous réservez à l'heure, ou en demi-journée ou journée entière au même tarif." },
+        { "q": "Le chauffeur peut-il faire office de guide ?", "a": "Votre chauffeur connaît bien Paris et partagera ce qu'il sait en suggérant des arrêts, mais c'est un chauffeur, pas un guide agréé. Nous pouvons organiser un guide agréé sur demande." },
+        { "q": "Peut-on modifier le programme pendant la journée ?", "a": "Oui. Ajoutez ou retirez un arrêt, changez l'ordre, prolongez la réservation si l'emploi du temps du chauffeur le permet. C'est votre journée." },
+        { "q": "Les excursions hors de Paris coûtent-elles un supplément ?", "a": "Les longs trajets (Champagne, Giverny, Loire, Mont-Saint-Michel) sont chiffrés à prix forfaitaire selon la distance et la durée plutôt qu'au tarif horaire. Vous avez le prix avant de confirmer." },
+        { "q": "Comment régler ?", "a": "En espèces ou par carte, au chauffeur à la fin de la réservation. Aucun prépaiement exigé pour une réservation horaire standard." }
+      ]
+    },
+    "finalCta": {
+      "heading": "Organisez votre journée avec un chauffeur privé.",
+      "sub": "Dès {hourlyRate} €/heure, 3 heures minimum. Dites-nous la journée et nous envoyons un prix fixe.",
+      "primary": "Vérifier les disponibilités",
+      "whatsapp": "WhatsApp",
+      "footnote": "Disponible 24/7 · Réponse en 1 h · Prix fixe avant confirmation"
+    }
   }
 }

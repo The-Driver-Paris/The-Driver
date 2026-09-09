@@ -1,0 +1,144 @@
+---
+import AdminShell from '../_AdminShell.astro';
+import { t, LOCALES } from '../../../i18n';
+import { flattenCopy } from '../../../lib/pageContent';
+export const prerender = false;
+
+const EDITABLE = new Set(['disneyland', 'parisTransfer', 'parisChauffeur']);
+const pageKey = Astro.params.page ?? '';
+if (!EDITABLE.has(pageKey)) return Astro.redirect('/admin/content');
+
+const LABELS: Record<string, string> = {
+  disneyland: 'Disneyland Paris page',
+  parisTransfer: 'Paris airport transfer page',
+  parisChauffeur: 'Paris chauffeur hire page',
+};
+
+// Compiled copy per locale, flattened to editable leaves. The client shows each
+// leaf's text as the input placeholder, so an empty box = "use the original".
+const compiled: Record<string, { path: string; text: string }[]> = {};
+for (const l of LOCALES) {
+  compiled[l] = flattenCopy((t(l) as Record<string, unknown>)[pageKey]);
+}
+---
+
+<AdminShell title={LABELS[pageKey]} section="content">
+  <a href="/admin/content" style="color:#5b6774;text-decoration:none">← All pages</a>
+  <h1 class="a-h1" style="margin-top:8px">{LABELS[pageKey]}</h1>
+  <p class="a-sub">Each row shows the current wording as faint placeholder text. Type to override it; clear the box to restore the original.</p>
+
+  <div style="display:flex;gap:8px;margin-bottom:16px">
+    {LOCALES.map((l, i) => (
+      <button class="a-btn" data-tab={l} aria-pressed={i === 0 ? 'true' : 'false'}>{l.toUpperCase()}</button>
+    ))}
+  </div>
+
+  <form data-form>
+    <div data-fields>Loading…</div>
+    <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
+      <button type="submit" class="a-btn a-btn-primary" data-save>Save changes</button>
+      <span data-count style="color:#5b6774;font-size:13px"></span>
+    </div>
+  </form>
+
+  <script is:inline define:vars={{ pageKey, compiled, locales: LOCALES }}>
+    window.__contentEditor = { pageKey, compiled, locales };
+  </script>
+
+  <script>
+    import { getBrowserClient } from '../../../lib/supabase';
+    const { pageKey, compiled, locales } = (window as any).__contentEditor as {
+      pageKey: string; compiled: Record<string, { path: string; text: string }[]>; locales: string[];
+    };
+    const sb = getBrowserClient();
+    const toast = (window as any).adminToast as (m: string, k?: string) => void;
+    const fields = document.querySelector<HTMLElement>('[data-fields]')!;
+    const count = document.querySelector<HTMLElement>('[data-count]')!;
+    let overrides: Record<string, Record<string, string>> = {};   // locale -> path -> value
+    let active = locales[0];
+
+    const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+    const labelFor = (p: string) => p.replace(/\.(\d+)\./g, ' #$1 ').replace(/\./g, ' › ');
+
+    function renderFields() {
+      const leaves = compiled[active] ?? [];
+      fields.innerHTML = leaves.map((leaf) => {
+        const val = overrides[active]?.[leaf.path] ?? '';
+        const multiline = leaf.text.length > 90;
+        const input = multiline
+          ? `<textarea class="a-textarea" data-path="${esc(leaf.path)}" placeholder="${esc(leaf.text)}" style="min-height:64px">${esc(val)}</textarea>`
+          : `<input class="a-input" data-path="${esc(leaf.path)}" placeholder="${esc(leaf.text)}" value="${esc(val)}" />`;
+        return `<div style="margin-bottom:12px"><label class="a-label" style="margin:0 0 4px">${esc(labelFor(leaf.path))}</label>${input}</div>`;
+      }).join('');
+      updateCount();
+    }
+    function updateCount() {
+      const n = Object.values(overrides).reduce((a, m) => a + Object.keys(m).length, 0);
+      count.textContent = n ? `${n} override${n === 1 ? '' : 's'} set` : 'No overrides — page shows the original text';
+    }
+
+    fields.addEventListener('input', (e) => {
+      const el = (e.target as HTMLElement).closest<HTMLInputElement | HTMLTextAreaElement>('[data-path]');
+      if (!el) return;
+      overrides[active] ??= {};
+      const v = el.value;
+      if (v.trim() === '') delete overrides[active][el.dataset.path!];
+      else overrides[active][el.dataset.path!] = v;
+      updateCount();
+    });
+
+    for (const btn of document.querySelectorAll<HTMLButtonElement>('[data-tab]')) {
+      btn.addEventListener('click', () => {
+        active = btn.dataset.tab!;
+        document.querySelectorAll('[data-tab]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+        renderFields();
+      });
+    }
+
+    async function load() {
+      const { data, error } = await sb.from('page_overrides')
+        .select('field_key, locale, value').eq('page_key', pageKey);
+      if (error) { toast('Could not load current text', 'err'); }
+      overrides = {};
+      for (const row of data ?? []) {
+        if (row.value && row.value.trim() !== '') {
+          overrides[row.locale] ??= {};
+          overrides[row.locale][row.field_key] = row.value;
+        }
+      }
+      renderFields();
+    }
+
+    document.querySelector('[data-form]')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const save = document.querySelector<HTMLButtonElement>('[data-save]')!;
+      save.disabled = true;
+      try {
+        // desired state = every (locale,path) currently in `overrides`
+        const desired: { page_key: string; field_key: string; locale: string; value: string }[] = [];
+        for (const [loc, m] of Object.entries(overrides))
+          for (const [path, value] of Object.entries(m))
+            desired.push({ page_key: pageKey, field_key: path, locale: loc, value });
+
+        // upsert the ones we have
+        if (desired.length) {
+          const { error } = await sb.from('page_overrides')
+            .upsert(desired, { onConflict: 'page_key,field_key,locale' });
+          if (error) { toast('Save failed', 'err'); return; }
+        }
+        // delete any override row for this page that is no longer desired
+        const keep = new Set(desired.map((d) => `${d.locale}::${d.field_key}`));
+        const { data: existing } = await sb.from('page_overrides')
+          .select('id, field_key, locale').eq('page_key', pageKey);
+        const stale = (existing ?? []).filter((r) => !keep.has(`${r.locale}::${r.field_key}`)).map((r) => r.id);
+        if (stale.length) {
+          const { error } = await sb.from('page_overrides').delete().in('id', stale);
+          if (error) { toast('Saved, but could not clear some old text', 'err'); return; }
+        }
+        toast('Saved', 'ok');
+      } finally { save.disabled = false; }
+    });
+
+    window.addEventListener('admin:ready', load);
+  </script>
+</AdminShell>

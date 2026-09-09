@@ -1,0 +1,330 @@
+---
+import { pathForRoute } from '../i18n';
+import { parisChauffeurData } from '../utils/parisPages.js';
+import Icon from './Icon.astro';
+import PageCloseCTA from './PageCloseCTA.astro';
+
+interface Props {
+  locale: 'fr' | 'en' | 'es' | 'it';
+}
+
+const { locale } = Astro.props;
+const { d } = parisChauffeurData(locale);
+const { faqItems } = parisChauffeurData(locale);
+
+const homePath = pathForRoute('home', locale);
+const homeBooking = `${homePath}#booking-form`;
+const hourlyDeepLink = `${homePath}#hourly`;
+const waHref =
+  'https://wa.me/33634301292?text=' +
+  encodeURIComponent(d.hero.whatsappMessage);
+const transferHref = pathForRoute('parisTransfer', locale);
+const disneylandHref = pathForRoute('disneyland', locale);
+
+const WA_SVG =
+  'M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.296-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.247-.694.247-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z';
+---
+
+{/* 1 · Hero */}
+<section class="pc-hero" aria-labelledby="pc-hero-h">
+  <div class="pc-hero-photo" aria-hidden="true">
+    <picture>
+      <source srcset="/images/routes/tourparis.avif" type="image/avif" />
+      <source srcset="/images/routes/tourparis.webp" type="image/webp" />
+      <img src="/images/routes/tourparis.jpg" alt="" width="1600" height="900" loading="eager" fetchpriority="high" decoding="async" />
+    </picture>
+    <div class="pc-hero-veil"></div>
+  </div>
+  <div class="pc-hero-inner page-x mx-auto max-w-[940px] text-center">
+    <p class="pc-eyebrow" data-reveal>{d.hero.eyebrow}</p>
+    <h1 id="pc-hero-h" class="pc-hero-title text-balance" data-reveal data-reveal-delay="1">{d.hero.title}</h1>
+    <p class="pc-hero-sub" data-reveal data-reveal-delay="2">{d.hero.sub}</p>
+    <ul class="pc-pills" data-reveal data-reveal-delay="3">
+      {d.hero.pills.map((p: string) => <li class="pc-pill">{p}</li>)}
+    </ul>
+    <div class="pc-actions" data-reveal data-reveal-delay="4">
+      <a href={hourlyDeepLink} class="pc-btn pc-btn-primary" data-press>
+        <span>{d.hero.primaryCta}</span>
+        <Icon name="arrow-right" size={16} strokeWidth={2} />
+      </a>
+      <a href={waHref} target="_blank" rel="noopener noreferrer" class="pc-btn pc-btn-ghost" data-press>
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="pc-wa"><path d={WA_SVG} /></svg>
+        <span>{d.hero.secondaryCta}</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+{/* 2 · Rate band */}
+<section class="pc-rate section-y" aria-labelledby="pc-rate-h">
+  <div class="page-x mx-auto max-w-[1000px]">
+    <div class="pc-rate-card" data-reveal>
+      <div class="pc-rate-left">
+        <p class="meta-label mb-2">{d.rate.eyebrow}</p>
+        <h2 id="pc-rate-h" class="h2 text-balance">{d.rate.heading}</h2>
+        <p class="body-lg mt-3 pc-rate-sub">{d.rate.sub}</p>
+      </div>
+      <div class="pc-rate-right">
+        <p class="pc-rate-price">{d.rate.priceLine}</p>
+        <p class="pc-rate-min">{d.rate.minimum}</p>
+        <ul class="pc-rate-bullets">
+          {d.rate.bullets.map((b: string) => (
+            <li><Icon name="check-circle" size={16} strokeWidth={1.8} /><span>{b}</span></li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+{/* 3 · Itineraries */}
+<section class="pc-itin section-y has-grain" aria-labelledby="pc-itin-h">
+  <div class="page-x mx-auto max-w-[1100px]">
+    <div class="pc-head" data-reveal>
+      <p class="meta-label mb-3">{d.itineraries.eyebrow}</p>
+      <h2 id="pc-itin-h" class="h2 text-balance">{d.itineraries.heading}</h2>
+      <p class="body-lg mt-3 pc-head-sub">{d.itineraries.sub}</p>
+    </div>
+    <ul class="pc-itin-grid" data-reveal data-reveal-delay="1">
+      {d.itineraries.items.map((it: any) => (
+        <li class="pc-itin-card">
+          <p class="pc-itin-dur">{it.duration}</p>
+          <h3 class="pc-itin-title">{it.title}</h3>
+          <p class="pc-itin-body">{it.body}</p>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+{/* 4 · Included */}
+<section class="pc-inc section-y" aria-labelledby="pc-inc-h">
+  <div class="page-x mx-auto max-w-[1100px]">
+    <div class="pc-head" data-reveal>
+      <p class="meta-label mb-3">{d.included.eyebrow}</p>
+      <h2 id="pc-inc-h" class="h2 text-balance">{d.included.heading}</h2>
+    </div>
+    <ul class="pc-inc-grid" data-reveal data-reveal-delay="1">
+      {d.included.items.map((item: any) => (
+        <li class="pc-inc-card">
+          <span class="pc-inc-icon" aria-hidden="true"><Icon name={item.icon} size={22} strokeWidth={1.6} /></span>
+          <h3 class="pc-inc-title">{item.title}</h3>
+          <p class="pc-inc-body">{item.body}</p>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+{/* 5 · Vehicles */}
+<section class="pc-veh section-y has-grain" aria-labelledby="pc-veh-h">
+  <div class="page-x mx-auto max-w-[1100px]">
+    <div class="pc-head" data-reveal>
+      <p class="meta-label mb-3">{d.vehicles.eyebrow}</p>
+      <h2 id="pc-veh-h" class="h2 text-balance">{d.vehicles.heading}</h2>
+      <p class="body-lg mt-3 pc-head-sub">{d.vehicles.sub}</p>
+    </div>
+    <div class="pc-veh-grid" data-reveal data-reveal-delay="1">
+      {[
+        { img: 'tesla', data: d.vehicles.car },
+        { img: 'vito', data: d.vehicles.van },
+      ].map((v: any) => (
+        <article class="pc-veh-card">
+          <div class="pc-veh-media">
+            <picture>
+              <source srcset={`/images/fleet/${v.img}.avif`} type="image/avif" />
+              <source srcset={`/images/fleet/${v.img}.webp`} type="image/webp" />
+              <img src={`/images/fleet/${v.img}.jpg`} alt={v.data.model} width="640" height="420" loading="lazy" decoding="async" />
+            </picture>
+          </div>
+          <div class="pc-veh-info">
+            <p class="pc-veh-label">{v.data.label}</p>
+            <h3 class="pc-veh-model">{v.data.model}</h3>
+            <p class="pc-veh-cap">{v.data.capacity}</p>
+            <p class="pc-veh-desc">{v.data.body}</p>
+          </div>
+        </article>
+      ))}
+    </div>
+    <p class="pc-veh-note" data-reveal>{d.vehicles.note}</p>
+  </div>
+</section>
+
+{/* 6 · How it works */}
+<section class="pc-how section-y" aria-labelledby="pc-how-h">
+  <div class="page-x mx-auto max-w-[1000px]">
+    <div class="pc-head" data-reveal>
+      <p class="meta-label mb-3">{d.how.eyebrow}</p>
+      <h2 id="pc-how-h" class="h2 text-balance">{d.how.heading}</h2>
+    </div>
+    <ol class="pc-how-grid" data-reveal data-reveal-delay="1">
+      {d.how.steps.map((step: any, i: number) => (
+        <li class="pc-how-step">
+          <span class="pc-how-num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+          <h3 class="pc-how-title">{step.title}</h3>
+          <p class="pc-how-body">{step.body}</p>
+        </li>
+      ))}
+    </ol>
+    <p class="pc-crosslink" data-reveal>
+      <a href={transferHref}>{d.crosslinks.transfer}</a>
+      <span aria-hidden="true"> · </span>
+      <a href={disneylandHref}>{d.crosslinks.disneyland}</a>
+    </p>
+  </div>
+</section>
+
+{/* 7 · FAQ */}
+<section class="pc-faq" aria-labelledby="pc-faq-h">
+  <div class="pc-faq-accent" aria-hidden="true"></div>
+  <div class="page-x mx-auto max-w-[800px] section-y pc-faq-inner">
+    <header class="pc-head pc-head-invert" data-reveal>
+      <p class="meta-label mb-3">{d.faq.eyebrow}</p>
+      <h2 id="pc-faq-h" class="h2 text-balance">{d.faq.heading}</h2>
+    </header>
+    <ul class="pc-faq-list mt-10 md:mt-14">
+      {faqItems.map((item: any, i: number) => (
+        <li class="pc-faq-row" data-reveal data-reveal-delay={String((i % 4) + 1)}>
+          <details class="pc-faq-item">
+            <summary class="pc-faq-summary">
+              <span class="pc-faq-q">{item.q}</span>
+              <span class="pc-faq-toggle" aria-hidden="true"><Icon name="chevron-down" size={18} strokeWidth={2} /></span>
+            </summary>
+            <div class="pc-faq-a"><p>{item.a}</p></div>
+          </details>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+{/* 8 · Final CTA */}
+<PageCloseCTA
+  heading={d.finalCta.heading}
+  sub={d.finalCta.sub}
+  primaryLabel={d.finalCta.primary}
+  primaryFallbackHref={homeBooking}
+  secondaryLabel={d.finalCta.whatsapp}
+  secondaryHref={waHref}
+  footnote={d.finalCta.footnote}
+/>
+
+<style>
+  .pc-head { max-width: 720px; }
+  .pc-head-sub { color: color-mix(in oklab, var(--color-ink) 74%, transparent); max-width: 62ch; }
+  .pc-head-invert .h2 { color: var(--color-cream); }
+  .pc-eyebrow { font-family: var(--font-sans); font-size: 12px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent); margin: 0 0 16px; }
+
+  /* Hero */
+  .pc-hero { position: relative; isolation: isolate; overflow: hidden; background: var(--color-cream); color: var(--color-ink); padding: 64px 0 72px; }
+  @media (min-width: 768px) { .pc-hero { padding: 96px 0 104px; } }
+  .pc-hero-photo { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .pc-hero-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center 45%; filter: saturate(0.9); }
+  .pc-hero-veil { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 38%, rgba(255,250,242,0.18) 0%, rgba(255,250,242,0.80) 62%, var(--color-cream) 100%), linear-gradient(to bottom, rgba(255,250,242,0.28), rgba(255,250,242,0.94)); }
+  .pc-hero-inner { position: relative; z-index: 1; }
+  .pc-hero-title { margin: 0 auto; font-family: var(--font-display); font-weight: 500; font-size: 40px; line-height: 1.05; letter-spacing: -0.02em; color: var(--color-ink); max-width: 20ch; }
+  @media (min-width: 768px) { .pc-hero-title { font-size: 56px; } }
+  @media (min-width: 1024px) { .pc-hero-title { font-size: 64px; } }
+  .pc-hero-sub { margin: 20px auto 0; max-width: 60ch; font-size: 16px; line-height: 1.6; color: color-mix(in oklab, var(--color-ink) 78%, transparent); }
+  @media (min-width: 768px) { .pc-hero-sub { font-size: 17px; margin-top: 24px; } }
+  .pc-pills { list-style: none; padding: 0; margin: 28px auto 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .pc-pill { padding: 6px 14px; border-radius: 999px; background: color-mix(in oklab, var(--color-paper) 90%, transparent); border: 1px solid var(--color-smoke); font-size: 12px; font-weight: 500; color: var(--color-ink); letter-spacing: 0.02em; }
+  .pc-actions { margin-top: 32px; display: flex; flex-direction: column; gap: 12px; align-items: center; justify-content: center; }
+  @media (min-width: 640px) { .pc-actions { flex-direction: row; gap: 14px; } }
+  .pc-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: 56px; padding: 0 26px; width: 100%; border-radius: 999px; font-family: var(--font-sans); font-size: 15px; font-weight: 500; text-decoration: none; transition: background-color 220ms var(--ease-out), color 220ms var(--ease-out), border-color 220ms var(--ease-out); }
+  @media (min-width: 640px) { .pc-btn { width: auto; min-width: 210px; } }
+  .pc-btn-primary { background: var(--color-accent); color: var(--color-paper); box-shadow: 0 18px 40px -12px color-mix(in oklab, var(--color-accent) 55%, transparent), 0 0 0 1px color-mix(in oklab, white 10%, transparent) inset; }
+  .pc-btn-primary:hover { background: var(--color-accent-ink); }
+  .pc-btn-ghost { background: transparent; color: var(--color-ink); border: 1.5px solid color-mix(in oklab, var(--color-ink) 26%, transparent); }
+  .pc-btn-ghost:hover { background: var(--color-ink); color: var(--color-paper); border-color: var(--color-ink); }
+  .pc-wa { width: 18px; height: 18px; flex-shrink: 0; }
+
+  /* Rate band */
+  .pc-rate { background: var(--color-cream); }
+  .pc-rate-card { display: grid; grid-template-columns: 1fr; gap: 28px; background: var(--color-paper); border: 1px solid var(--color-smoke); border-radius: 20px; padding: 32px; }
+  @media (min-width: 900px) { .pc-rate-card { grid-template-columns: 1.2fr 1fr; gap: 40px; padding: 40px; align-items: center; } }
+  .pc-rate-sub { color: color-mix(in oklab, var(--color-ink) 74%, transparent); }
+  .pc-rate-right { border-top: 1px solid var(--color-smoke); padding-top: 24px; }
+  @media (min-width: 900px) { .pc-rate-right { border-top: 0; border-inline-start: 1px solid var(--color-smoke); padding-top: 0; padding-inline-start: 40px; } }
+  .pc-rate-price { margin: 0; font-family: var(--font-display); font-weight: 500; font-size: 36px; line-height: 1; color: var(--color-ink); }
+  @media (min-width: 768px) { .pc-rate-price { font-size: 44px; } }
+  .pc-rate-min { margin: 8px 0 0; font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-graphite); }
+  .pc-rate-bullets { list-style: none; padding: 0; margin: 20px 0 0; display: flex; flex-direction: column; gap: 10px; }
+  .pc-rate-bullets li { display: flex; align-items: center; gap: 10px; font-size: 14px; color: color-mix(in oklab, var(--color-ink) 80%, transparent); }
+  .pc-rate-bullets li :global(svg) { color: var(--color-accent); flex-shrink: 0; }
+
+  /* Itineraries */
+  .pc-itin { background: var(--color-cream); }
+  .pc-itin-grid { list-style: none; padding: 0; margin: 40px 0 0; display: grid; grid-template-columns: 1fr; gap: 18px; }
+  @media (min-width: 768px) { .pc-itin-grid { grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 48px; } }
+  .pc-itin-card { background: var(--color-paper); border: 1px solid var(--color-smoke); border-radius: 16px; padding: 24px; transition: transform 220ms var(--ease-out), border-color 220ms var(--ease-out), box-shadow 220ms var(--ease-out); }
+  .pc-itin-card:hover { transform: translateY(-2px); border-color: color-mix(in oklab, var(--color-accent) 30%, var(--color-smoke)); box-shadow: 0 14px 30px -18px rgba(20,20,20,0.18); }
+  .pc-itin-dur { margin: 0 0 8px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-accent); font-weight: 600; }
+  .pc-itin-title { margin: 0 0 8px; font-family: var(--font-display); font-weight: 500; font-size: 19px; line-height: 1.25; letter-spacing: -0.01em; color: var(--color-ink); }
+  .pc-itin-body { margin: 0; font-size: 14px; line-height: 1.55; color: color-mix(in oklab, var(--color-ink) 74%, transparent); }
+
+  /* Included */
+  .pc-inc { background: var(--color-paper); }
+  .pc-inc-grid { list-style: none; padding: 0; margin: 40px 0 0; display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 768px) { .pc-inc-grid { grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 48px; } }
+  .pc-inc-card { background: var(--color-cream); border: 1px solid var(--color-smoke); border-radius: 14px; padding: 24px; transition: transform 220ms var(--ease-out), border-color 220ms var(--ease-out), box-shadow 220ms var(--ease-out); }
+  .pc-inc-card:hover { transform: translateY(-2px); border-color: color-mix(in oklab, var(--color-accent) 30%, var(--color-smoke)); box-shadow: 0 14px 30px -18px rgba(20,20,20,0.18); }
+  .pc-inc-icon { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; background: color-mix(in oklab, var(--color-accent) 12%, transparent); color: var(--color-accent); margin-bottom: 16px; }
+  .pc-inc-title { margin: 0 0 8px; font-family: var(--font-display); font-weight: 500; font-size: 18px; line-height: 1.25; letter-spacing: -0.01em; color: var(--color-ink); }
+  .pc-inc-body { margin: 0; font-size: 14px; line-height: 1.55; color: color-mix(in oklab, var(--color-ink) 75%, transparent); }
+
+  /* Vehicles */
+  .pc-veh { background: var(--color-cream); }
+  .pc-veh-grid { margin: 40px 0 0; display: grid; grid-template-columns: 1fr; gap: 22px; }
+  @media (min-width: 768px) { .pc-veh-grid { grid-template-columns: 1fr 1fr; gap: 26px; margin-top: 48px; } }
+  .pc-veh-card { display: flex; flex-direction: column; background: var(--color-paper); border: 1px solid var(--color-smoke); border-radius: 16px; overflow: hidden; transition: transform 220ms var(--ease-out), border-color 220ms var(--ease-out), box-shadow 220ms var(--ease-out); }
+  .pc-veh-card:hover { transform: translateY(-2px); border-color: color-mix(in oklab, var(--color-accent) 30%, var(--color-smoke)); box-shadow: 0 14px 30px -18px rgba(20,20,20,0.18); }
+  .pc-veh-media { width: 100%; aspect-ratio: 16 / 10; overflow: hidden; background: var(--color-cream); }
+  .pc-veh-media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 600ms var(--ease-out); }
+  .pc-veh-card:hover .pc-veh-media img { transform: scale(1.03); }
+  .pc-veh-info { padding: 22px 24px 24px; }
+  .pc-veh-label { margin: 0 0 4px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-accent); font-weight: 600; }
+  .pc-veh-model { margin: 0 0 4px; font-family: var(--font-display); font-weight: 500; font-size: 20px; color: var(--color-ink); }
+  .pc-veh-cap { margin: 0 0 12px; font-size: 13px; color: var(--color-graphite); font-variant-numeric: tabular-nums; }
+  .pc-veh-desc { margin: 0; font-size: 14px; line-height: 1.55; color: color-mix(in oklab, var(--color-ink) 75%, transparent); }
+  .pc-veh-note { margin: 24px 0 0; font-size: 13px; color: var(--color-graphite); text-align: center; }
+
+  /* How */
+  .pc-how { background: var(--color-paper); }
+  .pc-how-grid { list-style: none; padding: 0; margin: 40px 0 0; display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 640px) { .pc-how-grid { grid-template-columns: 1fr 1fr; gap: 20px; } }
+  @media (min-width: 1024px) { .pc-how-grid { grid-template-columns: repeat(4, 1fr); } }
+  .pc-how-step { background: var(--color-cream); border: 1px solid var(--color-smoke); border-radius: 14px; padding: 22px; }
+  .pc-how-num { display: block; font-family: var(--font-display); font-weight: 500; font-size: 13px; letter-spacing: 0.04em; color: var(--color-accent); margin-bottom: 12px; }
+  .pc-how-title { margin: 0 0 6px; font-family: var(--font-display); font-weight: 500; font-size: 17px; line-height: 1.25; color: var(--color-ink); }
+  .pc-how-body { margin: 0; font-size: 13.5px; line-height: 1.55; color: color-mix(in oklab, var(--color-ink) 75%, transparent); }
+  .pc-crosslink { margin: 32px 0 0; font-size: 13.5px; color: var(--color-graphite); }
+  .pc-crosslink a { color: var(--color-accent-ink); font-weight: 600; text-decoration: none; }
+  .pc-crosslink a:hover { text-decoration: underline; }
+
+  /* FAQ */
+  .pc-faq { position: relative; background: var(--color-night); color: var(--color-cream); isolation: isolate; overflow: hidden; }
+  .pc-faq-accent { position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(to right, transparent, color-mix(in oklab, var(--color-accent) 45%, transparent), transparent); z-index: 2; }
+  .pc-faq-inner { position: relative; z-index: 1; }
+  .pc-faq-list { list-style: none; padding: 0; margin: 0; }
+  .pc-faq-row { border-radius: 12px; background: color-mix(in oklab, var(--color-cream) 5%, transparent); border: 1px solid color-mix(in oklab, var(--color-cream) 10%, transparent); margin-bottom: 8px; transition: background-color 240ms var(--ease-out), border-color 240ms var(--ease-out); }
+  @media (hover: hover) { .pc-faq-row:hover { background: color-mix(in oklab, var(--color-cream) 8%, transparent); border-color: color-mix(in oklab, var(--color-accent) 30%, transparent); } }
+  .pc-faq-item summary::-webkit-details-marker { display: none; }
+  .pc-faq-item summary::marker { content: ''; }
+  .pc-faq-summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 14px; padding: 16px 18px; min-height: 56px; }
+  @media (min-width: 768px) { .pc-faq-summary { padding: 18px 22px; } }
+  .pc-faq-summary:focus-visible { outline: 2px solid color-mix(in oklab, var(--color-accent) 50%, transparent); outline-offset: 2px; border-radius: 10px; }
+  .pc-faq-q { flex: 1; font-family: var(--font-sans); font-size: 15px; line-height: 1.4; font-weight: 500; color: var(--color-cream); transition: color 200ms var(--ease-out); }
+  @media (min-width: 768px) { .pc-faq-q { font-size: 16px; } }
+  .pc-faq-summary:hover .pc-faq-q, .pc-faq-item[open] .pc-faq-q { color: var(--color-accent); }
+  .pc-faq-toggle { width: 32px; height: 32px; flex-shrink: 0; border-radius: 999px; border: 1px solid color-mix(in oklab, var(--color-cream) 18%, transparent); background: color-mix(in oklab, var(--color-cream) 6%, transparent); color: var(--color-cream); display: inline-flex; align-items: center; justify-content: center; transition: background-color 200ms var(--ease-out), border-color 200ms var(--ease-out), color 200ms var(--ease-out), transform 200ms var(--ease-out); }
+  .pc-faq-item[open] .pc-faq-toggle { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-paper); transform: rotate(180deg); }
+  .pc-faq-a { padding: 0 18px 16px; max-width: 64ch; }
+  @media (min-width: 768px) { .pc-faq-a { padding: 0 22px 20px; } }
+  .pc-faq-a p { margin: 0; font-size: 14px; line-height: 1.65; color: color-mix(in oklab, var(--color-cream) 72%, transparent); }
+  @media (min-width: 768px) { .pc-faq-a p { font-size: 15px; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pc-itin-card, .pc-inc-card, .pc-veh-card, .pc-veh-media img, .pc-faq-toggle { transition: none; }
+  }
+</style>

@@ -1,0 +1,20 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ParisChauffeurPage from '../components/ParisChauffeurPage.astro';
+import { t } from '../i18n';
+import { buildParisChauffeurSchema } from '../utils/schema.js';
+
+const locale = 'fr' as const;
+const seo = t(locale).parisChauffeur.seo;
+const schema = buildParisChauffeurSchema({ locale, siteUrl: Astro.site?.toString() ?? '' });
+---
+
+<BaseLayout
+  locale={locale}
+  routeKey="parisChauffeur"
+  title={seo.title}
+  description={seo.description}
+  structuredData={schema}
+>
+  <ParisChauffeurPage locale={locale} />
+</BaseLayout>

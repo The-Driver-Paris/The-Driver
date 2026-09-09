@@ -1,0 +1,107 @@
+---
+// Public blog post. Move to src/pages/blog/[slug].astro when wiring Supabase.
+export const prerender = false;
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getServerClient } from '../../lib/supabase';
+import {
+  getPublishedPost, getRelatedPosts, postHtml, postExcerpt,
+  postSeoTitle, postSeoDescription, formatPostDate, readingMinutes,
+  buildArticleSchema,
+} from '../../lib/blog';
+
+const locale = 'en' as const;
+const { slug } = Astro.params;
+
+const db = getServerClient();
+let post = null;
+try {
+  post = await getPublishedPost(db, { locale, slug: slug ?? '' });
+} catch {
+  /* fall through to 404 */
+}
+if (!post) return new Response(null, { status: 404 });
+
+const url = new URL(Astro.url.pathname, Astro.site).toString();
+const related = await getRelatedPosts(db, { locale, excludeId: post.id, tags: post.tags, n: 3 }).catch(() => []);
+const html = postHtml(post);
+const schema = buildArticleSchema(post, url);
+---
+
+<BaseLayout
+  locale={locale}
+  routeKey="blog"
+  title={postSeoTitle(post)}
+  description={postSeoDescription(post)}
+  structuredData={schema}
+>
+  <article class="post page-x mx-auto max-w-[760px] section-y">
+    <a href="/blog/" class="post-back">← All articles</a>
+    <p class="post-meta">{formatPostDate(post.published_at, locale)} · {readingMinutes(post)} min read · {post.author_name}</p>
+    <h1 class="post-title text-balance">{post.title}</h1>
+    {post.excerpt && <p class="post-lead">{postExcerpt(post)}</p>}
+
+    {post.cover_image && (
+      <figure class="post-cover">
+        <img src={post.cover_image} alt={post.cover_alt || ''} width="1200" height="675" decoding="async" />
+      </figure>
+    )}
+
+    <div class="post-body" set:html={html} />
+
+    {post.tags.length > 0 && (
+      <p class="post-tags">
+        {post.tags.map((tg) => <a href={`/blog/?tag=${encodeURIComponent(tg)}`}>#{tg}</a>)}
+      </p>
+    )}
+
+    <div class="post-share">
+      <span>Share:</span>
+      <a href={`https://wa.me/?text=${encodeURIComponent(post.title + ' ' + url)}`} target="_blank" rel="noopener">WhatsApp</a>
+      <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`} target="_blank" rel="noopener">Facebook</a>
+      <a href={`mailto:?subject=${encodeURIComponent(post.title)}&body=${encodeURIComponent(url)}`}>Email</a>
+    </div>
+  </article>
+
+  {related.length > 0 && (
+    <section class="post-related page-x mx-auto max-w-[1080px]">
+      <h2 class="h2">Keep reading</h2>
+      <ul>
+        {related.map((r) => (
+          <li><a href={`/blog/${r.slug}`}><span>{r.title}</span><small>{formatPostDate(r.published_at, locale)}</small></a></li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  <style>
+    .post-back { color: var(--color-graphite); text-decoration: none; font-size: 14px; }
+    .post-meta { margin: 18px 0 6px; font-size: 13px; color: var(--color-graphite); }
+    .post-title { font-family: var(--font-display); font-weight: 500; font-size: 34px; line-height: 1.1; letter-spacing: -0.02em; color: var(--color-ink); margin: 0; }
+    @media (min-width: 768px) { .post-title { font-size: 44px; } }
+    .post-lead { margin: 16px 0 0; font-size: 18px; line-height: 1.55; color: color-mix(in oklab, var(--color-ink) 78%, transparent); }
+    .post-cover { margin: 28px 0 0; }
+    .post-cover img { width: 100%; height: auto; border-radius: 14px; display: block; }
+    .post-body { margin: 28px 0 0; font-size: 16.5px; line-height: 1.75; color: color-mix(in oklab, var(--color-ink) 88%, transparent); }
+    .post-body :global(h2) { font-family: var(--font-display); font-weight: 500; font-size: 24px; line-height: 1.2; margin: 36px 0 12px; color: var(--color-ink); }
+    .post-body :global(h3) { font-family: var(--font-display); font-weight: 500; font-size: 19px; margin: 28px 0 10px; color: var(--color-ink); }
+    .post-body :global(p) { margin: 0 0 18px; }
+    .post-body :global(ul), .post-body :global(ol) { margin: 0 0 18px; padding-inline-start: 24px; }
+    .post-body :global(li) { margin: 6px 0; }
+    .post-body :global(a) { color: var(--color-accent-ink); text-underline-offset: 2px; }
+    .post-body :global(blockquote) { margin: 18px 0; padding: 4px 0 4px 18px; border-inline-start: 3px solid color-mix(in oklab, var(--color-accent) 45%, transparent); color: var(--color-graphite); font-style: italic; }
+    .post-body :global(img) { width: 100%; height: auto; border-radius: 12px; margin: 8px 0 20px; }
+    .post-body :global(pre) { background: var(--color-night); color: var(--color-cream); padding: 16px; border-radius: 10px; overflow-x: auto; font-size: 13.5px; margin: 0 0 20px; }
+    .post-body :global(code) { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .92em; }
+    .post-body :global(hr) { border: 0; height: 1px; background: var(--color-smoke); margin: 32px 0; }
+    .post-tags { margin: 32px 0 0; display: flex; gap: 12px; flex-wrap: wrap; }
+    .post-tags a { color: var(--color-graphite); text-decoration: none; font-size: 13px; }
+    .post-share { margin: 24px 0 0; display: flex; gap: 14px; align-items: center; font-size: 14px; color: var(--color-graphite); }
+    .post-share a { color: var(--color-accent-ink); text-decoration: none; font-weight: 600; }
+    .post-related { padding-block: 40px 64px; }
+    .post-related ul { list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 10px; }
+    .post-related a { display: flex; justify-content: space-between; gap: 16px; padding: 14px 16px; border: 1px solid var(--color-smoke); border-radius: 12px; text-decoration: none; color: var(--color-ink); background: var(--color-paper); }
+    .post-related a:hover { border-color: color-mix(in oklab, var(--color-accent) 30%, var(--color-smoke)); }
+    .post-related small { color: var(--color-graphite); white-space: nowrap; }
+  </style>
+</BaseLayout>

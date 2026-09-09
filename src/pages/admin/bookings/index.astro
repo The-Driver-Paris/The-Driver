@@ -1,0 +1,117 @@
+---
+import AdminShell from '../_AdminShell.astro';
+export const prerender = false;
+---
+
+<AdminShell title="Bookings" section="bookings">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <div>
+      <h1 class="a-h1">Bookings</h1>
+      <p class="a-sub">Every booking request, also kept here in case an email is missed.</p>
+    </div>
+    <button class="a-btn" data-export>Export CSV</button>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <select class="a-select" data-filter style="max-width:180px">
+      <option value="">All statuses</option>
+      <option value="new">New</option>
+      <option value="contacted">Contacted</option>
+      <option value="confirmed">Confirmed</option>
+      <option value="done">Done</option>
+      <option value="cancelled">Cancelled</option>
+    </select>
+    <input class="a-input" data-search placeholder="Search name, email, route…" style="max-width:260px" />
+  </div>
+
+  <div data-list>Loading…</div>
+
+  <script>
+    import { getBrowserClient } from '../../../lib/supabase';
+    const sb = getBrowserClient();
+    const toast = (window as any).adminToast as (m: string, k?: string) => void;
+    const list = document.querySelector<HTMLElement>('[data-list]')!;
+    const filter = document.querySelector<HTMLSelectElement>('[data-filter]')!;
+    const search = document.querySelector<HTMLInputElement>('[data-search]')!;
+    const STATUSES = ['new', 'contacted', 'confirmed', 'done', 'cancelled'];
+    let cache: any[] = [];
+
+    const esc = (s: any) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+    const fmt = (iso: string) => new Date(iso).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+
+    function render() {
+      const term = search.value.trim().toLowerCase();
+      const rows = cache.filter((b) => {
+        if (filter.value && b.status !== filter.value) return false;
+        if (!term) return true;
+        return [b.first_name, b.last_name, b.email, b.from_loc, b.to_loc, b.phone].join(' ').toLowerCase().includes(term);
+      });
+      if (!rows.length) { list.innerHTML = '<div class="a-card" style="color:#5b6774">Nothing here.</div>'; return; }
+      list.innerHTML = rows.map((b) => `
+        <div class="a-card" style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div>
+              <strong>${esc(b.first_name)} ${esc(b.last_name)}</strong>
+              <span class="a-badge ${b.status}">${b.status}</span><br>
+              <span style="color:#5b6774">${esc(b.from_loc)} → ${esc(b.to_loc)} · ${esc(b.pax)} pax · ${esc(b.trip_date) || ''} ${esc(b.trip_time) || ''}</span><br>
+              <span style="color:#8a95a1;font-size:12px">${fmt(b.created_at)} · ${esc(b.email)} · ${esc(b.phone)} · ${b.price_estimate ? '€' + b.price_estimate : ''}</span>
+            </div>
+            <div style="min-width:160px">
+              <select class="a-select" data-status data-id="${b.id}">
+                ${STATUSES.map((s) => `<option value="${s}" ${s === b.status ? 'selected' : ''}>${s}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <details style="margin-top:8px">
+            <summary style="cursor:pointer;color:#5b6774">Details &amp; notes</summary>
+            <pre style="white-space:pre-wrap;font-size:12px;color:#46525f;background:#f7f9fa;padding:10px;border-radius:6px">${esc(JSON.stringify({ flight: b.flight_number, train: b.train_number, pickup: b.pickup_address, dropoff: b.dropoff_address, trip_type: b.trip_type, return: [b.return_date, b.return_time], child_seats: b.child_seats, extra_stop: b.extra_stop, locale: b.locale, source: b.source }, null, 2))}</pre>
+            <textarea class="a-textarea" data-notes data-id="${b.id}" style="min-height:60px" placeholder="Private notes">${esc(b.notes)}</textarea>
+            <button class="a-btn" data-savenotes data-id="${b.id}" style="margin-top:6px;height:34px">Save notes</button>
+          </details>
+        </div>`).join('');
+    }
+
+    async function load() {
+      const { data, error } = await sb.from('bookings').select('*').order('created_at', { ascending: false }).limit(500);
+      if (error) { list.innerHTML = '<div class="a-card" style="color:#d9544d">Could not load bookings.</div>'; return; }
+      cache = data ?? [];
+      render();
+    }
+
+    list.addEventListener('change', async (e) => {
+      const sel = (e.target as HTMLElement).closest<HTMLSelectElement>('[data-status]');
+      if (!sel) return;
+      const id = sel.dataset.id!;
+      const { error } = await sb.from('bookings')
+        .update({ status: sel.value as 'new' | 'contacted' | 'confirmed' | 'done' | 'cancelled' })
+        .eq('id', id);
+      if (error) { toast('Could not update status', 'err'); load(); return; }
+      const row = cache.find((b) => b.id === id); if (row) row.status = sel.value;
+      toast('Updated', 'ok');
+    });
+    list.addEventListener('click', async (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-savenotes]');
+      if (!btn) return;
+      const id = btn.dataset.id!;
+      const ta = list.querySelector<HTMLTextAreaElement>(`[data-notes][data-id="${id}"]`)!;
+      const { error } = await sb.from('bookings').update({ notes: ta.value }).eq('id', id);
+      toast(error ? 'Could not save notes' : 'Notes saved', error ? 'err' : 'ok');
+      if (!error) { const row = cache.find((b) => b.id === id); if (row) row.notes = ta.value; }
+    });
+    filter.addEventListener('change', render);
+    search.addEventListener('input', render);
+
+    document.querySelector('[data-export]')?.addEventListener('click', () => {
+      const cols = ['created_at', 'status', 'first_name', 'last_name', 'email', 'phone', 'from_loc', 'to_loc', 'pax', 'trip_date', 'trip_time', 'price_estimate', 'locale', 'source', 'notes'];
+      const csv = [cols.join(',')].concat(
+        cache.map((b) => cols.map((c) => `"${String(b[c] ?? '').replace(/"/g, '""')}"`).join(',')),
+      ).join('\n');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      a.download = `bookings-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+    });
+
+    window.addEventListener('admin:ready', load);
+  </script>
+</AdminShell>

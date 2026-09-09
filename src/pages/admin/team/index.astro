@@ -1,0 +1,122 @@
+---
+import AdminShell from '../_AdminShell.astro';
+import { GRANTABLE_SECTIONS } from '../../../lib/adminSections';
+export const prerender = false;
+const SECTION_LABELS: Record<string, string> = { blog: 'Blog', content: 'Page text', bookings: 'Bookings', messages: 'Messages' };
+---
+
+<AdminShell title="Team" section="team">
+  <h1 class="a-h1">Team</h1>
+  <p class="a-sub">Create logins for staff and choose which sections each one can use. Enforced by the database.</p>
+
+  <div class="a-card" style="margin-bottom:20px">
+    <strong>Add a staff member</strong>
+    <form data-create style="margin-top:10px">
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <label class="a-label" for="ne">Email</label>
+          <input class="a-input" id="ne" name="email" type="email" required />
+        </div>
+        <div style="flex:1;min-width:200px">
+          <label class="a-label" for="np">Temporary password</label>
+          <input class="a-input" id="np" name="password" minlength="8" required />
+          <small style="color:#8a95a1">At least 8 characters. They can change it after signing in.</small>
+        </div>
+      </div>
+      <label class="a-label">Sections</label>
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        {GRANTABLE_SECTIONS.map((s) => (
+          <label style="display:flex;gap:6px;align-items:center;font-weight:500">
+            <input type="checkbox" name="sections" value={s.key} /> {SECTION_LABELS[s.key] ?? s.key}
+          </label>
+        ))}
+      </div>
+      <button type="submit" class="a-btn a-btn-primary" style="margin-top:14px" data-create-btn>Create login</button>
+      <span data-create-msg style="margin-left:10px;font-size:13px"></span>
+    </form>
+  </div>
+
+  <div data-staff>Loading…</div>
+
+  <script is:inline define:vars={{ grantable: GRANTABLE_SECTIONS.map((s) => s.key), labels: SECTION_LABELS }}>
+    window.__team = { grantable, labels };
+  </script>
+
+  <script>
+    import { getBrowserClient } from '../../../lib/supabase';
+    const { grantable, labels } = (window as any).__team as { grantable: string[]; labels: Record<string, string> };
+    const sb = getBrowserClient();
+    const toast = (window as any).adminToast as (m: string, k?: string) => void;
+    const staffHost = document.querySelector<HTMLElement>('[data-staff]')!;
+    const esc = (s: any) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+
+    async function loadStaff() {
+      const { data, error } = await sb.from('admin_profiles')
+        .select('user_id, email, is_owner, sections, active').order('created_at', { ascending: true });
+      if (error) { staffHost.innerHTML = '<div class="a-card" style="color:#d9544d">Could not load the team.</div>'; return; }
+      const staff = (data ?? []).filter((p) => !p.is_owner);
+      if (!staff.length) { staffHost.innerHTML = '<div class="a-card" style="color:#5b6774">No staff yet.</div>'; return; }
+      staffHost.innerHTML = staff.map((p) => `
+        <div class="a-card" style="margin-bottom:10px" data-row="${p.user_id}">
+          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <strong>${esc(p.email)}</strong>
+            <label style="font-weight:500"><input type="checkbox" data-active ${p.active ? 'checked' : ''}> Active</label>
+          </div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px">
+            ${grantable.map((k) => `<label style="display:flex;gap:6px;align-items:center;font-weight:500"><input type="checkbox" data-sec value="${k}" ${(p.sections ?? []).includes(k) ? 'checked' : ''}> ${esc(labels[k] ?? k)}</label>`).join('')}
+          </div>
+          <button class="a-btn" data-save style="margin-top:10px;height:34px" disabled>Save</button>
+        </div>`).join('');
+    }
+
+    staffHost.addEventListener('change', (e) => {
+      const row = (e.target as HTMLElement).closest<HTMLElement>('[data-row]');
+      if (row) row.querySelector<HTMLButtonElement>('[data-save]')!.disabled = false;
+    });
+    staffHost.addEventListener('click', async (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-save]');
+      if (!btn) return;
+      const row = btn.closest<HTMLElement>('[data-row]')!;
+      const userId = row.dataset.row!;
+      const active = row.querySelector<HTMLInputElement>('[data-active]')!.checked;
+      const sections = [...row.querySelectorAll<HTMLInputElement>('[data-sec]:checked')].map((i) => i.value);
+      btn.disabled = true;
+      const { error } = await sb.from('admin_profiles').update({ active, sections }).eq('user_id', userId);
+      if (error) { toast('Could not save', 'err'); btn.disabled = false; return; }
+      toast('Saved', 'ok');
+    });
+
+    document.querySelector('[data-create]')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const btn = document.querySelector<HTMLButtonElement>('[data-create-btn]')!;
+      const msg = document.querySelector<HTMLElement>('[data-create-msg]')!;
+      const fd = new FormData(form);
+      btn.disabled = true; msg.textContent = '';
+      const { data, error } = await sb.functions.invoke('create-worker', {
+        body: {
+          email: String(fd.get('email')).trim(),
+          password: String(fd.get('password')),
+          sections: fd.getAll('sections').map(String),
+        },
+      });
+      btn.disabled = false;
+      if (error) {
+        let code = 'create_failed';
+        try { code = (await (error as any).context?.json())?.code ?? code; } catch {}
+        msg.textContent = { email_exists: 'That email already has a login.', weak_password: 'Password too short.' }[code] ?? 'Could not create the login.';
+        msg.style.color = '#d9544d';
+        return;
+      }
+      msg.textContent = 'Login created.'; msg.style.color = '#1f7a4d';
+      form.reset();
+      loadStaff();
+    });
+
+    window.addEventListener('admin:ready', (e) => {
+      const d = (e as CustomEvent).detail as { isOwner: boolean };
+      if (!d.isOwner) { location.href = '/admin'; return; }
+      loadStaff();
+    });
+  </script>
+</AdminShell>

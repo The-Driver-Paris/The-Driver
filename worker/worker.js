@@ -136,6 +136,12 @@ export default {
       return jsonResponse({ success: true }, 200, cors);
     }
 
+    // Mirror every submission into Supabase for the admin dashboard inbox.
+    // Non-blocking and best-effort: the email path below is the source of
+    // truth, so a capture failure (or missing Supabase env) must never fail
+    // the booking. Needs SUPABASE_URL + SUPABASE_ANON_KEY as Worker vars.
+    captureSubmission(data, env).catch(() => {});
+
     // Two form types share this Worker: the booking modal and the contact
     // form on the FAQ page. They need different validation and different
     // emails, so dispatch here. Anything without an explicit `formType` is a
@@ -273,6 +279,68 @@ function jsonResponse(body, status = 200, cors = corsHeadersFor('')) {
 function isValidEmail(value) {
   const s = String(value == null ? '' : value).trim();
   return s.length <= 254 && /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(s);
+}
+
+// ── Supabase capture (best-effort) ───────────────────────────────────────
+//
+// POSTs the submission to Supabase REST as an anonymous insert. The
+// `anyone can submit a booking` / `anyone can send a message` RLS policies
+// (supabase/migrations/0004_rls.sql) permit this. Silently no-ops if the two
+// env vars aren't set, so it's safe to deploy before Supabase is wired.
+async function captureSubmission(data, env) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) return;
+
+  const isContact = data.formType === 'contact';
+  const table = isContact ? 'contact_messages' : 'bookings';
+  const row = isContact
+    ? {
+        first_name: data.firstName ?? null,
+        email: data.email ?? null,
+        language: data.language ?? data.lang ?? null,
+        message: data.message ?? null,
+        raw: data,
+      }
+    : {
+        from_loc: data.pickup ?? null,
+        to_loc: data.dropoff ?? null,
+        trip_type: data.tripType ?? data.trip_type ?? null,
+        pax: toIntOrNull(data.passengers ?? data.pax),
+        vehicle: data.vehicle ?? null,
+        trip_date: data.date ?? null,
+        trip_time: data.time ?? null,
+        return_date: data.returnDate ?? null,
+        return_time: data.returnTime ?? null,
+        flight_number: data.flightNumber ?? null,
+        train_number: data.trainNumber ?? null,
+        pickup_address: data.pickupAddress ?? null,
+        dropoff_address: data.dropoffAddress ?? null,
+        child_seats: data.childSeats ?? {},
+        extra_stop: data.extraStop ?? null,
+        first_name: data.firstName ?? null,
+        last_name: data.lastName ?? null,
+        phone: data.phone ?? null,
+        email: data.email ?? null,
+        price_estimate: toIntOrNull(data.priceEstimate ?? data.price),
+        locale: data.lang ?? data.locale ?? null,
+        source: data.source ?? (isContact ? 'contact-form' : 'booking-modal'),
+        raw: data,
+      };
+
+  await fetch(`${env.SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: {
+      apikey: env.SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${env.SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    },
+    body: JSON.stringify(row),
+  });
+}
+
+function toIntOrNull(v) {
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) ? n : null;
 }
 
 async function sendEmail(apiKey, { from, to, replyTo, subject, html }) {

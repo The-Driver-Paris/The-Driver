@@ -18,6 +18,7 @@
   "flag": "🇪🇸",
   "nav": {
     "home": "Inicio",
+    "disneyland": "Disneyland París",
     "fleet": "Nuestra flota",
     "routes": "Rutas y tarifas",
     "about": "Nosotros",
@@ -376,6 +377,18 @@
       "title": "Reserva tu traslado directamente.",
       "sub": "Haz clic para rellenar tu reserva.",
       "items": [
+        {
+          "label": "Traslado Disneyland París",
+          "routeKey": "disneyland"
+        },
+        {
+          "label": "Traslado aeropuerto París",
+          "routeKey": "parisTransfer"
+        },
+        {
+          "label": "Chófer privado París por horas",
+          "routeKey": "parisChauffeur"
+        },
         {
           "label": "Chófer familias París",
           "routeKey": "childSeats"
@@ -1125,5 +1138,356 @@
       }
     },
     "availability": "Disponible 24h/24 · 7 días"
+  },
+  "disneyland": {
+    "seo": {
+      "title": "Traslado privado a Disneyland París — CDG, Orly, Beauvais y París | The Driver",
+      "description": "Traslados privados en coche y furgoneta a Disneyland París. Tarifas fijas desde Charles de Gaulle (CDG), Orly, Beauvais y el centro de París. Sillas infantiles gratis, seguimiento de vuelos y chófer que habla inglés. Reserva en 2 minutos."
+    },
+    "hero": {
+      "eyebrow": "TRASLADOS DISNEYLAND PARÍS",
+      "title": "Traslados privados a Disneyland París.",
+      "sub": "Traslados privados puerta a puerta, en coche o furgoneta, desde Charles de Gaulle (CDG), Orly, Beauvais y el centro de París. Precio fijo, sillas infantiles gratis y un chófer que habla inglés esperándote a la llegada.",
+      "pills": [
+        "Tarifas fijas",
+        "Sillas y elevadores gratis",
+        "Seguimiento de vuelos",
+        "Chófer que habla inglés"
+      ],
+      "primaryCta": "Ver mi precio",
+      "secondaryCta": "Escríbenos por WhatsApp",
+      "imageAlt": "El Castillo de la Bella Durmiente en Disneyland París"
+    },
+    "routes": {
+      "eyebrow": "RUTAS POPULARES",
+      "heading": "Todas las formas de llegar a Disneyland París.",
+      "sub": "Una tarifa fija por vehículo — peajes, impuestos y equipaje incluidos. Los precios de abajo son la tarifa de salida para un coche privado (1 a 3 pasajeros); la tarifa de furgoneta cubre hasta 8.",
+      "fromLabel": "Coche privado desde",
+      "vanLabel": "Furgoneta (hasta 8) desde",
+      "timeLabel": "Trayecto",
+      "distanceLabel": "Distancia",
+      "bookCta": "Reservar este traslado",
+      "items": [
+        {
+          "from": "CDG",
+          "to": "Disneyland",
+          "name": "Charles de Gaulle (CDG) a Disneyland París",
+          "time": "45–55 min",
+          "distance": "46 km",
+          "blurb": "Nuestra ruta más reservada. Tu chófer te recibe en la sala de llegadas con un cartel con tu nombre y sigue tu vuelo, así que un retraso no te cuesta nada."
+        },
+        {
+          "from": "Orly",
+          "to": "Disneyland",
+          "name": "Aeropuerto de Orly (ORY) a Disneyland París",
+          "time": "45–60 min",
+          "distance": "45 km",
+          "blurb": "Un trayecto directo por el sur y el este de París — sin transbordo del RER B en Châtelet con las maletas y el carrito."
+        },
+        {
+          "from": "Beauvais",
+          "to": "Disneyland",
+          "name": "Aeropuerto de Beauvais (BVA) a Disneyland París",
+          "time": "1 h 15 – 1 h 40",
+          "distance": "110 km",
+          "blurb": "Beauvais casi no tiene transporte directo a los parques. Un traslado privado convierte un viaje de tres tramos en un solo trayecto tranquilo."
+        },
+        {
+          "from": "Paris",
+          "to": "Disneyland",
+          "name": "Centro de París a Disneyland París",
+          "time": "40–55 min",
+          "distance": "40 km",
+          "blurb": "Recogida en cualquier hotel o apartamento de París. Ideal para un día de parque o para el check-in en un hotel Disney sin las aglomeraciones del RER A."
+        }
+      ]
+    },
+    "families": {
+      "eyebrow": "PENSADO PARA FAMILIAS",
+      "heading": "La forma fácil de llegar con niños.",
+      "sub": "La mayoría de nuestros pasajeros a Disneyland viajan con niños. Todo lo de abajo está incluido en la tarifa — sin extras.",
+      "items": [
+        {
+          "icon": "baby",
+          "title": "Sillas, capazos y elevadores gratis",
+          "body": "Capazo (0–1 año), silla (1–3 años) y elevador (4–10 años), instalados antes de tu llegada. Dinos la edad de cada niño al reservar — siempre gratis."
+        },
+        {
+          "icon": "plane",
+          "title": "Recepción personal, vuelo seguido",
+          "body": "Tu chófer espera en la sala de llegadas con un cartel con tu nombre y sigue tu vuelo en tiempo real. Hasta 60 minutos de espera gratis tras aterrizar."
+        },
+        {
+          "icon": "briefcase",
+          "title": "Espacio para maletas y carritos",
+          "body": "Elige la furgoneta y tendrás un maletero separado para las maletas, un carrito plegado y las compras de Disney a la vuelta."
+        },
+        {
+          "icon": "map-pin",
+          "title": "Un solo trayecto, puerta a puerta",
+          "body": "Sin RER A, sin RER B, sin transbordos, sin escaleras. Directo desde la terminal o desde tu hotel de París hasta la parada en Disneyland París."
+        }
+      ]
+    },
+    "vehicles": {
+      "eyebrow": "ELIGE TU VEHÍCULO",
+      "heading": "Un coche privado o una furgoneta familiar.",
+      "sub": "Elige según el tamaño del grupo — el vehículo adecuado se asigna automáticamente al reservar.",
+      "priceFromLabel": "CDG → Disneyland desde",
+      "car": {
+        "label": "COCHE PRIVADO",
+        "model": "Tesla Model Y",
+        "capacity": "1 a 3 pasajeros · 3 maletas",
+        "body": "Ideal para una pareja o una familia pequeña. Silencioso, 100 % eléctrico, con sillas infantiles a petición."
+      },
+      "van": {
+        "label": "FURGONETA FAMILIAR",
+        "model": "Mercedes Vito / Renault Trafic",
+        "capacity": "4 a 8 pasajeros · hasta 8 maletas",
+        "body": "La mejor opción con un carrito, varios niños o mucho equipaje. Asientos individuales, maletero separado."
+      },
+      "note": "¿Más de 8 personas juntas? Combinamos vehículos a la misma tarifa por vehículo — solo dinos el tamaño del grupo."
+    },
+    "how": {
+      "eyebrow": "CÓMO FUNCIONA",
+      "heading": "Reservado en 2 minutos.",
+      "steps": [
+        {
+          "title": "Consulta tu precio",
+          "body": "Elige tu ruta y el número de pasajeros. La tarifa fija aparece al instante — sin crear cuenta."
+        },
+        {
+          "title": "Envía tus datos",
+          "body": "Número de vuelo o de tren, fecha, hora y la edad de los niños para las sillas. Eso es todo."
+        },
+        {
+          "title": "Recibe la confirmación",
+          "body": "En menos de una hora por email y WhatsApp, con el nombre, la foto y el número de tu chófer."
+        },
+        {
+          "title": "Llega y disfruta",
+          "body": "Encuentra a tu chófer, sube y paga en efectivo o con tarjeta el mismo día. Rumbo a los parques."
+        }
+      ]
+    },
+    "faq": {
+      "eyebrow": "FAQ TRASLADO DISNEYLAND",
+      "heading": "Preguntas que nos hacen las familias.",
+      "items": [
+        {
+          "q": "¿Cuánto cuesta un traslado privado de CDG a Disneyland París?",
+          "a": "Un coche privado para 1 a 3 pasajeros desde {priceCarCdg} €, y una furgoneta para hasta 8 pasajeros desde {priceVanCdg} €, solo ida. Es un precio fijo por vehículo — peajes, impuestos y equipaje incluidos, nada que añadir a la llegada."
+        },
+        {
+          "q": "¿Dónde nos deja exactamente el chófer en Disneyland París?",
+          "a": "Directamente en la entrada de tu hotel Disney, o en la zona de bajada de autocares y taxis junto a la entrada del parque y Disney Village. Dinos tu hotel al reservar y el chófer te lleva a la puerta."
+        },
+        {
+          "q": "¿Cuánto dura el trayecto de CDG a Disneyland París?",
+          "a": "Normalmente de 45 a 55 minutos para los 46 km por la A104. Calcula entre 45 y 60 minutos desde Orly, y alrededor de 1 h 15 a 1 h 40 desde Beauvais."
+        },
+        {
+          "q": "¿Ofrecéis sillas infantiles y elevadores?",
+          "a": "Sí — capazos, sillas y elevadores, todos gratis. Dinos la edad de cada niño al reservar y la silla adecuada se instala antes de la recogida."
+        },
+        {
+          "q": "¿Qué pasa si nuestro vuelo se retrasa?",
+          "a": "Tu chófer sigue el vuelo y ajusta la hora de recogida. La espera es gratis hasta 60 minutos tras aterrizar, y no hay recargo por una llegada retrasada o adelantada."
+        },
+        {
+          "q": "¿Podéis recogernos en un hotel Disney para la vuelta?",
+          "a": "Sí. Te recogemos en el vestíbulo de tu hotel en Disneyland París para el regreso a CDG, Orly, Beauvais o el centro de París. Reserva la ida y vuelta a la vez para el descuento."
+        },
+        {
+          "q": "¿El precio es fijo o por persona?",
+          "a": "Es un precio fijo por vehículo, acordado al reservar — nunca por persona y nunca con taxímetro. La tarifa que ves es la que pagas."
+        },
+        {
+          "q": "¿Con cuánta antelación hay que reservar?",
+          "a": "24 horas o más es lo ideal, sobre todo en vacaciones escolares. Aceptamos peticiones de última hora según disponibilidad — escríbenos por WhatsApp para una respuesta rápida."
+        },
+        {
+          "q": "¿Cómo se paga?",
+          "a": "En efectivo o con tarjeta al chófer a la llegada. No se exige pago por adelantado; hay un depósito online opcional para fijar el descuento de ida y vuelta."
+        }
+      ]
+    },
+    "finalCta": {
+      "heading": "Tu traslado a Disneyland París está listo.",
+      "sub": "Tarifa fija, sillas infantiles gratis, chófer que habla inglés. Consulta tu precio en 10 segundos.",
+      "primary": "Ver mi precio",
+      "whatsapp": "WhatsApp",
+      "footnote": "Disponible 24/7 · Respuesta en 1 h · Precio fijo garantizado"
+    }
+  },
+  "parisTransfer": {
+    "seo": {
+      "title": "Traslado aeropuerto París — Coche y furgoneta privados desde CDG, Orly, Beauvais | The Driver",
+      "description": "Traslados privados desde los aeropuertos de París. Tarifas fijas entre Charles de Gaulle (CDG), Orly, Beauvais y tu hotel de París. Recepción personal, seguimiento de vuelos, sillas infantiles gratis, chófer que habla inglés."
+    },
+    "hero": {
+      "eyebrow": "TRASLADOS AEROPUERTO PARÍS",
+      "title": "Traslados privados desde los aeropuertos de París.",
+      "sub": "Un coche o furgoneta privados a precio fijo entre París y todos los aeropuertos — Charles de Gaulle, Orly y Beauvais — además de las principales estaciones de tren. Tu chófer te recibe a la llegada, sigue tu vuelo y te lleva directo a la puerta.",
+      "pills": ["Tarifas fijas", "Recepción personal incluida", "Seguimiento de vuelos", "Sillas infantiles gratis"],
+      "primaryCta": "Ver mi precio",
+      "secondaryCta": "Escríbenos por WhatsApp"
+    },
+    "routes": {
+      "eyebrow": "RUTAS POPULARES",
+      "heading": "Traslados de aeropuerto en París, en ambos sentidos.",
+      "sub": "Una tarifa fija por vehículo — peajes, impuestos y equipaje incluidos. Los precios de abajo son la tarifa de salida para un coche privado (1 a 3 pasajeros); la tarifa de furgoneta cubre hasta 8.",
+      "fromLabel": "Coche privado desde",
+      "vanLabel": "Furgoneta (hasta 8) desde",
+      "timeLabel": "Trayecto",
+      "distanceLabel": "Distancia",
+      "bookCta": "Reservar este traslado",
+      "items": [
+        { "from": "CDG", "to": "Paris", "name": "Charles de Gaulle (CDG) al centro de París", "time": "45–70 min", "distance": "27 km", "blurb": "Recepción en la sala de llegadas con un cartel con tu nombre. Seguimos tu vuelo, así que un aterrizaje tardío no te cuesta nada." },
+        { "from": "Orly", "to": "Paris", "name": "Aeropuerto de Orly (ORY) al centro de París", "time": "30–50 min", "distance": "18 km", "blurb": "El trayecto más rápido a la ciudad. Directo a tu hotel — sin Orlyval, sin transbordo del RER B." },
+        { "from": "Beauvais", "to": "Paris", "name": "Aeropuerto de Beauvais (BVA) al centro de París", "time": "1 h 15 – 1 h 45", "distance": "85 km", "blurb": "Olvídate del autobús lanzadera a Porte Maillot. Un coche privado te lleva puerta a puerta por una tarifa fija." },
+        { "from": "Paris", "to": "CDG", "name": "Centro de París a Charles de Gaulle (CDG)", "time": "45–70 min", "distance": "27 km", "blurb": "Recogida en tu hotel o apartamento a la hora que elijas, con un margen previsto para la facturación." },
+        { "from": "CDG", "to": "Orly", "name": "Entre los aeropuertos — CDG a Orly", "time": "50–80 min", "distance": "50 km", "blurb": "¿Una conexión ajustada entre dos vuelos? Nos encargamos del traslado de aeropuerto a aeropuerto con tu equipaje." }
+      ]
+    },
+    "included": {
+      "eyebrow": "EN CADA TRASLADO",
+      "heading": "La tarifa es la tarifa.",
+      "sub": "Sin taxímetro, sin recargo de aeropuerto, sin sorpresas al final del trayecto.",
+      "items": [
+        { "icon": "lock", "title": "Precio fijo, acordado por adelantado", "body": "Confirmado al reservar. Peajes, impuestos y equipaje ya están incluidos — nada que añadir a la llegada." },
+        { "icon": "user-check", "title": "Recepción en llegadas", "body": "Tu chófer espera pasada la aduana con un cartel con tu nombre, y envía su foto y número 24 h antes." },
+        { "icon": "clock", "title": "Vuelo seguido, espera gratis", "body": "Seguimos tu vuelo en tiempo real. Hasta 60 minutos de espera gratis tras aterrizar, 30 minutos en estaciones de tren." },
+        { "icon": "baby", "title": "Sillas y elevadores gratis", "body": "Capazo, silla o elevador, montados antes de la recogida. Solo dinos las edades al reservar." }
+      ]
+    },
+    "vehicles": {
+      "eyebrow": "ELIGE TU VEHÍCULO",
+      "heading": "Un coche privado o una furgoneta familiar.",
+      "sub": "Elige según el tamaño del grupo — el vehículo adecuado se asigna automáticamente al reservar.",
+      "car": { "label": "COCHE PRIVADO", "model": "Tesla Model Y", "capacity": "1 a 3 pasajeros · 3 maletas", "body": "Ideal para una pareja, un viajero solo o un viaje de negocios. Silencioso, 100 % eléctrico." },
+      "van": { "label": "FURGONETA FAMILIAR", "model": "Mercedes Vito / Renault Trafic", "capacity": "4 a 8 pasajeros · hasta 8 maletas", "body": "Para familias, grupos o mucho equipaje. Asientos individuales, maletero separado." },
+      "note": "¿Más de 8 personas juntas? Combinamos vehículos a la misma tarifa por vehículo."
+    },
+    "how": {
+      "eyebrow": "CÓMO FUNCIONA",
+      "heading": "Reservado en 2 minutos.",
+      "steps": [
+        { "title": "Consulta tu precio", "body": "Elige tu ruta y el número de pasajeros. La tarifa fija aparece al instante — sin crear cuenta." },
+        { "title": "Envía tus datos", "body": "Número de vuelo o de tren, fecha, hora, dirección de recogida. Eso es todo." },
+        { "title": "Recibe la confirmación", "body": "En menos de una hora por email y WhatsApp, con el nombre, la foto y el número de tu chófer." },
+        { "title": "Reúnete y sal", "body": "Encuentra a tu chófer, sube y paga en efectivo o con tarjeta el mismo día." }
+      ]
+    },
+    "crosslinks": {
+      "disneyland": "¿Vas a los parques? Consulta nuestros traslados a Disneyland París",
+      "chauffeur": "¿Te quedas unos días? Contrata un chófer por horas"
+    },
+    "faq": {
+      "eyebrow": "FAQ TRASLADO PARÍS",
+      "heading": "Preguntas que nos hacen los viajeros.",
+      "items": [
+        { "q": "¿Cuánto cuesta un taxi de CDG al centro de París?", "a": "Nuestro traslado privado de Charles de Gaulle al centro de París tiene un precio fijo de {priceCarCdg} € para un coche (1 a 3 pasajeros) y {priceVanCdg} € para una furgoneta (hasta 8), solo ida. Se acuerda al reservar — peajes e impuestos incluidos, sin taxímetro." },
+        { "q": "¿Dónde me espera el chófer en el aeropuerto?", "a": "En la sala de llegadas, pasada la aduana y la recogida de equipaje, con un cartel con tu nombre. Recibes la foto y el número del chófer 24 horas antes del viaje." },
+        { "q": "¿Qué pasa si mi vuelo se retrasa?", "a": "Seguimos el vuelo y ajustamos. La espera es gratis hasta 60 minutos tras aterrizar, sin recargo por una llegada retrasada o adelantada." },
+        { "q": "¿Cuánto dura el traslado?", "a": "Charles de Gaulle al centro de París suele ser 45–70 minutos según el tráfico, Orly 30–50 minutos y Beauvais de 1 h 15 a 1 h 45." },
+        { "q": "¿El precio es por persona o por vehículo?", "a": "Por vehículo — la tarifa cubre a todos los del coche, hasta su capacidad. Nunca por persona, nunca con taxímetro." },
+        { "q": "¿Hacéis recogidas muy temprano o de madrugada?", "a": "Sí. El servicio funciona 24/7 con la misma tarifa fija — sin recargo nocturno ni de fin de semana." },
+        { "q": "¿Cómo se paga?", "a": "En efectivo o con tarjeta al chófer a la llegada. No se exige pago por adelantado; hay un depósito online opcional para el descuento de ida y vuelta." },
+        { "q": "¿Con cuánta antelación hay que reservar?", "a": "24 horas o más es lo ideal. Aceptamos peticiones de última hora según disponibilidad — WhatsApp es la forma más rápida de contactarnos." }
+      ]
+    },
+    "finalCta": {
+      "heading": "Tu traslado en París, resuelto.",
+      "sub": "Tarifa fija, recepción personal, chófer que habla inglés. Consulta tu precio en 10 segundos.",
+      "primary": "Ver mi precio",
+      "whatsapp": "WhatsApp",
+      "footnote": "Disponible 24/7 · Respuesta en 1 h · Precio fijo garantizado"
+    }
+  },
+  "parisChauffeur": {
+    "seo": {
+      "title": "Chófer privado en París — Por horas, excursiones y visitas turísticas | The Driver",
+      "description": "Contrata un chófer privado en París por horas desde {hourlyRate} €/hora. Visitas por la ciudad, excursiones a Versalles y a Champaña, salidas de compras. Chófer que habla inglés, tarifa por hora fija, 3 horas mínimo."
+    },
+    "hero": {
+      "eyebrow": "CHÓFER PRIVADO · POR HORAS",
+      "title": "Un chófer privado en París, el tiempo que necesites.",
+      "sub": "Mantén el mismo coche y chófer unas horas o un día entero. Visitas, compras, cenas, una excursión a Versalles o a Champaña — tú marcas la ruta, nosotros conducimos y esperamos.",
+      "pills": ["Desde {hourlyRate} € / hora", "3 horas mínimo", "Chófer que habla inglés", "Por toda Île-de-France"],
+      "primaryCta": "Ver disponibilidad",
+      "secondaryCta": "Organízalo por WhatsApp",
+      "whatsappMessage": "Hola, quiero contratar un chófer por horas en París. Esto es más o menos lo que tengo en mente:"
+    },
+    "rate": {
+      "eyebrow": "LA TARIFA",
+      "heading": "Una tarifa por hora, todo incluido.",
+      "sub": "El combustible, los peajes dentro de Île-de-France, el tiempo de espera del chófer y una silla infantil si la necesitas — todo incluido en la tarifa por hora. Las excursiones más largas fuera de la región se presupuestan a precio cerrado.",
+      "priceLine": "{hourlyRate} € / hora",
+      "minimum": "Reserva mínima de 3 horas",
+      "bullets": ["El mismo coche y chófer durante toda la reserva", "El chófer espera mientras visitas, compras o comes", "Cambia el plan sobre la marcha"]
+    },
+    "itineraries": {
+      "eyebrow": "PLANES POPULARES",
+      "heading": "Algunas formas de aprovecharlo.",
+      "sub": "Puntos de partida, no paquetes cerrados — dinos qué quieres ver y construimos el día en torno a ello.",
+      "items": [
+        { "duration": "3–4 horas", "title": "Lo esencial de París en coche", "body": "Torre Eiffel, Trocadéro, Campos Elíseos, Louvre, Notre-Dame, Montmartre — los iconos, con paradas para fotos, a tu ritmo." },
+        { "duration": "Media jornada", "title": "Salida de compras", "body": "Las tiendas de La Vallée Village, los Campos Elíseos o Le Marais. El chófer guarda las bolsas y el coche para que no cargues nada." },
+        { "duration": "Día completo", "title": "Versalles y Giverny", "body": "El Palacio y los jardines de Versalles, y la casa y los jardines de Monet en Giverny, sin los horarios de los autobuses turísticos." },
+        { "duration": "Día completo", "title": "Excursión a Champaña", "body": "Reims y Épernay — las grandes casas de champán y un viticultor de pueblo, unas 1 h 30 de trayecto en cada sentido. Se presupuesta a precio cerrado." }
+      ]
+    },
+    "included": {
+      "eyebrow": "LO QUE OBTIENES",
+      "heading": "Un chófer para el día, no un taxímetro.",
+      "items": [
+        { "icon": "user-check", "title": "Un chófer dedicado", "body": "El mismo chófer que habla inglés durante toda la reserva. Se aprende el plan y se adapta a él." },
+        { "icon": "clock", "title": "Espera y conduce", "body": "El coche se queda contigo. Para a comer, a un museo o a una tienda y el chófer está ahí cuando sales." },
+        { "icon": "map-pin", "title": "Tu ruta, flexible", "body": "Añade una parada, quita otra, cambia el orden. El plan es tuyo para moverlo durante el día." },
+        { "icon": "baby", "title": "Listo para familias", "body": "Sillas y elevadores gratis, espacio para carritos y compras en la furgoneta." }
+      ]
+    },
+    "vehicles": {
+      "eyebrow": "ELIGE TU VEHÍCULO",
+      "heading": "Un coche privado o una furgoneta familiar.",
+      "sub": "Misma tarifa por hora para ambos — elige según cuántos seáis.",
+      "car": { "label": "COCHE PRIVADO", "model": "Tesla Model Y", "capacity": "1 a 3 pasajeros", "body": "Ideal para una pareja o una familia pequeña que explora la ciudad." },
+      "van": { "label": "FURGONETA FAMILIAR", "model": "Mercedes Vito / Renault Trafic", "capacity": "4 a 8 pasajeros", "body": "Para una familia o un grupo que quiere ir junto todo el día." },
+      "note": "¿Grupo más grande? Podemos añadir un segundo vehículo con su propio chófer."
+    },
+    "how": {
+      "eyebrow": "CÓMO FUNCIONA",
+      "heading": "Organízalo en un mensaje.",
+      "steps": [
+        { "title": "Dinos el día", "body": "Fecha, hora de inicio, cuántas horas, más o menos qué te gustaría ver o hacer." },
+        { "title": "Recibe un presupuesto", "body": "Un precio fijo para la reserva — la tarifa por hora, o un precio cerrado para una excursión larga." },
+        { "title": "Confirma", "body": "Por email y WhatsApp, con el nombre, la foto y el número de tu chófer." },
+        { "title": "Disfruta del día", "body": "Tu chófer te recoge y el día es tuyo. Paga en efectivo o con tarjeta al final." }
+      ]
+    },
+    "crosslinks": {
+      "transfer": "¿Solo necesitas un trayecto al aeropuerto? Consulta los traslados de aeropuerto en París",
+      "disneyland": "¿Vas a los parques? Consulta los traslados a Disneyland París"
+    },
+    "faq": {
+      "eyebrow": "FAQ CHÓFER POR HORAS",
+      "heading": "Preguntas antes de reservar.",
+      "items": [
+        { "q": "¿Cuánto cuesta contratar un chófer por horas en París?", "a": "{hourlyRate} € por hora, con 3 horas mínimo. El combustible, los peajes dentro de Île-de-France y el tiempo de espera del chófer están incluidos. Las excursiones fuera de la región (Champaña, el Loira, Normandía) se presupuestan a precio cerrado." },
+        { "q": "¿Hay una reserva mínima?", "a": "Sí, 3 horas. A partir de ahí reservas por hora, o como media jornada o día completo a la misma tarifa." },
+        { "q": "¿El chófer puede hacer de guía turístico?", "a": "Tu chófer conoce bien París y compartirá lo que sabe y sugerirá paradas, pero es un chófer, no un guía titulado. Podemos organizar un guía titulado que os acompañe si lo pides." },
+        { "q": "¿Podemos cambiar el plan durante el día?", "a": "Sí. Añade o quita una parada, cambia el orden, amplía la reserva si la agenda del chófer lo permite. Es tu día." },
+        { "q": "¿Las excursiones fuera de París cuestan más?", "a": "Los trayectos largos (Champaña, Giverny, el Loira, Mont-Saint-Michel) se cobran a precio cerrado según la distancia y las horas en lugar de la tarifa por hora. Tienes el precio antes de confirmar." },
+        { "q": "¿Cómo se paga?", "a": "En efectivo o con tarjeta al chófer al final de la reserva. No se exige pago por adelantado para una reserva por horas estándar." }
+      ]
+    },
+    "finalCta": {
+      "heading": "Organiza tu día con un chófer privado.",
+      "sub": "Desde {hourlyRate} €/hora, 3 horas mínimo. Dinos el día y te enviamos un precio fijo.",
+      "primary": "Ver disponibilidad",
+      "whatsapp": "WhatsApp",
+      "footnote": "Disponible 24/7 · Respuesta en 1 h · Precio fijo antes de confirmar"
+    }
   }
 }

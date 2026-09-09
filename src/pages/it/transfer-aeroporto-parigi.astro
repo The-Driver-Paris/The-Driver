@@ -1,0 +1,20 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ParisTransferPage from '../../components/ParisTransferPage.astro';
+import { t } from '../../i18n';
+import { buildParisTransferSchema } from '../../utils/schema.js';
+
+const locale = 'it' as const;
+const seo = t(locale).parisTransfer.seo;
+const schema = buildParisTransferSchema({ locale, siteUrl: Astro.site?.toString() ?? '' });
+---
+
+<BaseLayout
+  locale={locale}
+  routeKey="parisTransfer"
+  title={seo.title}
+  description={seo.description}
+  structuredData={schema}
+>
+  <ParisTransferPage locale={locale} />
+</BaseLayout>

@@ -1,0 +1,303 @@
+---
+// Admin dashboard shell — sidebar + mobile drawer + auth gate + toast.
+//
+// Not prerendered. No <Nav>/<Footer> from the public site. Never linked from
+// the marketing pages; robots.txt disallows /admin.
+//
+// Auth model: this shell renders a loading screen, then a client script checks
+// the Supabase session and the caller's admin_profiles row. RLS is the real
+// boundary — every data call fails/returns nothing without an active profile —
+// so this gate is purely UX (don't flash an empty dashboard).
+//
+// Mobile-drawer correctness (learned the hard way on a previous build):
+//   • the drawer markup is static in the DOM, toggled by a class — never
+//     re-created per render, so a slow tap can't land on a swapped node
+//   • body scroll-lock uses position:fixed at the saved offset, not
+//     overflow:hidden (iOS Safari rubber-bands otherwise and the tap misses)
+//   • closes on: link click, backdrop, Escape, and crossing to >= lg
+export const prerender = false;
+
+interface Props {
+  title: string;
+  section: string; // adminSections key of the current page
+}
+const { title, section } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" data-admin>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>{title} · The Driver admin</title>
+    <link rel="icon" href="/favicon.svg" />
+    <style is:global>
+      :root {
+        --a-bg: #0f1b2d; --a-panel: #14202f; --a-line: #24313f;
+        --a-ink: #e8edf2; --a-dim: #9fb0c0; --a-accent: #c88a3b; --a-accent-ink: #b0762c;
+        --a-danger: #d9544d; --a-ok: #3ea672; --a-radius: 10px;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font: 14px/1.55 "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+        background: #f4f6f8; color: #1c2530;
+      }
+      a { color: inherit; }
+      .a-shell { display: flex; height: 100dvh; overflow: hidden; }
+      /* sidebar */
+      .a-aside {
+        width: 244px; flex-shrink: 0; display: none; flex-direction: column;
+        background: var(--a-bg); color: var(--a-ink);
+        border-inline-end: 1px solid var(--a-line); padding: 18px 14px;
+        overflow: hidden;
+      }
+      @media (min-width: 1024px) { .a-aside { display: flex; } }
+      .a-wordmark { font-weight: 700; letter-spacing: .14em; font-size: 13px; text-transform: uppercase; flex-shrink: 0; padding: 4px 8px 16px; }
+      .a-wordmark b { color: var(--a-accent); }
+      .a-nav { min-height: 0; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+      .a-nav a {
+        display: flex; align-items: center; gap: 10px; padding: 9px 10px;
+        border-radius: 8px; color: var(--a-dim); text-decoration: none; font-weight: 500;
+      }
+      .a-nav a:hover { background: var(--a-panel); color: var(--a-ink); }
+      .a-nav a[aria-current="page"] { background: var(--a-panel); color: var(--a-ink); }
+      .a-nav a[hidden] { display: none; }
+      .a-foot { flex-shrink: 0; margin-top: 12px; border-top: 1px solid var(--a-line); padding-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+      .a-foot button, .a-foot a {
+        text-align: start; background: none; border: 0; color: var(--a-dim);
+        padding: 8px 10px; border-radius: 8px; cursor: pointer; font: inherit;
+      }
+      .a-foot button:hover, .a-foot a:hover { background: var(--a-panel); color: var(--a-ink); }
+      /* main */
+      .a-main { flex: 1; overflow-y: auto; }
+      .a-topbar {
+        display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+        background: #fff; border-bottom: 1px solid #e2e7ec; position: sticky; top: 0; z-index: 5;
+      }
+      @media (min-width: 1024px) { .a-topbar { display: none; } }
+      .a-burger { width: 40px; height: 40px; border: 1px solid #d7dde3; border-radius: 8px; background: #fff; cursor: pointer; }
+      .a-content { padding: 20px 16px 64px; max-width: 1040px; margin: 0 auto; }
+      @media (min-width: 768px) { .a-content { padding: 28px 24px 80px; } }
+      /* drawer */
+      .a-drawer-backdrop { position: fixed; inset: 0; background: rgba(6,12,20,.5); z-index: 40; opacity: 0; pointer-events: none; transition: opacity .2s; }
+      body.a-drawer-open .a-drawer-backdrop { opacity: 1; pointer-events: auto; }
+      .a-drawer {
+        position: fixed; inset-block: 0; inset-inline-start: 0; width: 260px; z-index: 41;
+        background: var(--a-bg); color: var(--a-ink); padding: 18px 14px;
+        display: flex; flex-direction: column; overflow: hidden;
+        transform: translateX(-100%); transition: transform .24s ease;
+      }
+      body.a-drawer-open .a-drawer { transform: translateX(0); }
+      @media (min-width: 1024px) { .a-drawer, .a-drawer-backdrop { display: none; } }
+      .a-drawer .a-close { align-self: flex-end; margin: -8px; padding: 8px; background: none; border: 0; color: var(--a-dim); cursor: pointer; }
+      /* shared UI */
+      .a-h1 { font-size: 20px; font-weight: 700; margin: 0 0 4px; }
+      .a-sub { color: #5b6774; margin: 0 0 20px; }
+      .a-card { background: #fff; border: 1px solid #e2e7ec; border-radius: var(--a-radius); padding: 18px; }
+      .a-btn {
+        display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px;
+        border-radius: 8px; border: 1px solid #d7dde3; background: #fff; cursor: pointer; font: inherit; font-weight: 600;
+      }
+      .a-btn-primary { background: var(--a-accent); border-color: var(--a-accent); color: #fff; }
+      .a-btn-primary:hover { background: var(--a-accent-ink); }
+      .a-btn-danger { color: var(--a-danger); border-color: #f0c9c6; }
+      .a-input, .a-textarea, .a-select {
+        width: 100%; padding: 9px 11px; border: 1px solid #d7dde3; border-radius: 8px; font: inherit; background: #fff;
+      }
+      .a-textarea { min-height: 120px; resize: vertical; }
+      .a-label { display: block; font-weight: 600; margin: 14px 0 5px; font-size: 13px; }
+      .a-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e2e7ec; border-radius: var(--a-radius); overflow: hidden; }
+      .a-table th { text-align: start; background: #f4f6f8; padding: 10px 12px; font-size: 12px; letter-spacing: .03em; color: #5b6774; }
+      .a-table td { padding: 10px 12px; border-top: 1px solid #eef1f4; }
+      .a-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #eef1f4; color: #46525f; }
+      .a-badge.new { background: #e5f0ff; color: #1f5fbf; }
+      .a-badge.published, .a-badge.confirmed, .a-badge.done { background: #e4f5ec; color: #1f7a4d; }
+      .a-badge.draft, .a-badge.cancelled { background: #f4f6f8; color: #6b7682; }
+      .a-badge.scheduled, .a-badge.contacted { background: #fdf1df; color: #a26a1c; }
+      /* toast */
+      .a-toasts { position: fixed; inset-block-end: 16px; inset-inline: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 60; pointer-events: none; }
+      .a-toast { pointer-events: auto; background: #12202f; color: #fff; padding: 10px 16px; border-radius: 999px; font-weight: 600; box-shadow: 0 10px 30px -10px rgba(0,0,0,.4); }
+      .a-toast.err { background: var(--a-danger); }
+      .a-toast.ok { background: var(--a-ok); }
+      /* gate screens */
+      .a-gate { display: grid; place-items: center; height: 100dvh; text-align: center; padding: 24px; }
+      .a-gate .a-card { max-width: 380px; }
+      [data-gate-loading] .a-shell, [data-gate-denied] .a-shell { display: none; }
+      body:not([data-gate-loading]):not([data-gate-denied]) .a-gate { display: none; }
+      .a-hide { display: none !important; }
+    </style>
+  </head>
+  <body data-gate-loading data-section={section}>
+    <!-- loading gate -->
+    <div class="a-gate" data-gate="loading">
+      <div class="a-card"><p>Checking your access…</p></div>
+    </div>
+    <!-- denied gate -->
+    <div class="a-gate a-hide" data-gate="denied">
+      <div class="a-card">
+        <h1 class="a-h1">No access</h1>
+        <p class="a-sub">This account isn't allowed into the dashboard. Ask the owner to add you.</p>
+        <button class="a-btn" data-signout>Sign out</button>
+      </div>
+    </div>
+
+    <div class="a-shell">
+      <aside class="a-aside">
+        <div class="a-wordmark">THE&nbsp;<b>DRIVER</b> · admin</div>
+        <nav class="a-nav" data-nav></nav>
+        <div class="a-foot">
+          <a href="/" target="_blank" rel="noopener">↗ View site</a>
+          <button data-signout>Sign out</button>
+        </div>
+      </aside>
+
+      <main class="a-main">
+        <div class="a-topbar">
+          <button class="a-burger" data-burger aria-label="Menu">☰</button>
+          <strong>{title}</strong>
+        </div>
+        <div class="a-content"><slot /></div>
+      </main>
+    </div>
+
+    <!-- mobile drawer (static markup, class-toggled) -->
+    <div class="a-drawer-backdrop" data-backdrop></div>
+    <div class="a-drawer" data-drawer>
+      <button class="a-close" data-close aria-label="Close">✕</button>
+      <div class="a-wordmark">THE&nbsp;<b>DRIVER</b> · admin</div>
+      <nav class="a-nav" data-nav></nav>
+      <div class="a-foot">
+        <a href="/" target="_blank" rel="noopener">↗ View site</a>
+        <button data-signout>Sign out</button>
+      </div>
+    </div>
+
+    <div class="a-toasts" data-toasts aria-live="polite"></div>
+
+    <script>
+      import { getBrowserClient } from '../../lib/supabase';
+      import { ADMIN_SECTIONS, canAccess, routeToSection } from '../../lib/adminSections';
+
+      const SECTION_LABELS: Record<string, string> = {
+        overview: 'Overview', blog: 'Blog', content: 'Page text',
+        bookings: 'Bookings', messages: 'Messages', team: 'Team',
+      };
+
+      // ---- toast (module-scoped; survives navigation within the island) ----
+      const toastHost = document.querySelector<HTMLElement>('[data-toasts]')!;
+      function toast(msg: string, kind: 'ok' | 'err' | '' = '') {
+        const el = document.createElement('div');
+        el.className = 'a-toast ' + kind;
+        el.textContent = msg;
+        toastHost.appendChild(el);
+        setTimeout(() => el.remove(), 4200);
+      }
+      (window as unknown as { adminToast: typeof toast }).adminToast = toast;
+
+      // ---- drawer ----
+      const body = document.body;
+      let savedScroll = 0;
+      function openDrawer() {
+        savedScroll = window.scrollY;
+        body.classList.add('a-drawer-open');
+        body.style.position = 'fixed';
+        body.style.top = `-${savedScroll}px`;
+        body.style.width = '100%';
+        body.style.overflow = 'hidden';
+      }
+      function closeDrawer() {
+        body.classList.remove('a-drawer-open');
+        body.style.position = '';
+        body.style.top = '';
+        body.style.width = '';
+        body.style.overflow = '';
+        window.scrollTo(0, savedScroll);
+      }
+      document.querySelector('[data-burger]')?.addEventListener('click', openDrawer);
+      document.querySelector('[data-close]')?.addEventListener('click', closeDrawer);
+      document.querySelector('[data-backdrop]')?.addEventListener('click', closeDrawer);
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+      window.matchMedia('(min-width: 1024px)').addEventListener('change', (e) => { if (e.matches) closeDrawer(); });
+      document.querySelector('[data-drawer]')?.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).closest('a[href^="/admin"]')) closeDrawer();
+      });
+
+      // ---- auth gate ----
+      const sb = getBrowserClient();
+      const currentSection = body.dataset.section || 'overview';
+
+      function paintNav(isOwner: boolean, sections: string[]) {
+        const here = location.pathname;
+        for (const host of document.querySelectorAll<HTMLElement>('[data-nav]')) {
+          host.innerHTML = '';
+          for (const s of ADMIN_SECTIONS) {
+            if (!canAccess(s, { isOwner, sections })) continue;
+            const a = document.createElement('a');
+            a.href = s.route;
+            a.textContent = SECTION_LABELS[s.key] ?? s.key;
+            if ((s.exact && here.replace(/\/+$/, '') === s.route) || (!s.exact && here.startsWith(s.route))) {
+              a.setAttribute('aria-current', 'page');
+            }
+            host.appendChild(a);
+          }
+        }
+      }
+
+      function showGate(name: 'loading' | 'denied' | null) {
+        document.querySelectorAll<HTMLElement>('[data-gate]').forEach((g) => {
+          g.classList.toggle('a-hide', g.dataset.gate !== name);
+        });
+        body.removeAttribute('data-gate-loading');
+        body.removeAttribute('data-gate-denied');
+        if (name === 'loading') body.setAttribute('data-gate-loading', '');
+        if (name === 'denied') body.setAttribute('data-gate-denied', '');
+      }
+
+      for (const btn of document.querySelectorAll('[data-signout]')) {
+        btn.addEventListener('click', async () => {
+          await sb.auth.signOut();
+          location.href = '/admin/login';
+        });
+      }
+
+      async function gate() {
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) {
+          if (location.pathname !== '/admin/login') location.href = '/admin/login';
+          return;
+        }
+        const { data: profile } = await sb
+          .from('admin_profiles')
+          .select('is_owner, sections, active')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+
+        if (!profile || !profile.active) { showGate('denied'); return; }
+
+        const isOwner = !!profile.is_owner;
+        const sections: string[] = profile.sections ?? [];
+
+        // direct-URL guard: mirror routeToSection + canAccess
+        const key = routeToSection(location.pathname) ?? currentSection;
+        const sec = ADMIN_SECTIONS.find((s) => s.key === key);
+        if (sec && !canAccess(sec, { isOwner, sections })) {
+          location.href = '/admin';
+          return;
+        }
+
+        paintNav(isOwner, sections);
+        showGate(null);
+        (window as unknown as { adminReady?: (p: { isOwner: boolean; sections: string[]; userId: string; email: string | undefined }) => void })
+          .adminReady?.({ isOwner, sections, userId: session.user.id, email: session.user.email });
+        window.dispatchEvent(new CustomEvent('admin:ready', { detail: { isOwner, sections, userId: session.user.id } }));
+      }
+
+      // login page renders its own form; it still runs gate() to bounce an
+      // already-signed-in admin straight to the dashboard.
+      gate().catch((e) => { console.error(e); toast('Could not verify access', 'err'); });
+      sb.auth.onAuthStateChange(() => { gate().catch(() => {}); });
+    </script>
+  </body>
+</html>

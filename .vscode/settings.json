@@ -1,0 +1,7 @@
+{
+  "// note": "The main project is Node/Astro. Only supabase/functions/** is Deno. With the 'Deno' extension installed, these settings make it handle that one folder and leave the rest on the normal TypeScript server.",
+  "deno.enable": false,
+  "deno.enablePaths": ["supabase/functions"],
+  "deno.lint": true,
+  "deno.unstable": false
+}

@@ -1,0 +1,122 @@
+---
+// Public blog index. Move to src/pages/blog/index.astro when wiring Supabase.
+export const prerender = false;
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getServerClient } from '../../lib/supabase';
+import {
+  listPublishedPosts, getBlogSettings, getPublishedTags,
+  postExcerpt, formatPostDate, readingMinutes,
+} from '../../lib/blog';
+import { t } from '../../i18n';
+
+const locale = 'en' as const;
+const s = t(locale);
+
+const params = Astro.url.searchParams;
+const page = Math.max(1, parseInt(params.get('page') ?? '1', 10) || 1);
+const tag = params.get('tag') || undefined;
+
+const db = getServerClient();
+let settings = null;
+let list = { posts: [], total: 0, page: 1, pageSize: 9, pageCount: 1 } as Awaited<ReturnType<typeof listPublishedPosts>>;
+let tags: string[] = [];
+let loadError = false;
+try {
+  settings = await getBlogSettings(db);
+  list = await listPublishedPosts(db, { locale, page, pageSize: settings?.posts_per_page ?? 9, tag });
+  tags = await getPublishedTags(db, locale);
+} catch {
+  loadError = true;
+}
+
+const heading = settings?.title_en?.trim() || 'The Driver blog';
+const intro = settings?.intro_en?.trim() || 'Guides and tips for getting around Paris — airports, Disneyland, day trips.';
+const base = '/blog/';
+const pageHref = (p: number) => {
+  const u = new URLSearchParams();
+  if (tag) u.set('tag', tag);
+  if (p > 1) u.set('page', String(p));
+  const q = u.toString();
+  return q ? `${base}?${q}` : base;
+};
+---
+
+<BaseLayout
+  locale={locale}
+  routeKey="blog"
+  title={`${heading} — Driver Services`}
+  description={intro}
+>
+  <section class="blog-wrap page-x mx-auto max-w-[1080px] section-y">
+    <header class="blog-head" data-reveal>
+      <p class="meta-label mb-3">{s.nav?.home ? 'BLOG' : 'BLOG'}</p>
+      <h1 class="h2 text-balance">{heading}</h1>
+      <p class="body-lg mt-3">{intro}</p>
+    </header>
+
+    {tags.length > 0 && (
+      <nav class="blog-tags" aria-label="Topics">
+        <a href={base} class:list={['blog-tag', !tag && 'is-on']}>All</a>
+        {tags.map((tg) => (
+          <a href={`${base}?tag=${encodeURIComponent(tg)}`} class:list={['blog-tag', tag === tg && 'is-on']}>{tg}</a>
+        ))}
+      </nav>
+    )}
+
+    {loadError ? (
+      <p class="blog-empty">The blog is briefly unavailable. Please try again shortly.</p>
+    ) : list.posts.length === 0 ? (
+      <p class="blog-empty">No articles yet — check back soon.</p>
+    ) : (
+      <ul class="blog-grid">
+        {list.posts.map((post) => (
+          <li class="blog-card">
+            <a href={`/blog/${post.slug}`} class="blog-card-link">
+              {post.cover_image && (
+                <div class="blog-card-media">
+                  <img src={post.cover_image} alt={post.cover_alt || ''} loading="lazy" decoding="async" width="600" height="360" />
+                </div>
+              )}
+              <div class="blog-card-body">
+                <p class="blog-card-meta">{formatPostDate(post.published_at, locale)} · {readingMinutes(post)} min read</p>
+                <h2 class="blog-card-title">{post.title}</h2>
+                <p class="blog-card-excerpt">{postExcerpt(post)}</p>
+              </div>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )}
+
+    {list.pageCount > 1 && (
+      <nav class="blog-pager" aria-label="Pagination">
+        {list.page > 1 && <a href={pageHref(list.page - 1)} rel="prev">← Newer</a>}
+        <span>Page {list.page} of {list.pageCount}</span>
+        {list.page < list.pageCount && <a href={pageHref(list.page + 1)} rel="next">Older →</a>}
+      </nav>
+    )}
+  </section>
+
+  <style>
+    .blog-head { max-width: 640px; }
+    .blog-tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 28px 0 4px; }
+    .blog-tag { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--color-smoke); font-size: 13px; text-decoration: none; color: var(--color-ink); }
+    .blog-tag.is-on { background: var(--color-ink); color: var(--color-paper); border-color: var(--color-ink); }
+    .blog-grid { list-style: none; padding: 0; margin: 32px 0 0; display: grid; grid-template-columns: 1fr; gap: 22px; }
+    @media (min-width: 640px) { .blog-grid { grid-template-columns: 1fr 1fr; } }
+    @media (min-width: 980px) { .blog-grid { grid-template-columns: repeat(3, 1fr); } }
+    .blog-card { border: 1px solid var(--color-smoke); border-radius: 14px; overflow: hidden; background: var(--color-paper); transition: transform .2s, box-shadow .2s, border-color .2s; }
+    .blog-card:hover { transform: translateY(-2px); border-color: color-mix(in oklab, var(--color-accent) 30%, var(--color-smoke)); box-shadow: 0 14px 30px -18px rgba(20,20,20,.18); }
+    .blog-card-link { text-decoration: none; color: inherit; display: block; }
+    .blog-card-media { aspect-ratio: 16/10; overflow: hidden; background: var(--color-cream); }
+    .blog-card-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .blog-card-body { padding: 18px 18px 20px; }
+    .blog-card-meta { margin: 0 0 6px; font-size: 12px; color: var(--color-graphite); }
+    .blog-card-title { margin: 0 0 8px; font-family: var(--font-display); font-weight: 500; font-size: 19px; line-height: 1.25; color: var(--color-ink); }
+    .blog-card-excerpt { margin: 0; font-size: 14px; line-height: 1.55; color: color-mix(in oklab, var(--color-ink) 74%, transparent); }
+    .blog-empty { margin: 40px 0; color: var(--color-graphite); }
+    .blog-pager { display: flex; align-items: center; justify-content: center; gap: 20px; margin: 40px 0 0; font-size: 14px; }
+    .blog-pager a { color: var(--color-accent-ink); font-weight: 600; text-decoration: none; }
+  </style>
+</BaseLayout>

@@ -1,0 +1,68 @@
+---
+import AdminShell from '../_AdminShell.astro';
+export const prerender = false;
+---
+
+<AdminShell title="Messages" section="messages">
+  <h1 class="a-h1">Messages</h1>
+  <p class="a-sub">Contact-form submissions, also kept here.</p>
+
+  <select class="a-select" data-filter style="max-width:180px;margin-bottom:14px">
+    <option value="">All statuses</option>
+    <option value="new">New</option>
+    <option value="contacted">Contacted</option>
+    <option value="done">Done</option>
+    <option value="cancelled">Cancelled</option>
+  </select>
+
+  <div data-list>Loading…</div>
+
+  <script>
+    import { getBrowserClient } from '../../../lib/supabase';
+    const sb = getBrowserClient();
+    const toast = (window as any).adminToast as (m: string, k?: string) => void;
+    const list = document.querySelector<HTMLElement>('[data-list]')!;
+    const filter = document.querySelector<HTMLSelectElement>('[data-filter]')!;
+    const STATUSES = ['new', 'contacted', 'done', 'cancelled'];
+    let cache: any[] = [];
+    const esc = (s: any) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+    const fmt = (iso: string) => new Date(iso).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+
+    function render() {
+      const rows = cache.filter((m) => !filter.value || m.status === filter.value);
+      if (!rows.length) { list.innerHTML = '<div class="a-card" style="color:#5b6774">Nothing here.</div>'; return; }
+      list.innerHTML = rows.map((m) => `
+        <div class="a-card" style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div>
+              <strong>${esc(m.first_name)}</strong> <span class="a-badge ${m.status}">${m.status}</span><br>
+              <span style="color:#8a95a1;font-size:12px">${fmt(m.created_at)} · ${esc(m.email)} · ${esc(m.language)}</span>
+            </div>
+            <select class="a-select" data-status data-id="${m.id}" style="max-width:150px">
+              ${STATUSES.map((s) => `<option value="${s}" ${s === m.status ? 'selected' : ''}>${s}</option>`).join('')}
+            </select>
+          </div>
+          <p style="white-space:pre-wrap;margin:10px 0 0">${esc(m.message)}</p>
+          <a class="a-btn" style="height:34px;margin-top:8px" href="mailto:${esc(m.email)}?subject=Re:%20your%20message%20to%20The%20Driver">Reply by email</a>
+        </div>`).join('');
+    }
+
+    async function load() {
+      const { data, error } = await sb.from('contact_messages').select('*').order('created_at', { ascending: false }).limit(500);
+      if (error) { list.innerHTML = '<div class="a-card" style="color:#d9544d">Could not load messages.</div>'; return; }
+      cache = data ?? []; render();
+    }
+    list.addEventListener('change', async (e) => {
+      const sel = (e.target as HTMLElement).closest<HTMLSelectElement>('[data-status]');
+      if (!sel) return;
+      const { error } = await sb.from('contact_messages')
+        .update({ status: sel.value as 'new' | 'contacted' | 'done' | 'cancelled' })
+        .eq('id', sel.dataset.id!);
+      if (error) { toast('Could not update', 'err'); load(); return; }
+      const row = cache.find((m) => m.id === sel.dataset.id); if (row) row.status = sel.value;
+      toast('Updated', 'ok');
+    });
+    filter.addEventListener('change', render);
+    window.addEventListener('admin:ready', load);
+  </script>
+</AdminShell>

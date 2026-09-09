@@ -1,0 +1,60 @@
+---
+import AdminShell from './_AdminShell.astro';
+export const prerender = false;
+---
+
+<AdminShell title="Overview" section="overview">
+  <h1 class="a-h1">Dashboard</h1>
+  <p class="a-sub" data-hello>Welcome back.</p>
+
+  <div style="display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+    <a class="a-card" href="/admin/blog" style="text-decoration:none">
+      <div style="color:#5b6774;font-size:12px;letter-spacing:.04em;text-transform:uppercase">Blog</div>
+      <div style="font-size:26px;font-weight:700" data-stat="blog">—</div>
+      <div style="color:#5b6774">published articles</div>
+    </a>
+    <a class="a-card" href="/admin/bookings" style="text-decoration:none">
+      <div style="color:#5b6774;font-size:12px;letter-spacing:.04em;text-transform:uppercase">Bookings</div>
+      <div style="font-size:26px;font-weight:700" data-stat="bookings">—</div>
+      <div style="color:#5b6774">new / unhandled</div>
+    </a>
+    <a class="a-card" href="/admin/messages" style="text-decoration:none">
+      <div style="color:#5b6774;font-size:12px;letter-spacing:.04em;text-transform:uppercase">Messages</div>
+      <div style="font-size:26px;font-weight:700" data-stat="messages">—</div>
+      <div style="color:#5b6774">new / unread</div>
+    </a>
+  </div>
+
+  <script>
+    import { getBrowserClient } from '../../lib/supabase';
+    const sb = getBrowserClient();
+
+    window.addEventListener('admin:ready', async (e) => {
+      const detail = (e as CustomEvent).detail as { isOwner: boolean; sections: string[] };
+      const can = (s: string) => detail.isOwner || detail.sections.includes(s);
+
+      const hello = document.querySelector('[data-hello]');
+      if (hello) hello.textContent = detail.isOwner ? 'Welcome back — you have full access.' : 'Welcome back.';
+
+      const set = (k: string, v: number | string) => {
+        const el = document.querySelector(`[data-stat="${k}"]`);
+        if (el) el.textContent = String(v);
+      };
+
+      if (can('blog')) {
+        const { count } = await sb.from('blog_posts').select('id', { count: 'exact', head: true }).eq('status', 'published');
+        set('blog', count ?? 0);
+      } else { set('blog', '–'); }
+
+      if (can('bookings')) {
+        const { count } = await sb.from('bookings').select('id', { count: 'exact', head: true }).in('status', ['new', 'contacted']);
+        set('bookings', count ?? 0);
+      } else { set('bookings', '–'); }
+
+      if (can('messages')) {
+        const { count } = await sb.from('contact_messages').select('id', { count: 'exact', head: true }).eq('status', 'new');
+        set('messages', count ?? 0);
+      } else { set('messages', '–'); }
+    });
+  </script>
+</AdminShell>

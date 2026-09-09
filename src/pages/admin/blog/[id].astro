@@ -1,0 +1,278 @@
+---
+import AdminShell from '../_AdminShell.astro';
+export const prerender = false;
+
+const { id } = Astro.params;
+const isNew = id === 'new';
+---
+
+<AdminShell title={isNew ? 'New article' : 'Edit article'} section="blog">
+  <a href="/admin/blog" style="color:#5b6774;text-decoration:none">← All articles</a>
+  <h1 class="a-h1" style="margin-top:8px">{isNew ? 'New article' : 'Edit article'}</h1>
+
+  <div data-loaderr class="a-hide" style="color:#d9544d;margin:12px 0">
+    Could not load this article. <a href="/admin/blog">Go back</a>.
+  </div>
+
+  <form data-form class:list={["a-hide"]}>
+    <div style="display:grid;gap:18px;grid-template-columns:1fr;max-width:760px">
+      <div class="a-card">
+        <label class="a-label" for="title">Title</label>
+        <input class="a-input" id="title" name="title" required />
+
+        <label class="a-label" for="slug">Web address (slug)</label>
+        <input class="a-input" id="slug" name="slug" pattern="[a-z0-9-]+" required />
+        <small style="color:#8a95a1">Lowercase, words separated by hyphens. Lives at <code>/blog/&lt;slug&gt;</code>.</small>
+
+        <div style="display:flex;gap:14px;flex-wrap:wrap">
+          <div style="flex:1;min-width:140px">
+            <label class="a-label" for="locale">Language</label>
+            <select class="a-select" id="locale" name="locale">
+              <option value="en">English</option>
+              <option value="fr">Français</option>
+              <option value="es">Español</option>
+              <option value="it">Italiano</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:140px">
+            <label class="a-label" for="status">Status</label>
+            <select class="a-select" id="status" name="status">
+              <option value="draft">Draft</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="published">Published</option>
+            </select>
+          </div>
+        </div>
+
+        <div data-when-wrap class="a-hide">
+          <label class="a-label" for="published_at">Publish date &amp; time</label>
+          <input class="a-input" id="published_at" name="published_at" type="datetime-local" />
+        </div>
+      </div>
+
+      <div class="a-card">
+        <label class="a-label">Cover image</label>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <img data-cover-preview alt="" style="width:160px;height:100px;object-fit:cover;border-radius:8px;background:#eef1f4" />
+          <div>
+            <input type="file" data-cover-file accept="image/jpeg,image/png,image/webp,image/avif" />
+            <p style="color:#8a95a1;font-size:12px;margin:6px 0 0">JPG/PNG/WebP/AVIF, up to 5 MB. Compressed on upload.</p>
+          </div>
+        </div>
+        <input type="hidden" name="cover_image" />
+        <label class="a-label" for="cover_alt">Cover image description (for accessibility &amp; SEO)</label>
+        <input class="a-input" id="cover_alt" name="cover_alt" />
+      </div>
+
+      <div class="a-card">
+        <label class="a-label" for="excerpt">Summary</label>
+        <textarea class="a-textarea" id="excerpt" name="excerpt" style="min-height:70px" placeholder="One or two sentences shown on the blog index and in search results."></textarea>
+
+        <label class="a-label" for="body_md">Article (Markdown)</label>
+        <textarea class="a-textarea" id="body_md" name="body_md" style="min-height:340px;font-family:ui-monospace,Menlo,Consolas,monospace"></textarea>
+        <details style="margin-top:8px">
+          <summary style="cursor:pointer;color:#5b6774">Formatting help &amp; live preview</summary>
+          <p style="color:#8a95a1;font-size:12px"><code>## Heading</code> · <code>**bold**</code> · <code>*italic*</code> · <code>[text](https://…)</code> · <code>![alt](image-url)</code> · <code>&gt; quote</code> · <code>- list</code></p>
+          <div data-preview style="border:1px solid #e2e7ec;border-radius:8px;padding:14px;background:#fff"></div>
+        </details>
+      </div>
+
+      <div class="a-card">
+        <label class="a-label" for="tags">Tags</label>
+        <input class="a-input" id="tags" name="tags" placeholder="disneyland, family travel, cdg" />
+        <small style="color:#8a95a1">Comma-separated.</small>
+
+        <label class="a-label" for="author_name">Author</label>
+        <input class="a-input" id="author_name" name="author_name" value="The Driver" />
+
+        <label class="a-label" for="seo_title">SEO title <span style="color:#8a95a1;font-weight:400">(optional — defaults to the title)</span></label>
+        <input class="a-input" id="seo_title" name="seo_title" maxlength="70" />
+
+        <label class="a-label" for="seo_description">SEO description <span style="color:#8a95a1;font-weight:400">(optional — defaults to the summary)</span></label>
+        <textarea class="a-textarea" id="seo_description" name="seo_description" maxlength="160" style="min-height:60px"></textarea>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button type="submit" class="a-btn a-btn-primary" data-save>Save</button>
+        <a class="a-btn" data-preview-link href="#" target="_blank" rel="noopener">Preview ↗</a>
+        <button type="button" class="a-btn a-btn-danger a-hide" data-delete>Delete</button>
+        <span data-dirty style="color:#a26a1c;font-size:13px"></span>
+      </div>
+    </div>
+  </form>
+
+  <script define:vars={{ paramId: id, isNew }}>
+    window.__blogEditor = { paramId, isNew };
+  </script>
+
+  <script>
+    import { getBrowserClient } from '../../../lib/supabase';
+    import { renderMarkdown } from '../../../lib/markdown';
+
+    const { paramId, isNew } = (window as any).__blogEditor as { paramId: string; isNew: boolean };
+    const sb = getBrowserClient();
+    const toast = (window as any).adminToast as (m: string, k?: string) => void;
+
+    const form = document.querySelector<HTMLFormElement>('[data-form]')!;
+    const loadErr = document.querySelector<HTMLElement>('[data-loaderr]')!;
+    const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
+    const el = {
+      title: $('#title') as HTMLInputElement,
+      slug: $('#slug') as HTMLInputElement,
+      locale: $('#locale') as HTMLSelectElement,
+      status: $('#status') as HTMLSelectElement,
+      whenWrap: $('[data-when-wrap]'),
+      publishedAt: $('#published_at') as HTMLInputElement,
+      coverFile: $('[data-cover-file]') as HTMLInputElement,
+      coverPreview: $('[data-cover-preview]') as HTMLImageElement,
+      coverHidden: form.querySelector<HTMLInputElement>('[name="cover_image"]')!,
+      coverAlt: $('#cover_alt') as HTMLInputElement,
+      excerpt: $('#excerpt') as HTMLTextAreaElement,
+      body: $('#body_md') as HTMLTextAreaElement,
+      tags: $('#tags') as HTMLInputElement,
+      author: $('#author_name') as HTMLInputElement,
+      seoTitle: $('#seo_title') as HTMLInputElement,
+      seoDesc: $('#seo_description') as HTMLTextAreaElement,
+      preview: $('[data-preview]'),
+      previewLink: $('[data-preview-link]') as HTMLAnchorElement,
+      save: $('[data-save]') as HTMLButtonElement,
+      del: $('[data-delete]') as HTMLButtonElement,
+      dirty: $('[data-dirty]'),
+    };
+
+    let currentId: string | null = isNew ? null : paramId;
+    let slugTouched = false;
+    let dirty = false;
+    const markDirty = () => { dirty = true; el.dirty.textContent = 'Unsaved changes'; };
+    form.addEventListener('input', markDirty);
+    window.addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+    const slugify = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-').replace(/-+/g, '-').slice(0, 80);
+    el.title.addEventListener('input', () => { if (!slugTouched && isNew) el.slug.value = slugify(el.title.value); });
+    el.slug.addEventListener('input', () => { slugTouched = true; });
+
+    function syncStatusUi() {
+      el.whenWrap.classList.toggle('a-hide', el.status.value !== 'scheduled' && el.status.value !== 'published');
+    }
+    el.status.addEventListener('change', syncStatusUi);
+
+    function renderPreview() {
+      el.preview.innerHTML = renderMarkdown(el.body.value);
+      el.previewLink.href = `/blog/${el.slug.value || ''}`;
+    }
+    el.body.addEventListener('input', renderPreview);
+    el.slug.addEventListener('input', renderPreview);
+
+    // ---- image upload: compress then upload to blog-images ----
+    async function compress(file: File): Promise<Blob> {
+      const bmp = await createImageBitmap(file);
+      const maxW = 1600;
+      const scale = Math.min(1, maxW / bmp.width);
+      const c = document.createElement('canvas');
+      c.width = Math.round(bmp.width * scale);
+      c.height = Math.round(bmp.height * scale);
+      c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height);
+      return new Promise((res) => c.toBlob((b) => res(b ?? file), 'image/webp', 0.82));
+    }
+    el.coverFile.addEventListener('change', async () => {
+      const file = el.coverFile.files?.[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) { toast('Image is over 5 MB', 'err'); return; }
+      el.save.disabled = true;
+      try {
+        const blob = await compress(file);
+        const path = `${el.locale.value}/${Date.now()}-${slugify(file.name.replace(/\.[^.]+$/, ''))}.webp`;
+        const { error } = await sb.storage.from('blog-images').upload(path, blob, { contentType: 'image/webp', upsert: false });
+        if (error) { toast('Upload failed', 'err'); return; }
+        const { data } = sb.storage.from('blog-images').getPublicUrl(path);
+        el.coverHidden.value = data.publicUrl;
+        el.coverPreview.src = data.publicUrl;
+        markDirty();
+      } finally { el.save.disabled = false; }
+    });
+
+    // ---- load existing ----
+    function fillForm(p: any) {
+      el.title.value = p.title ?? '';
+      el.slug.value = p.slug ?? '';
+      el.locale.value = p.locale ?? 'en';
+      el.status.value = p.status ?? 'draft';
+      el.publishedAt.value = p.published_at ? new Date(p.published_at).toISOString().slice(0, 16) : '';
+      el.coverHidden.value = p.cover_image ?? '';
+      el.coverPreview.src = p.cover_image ?? '';
+      el.coverAlt.value = p.cover_alt ?? '';
+      el.excerpt.value = p.excerpt ?? '';
+      el.body.value = p.body_md ?? '';
+      el.tags.value = (p.tags ?? []).join(', ');
+      el.author.value = p.author_name ?? 'The Driver';
+      el.seoTitle.value = p.seo_title ?? '';
+      el.seoDesc.value = p.seo_description ?? '';
+      slugTouched = true;
+      syncStatusUi(); renderPreview();
+    }
+
+    async function boot() {
+      if (isNew) { form.classList.remove('a-hide'); syncStatusUi(); renderPreview(); return; }
+      const { data, error } = await sb.from('blog_posts').select('*').eq('id', paramId).maybeSingle();
+      if (error || !data) { loadErr.classList.remove('a-hide'); return; }   // block the form on load failure
+      fillForm(data);
+      el.del.classList.remove('a-hide');
+      form.classList.remove('a-hide');
+      dirty = false; el.dirty.textContent = '';
+    }
+    window.addEventListener('admin:ready', boot);
+
+    // ---- save (explicit column map — never spread a select('*') row) ----
+    function collect() {
+      const status = el.status.value as 'draft' | 'scheduled' | 'published';
+      let published_at: string | null = null;
+      if (status === 'scheduled') published_at = el.publishedAt.value ? new Date(el.publishedAt.value).toISOString() : null;
+      if (status === 'published') published_at = el.publishedAt.value ? new Date(el.publishedAt.value).toISOString() : new Date().toISOString();
+      return {
+        title: el.title.value.trim(),
+        slug: el.slug.value.trim(),
+        locale: el.locale.value as 'en' | 'fr' | 'es' | 'it',
+        status,
+        published_at,
+        cover_image: el.coverHidden.value || null,
+        cover_alt: el.coverAlt.value.trim(),
+        excerpt: el.excerpt.value.trim(),
+        body_md: el.body.value,
+        tags: el.tags.value.split(',').map((t) => t.trim()).filter(Boolean),
+        author_name: el.author.value.trim() || 'The Driver',
+        seo_title: el.seoTitle.value.trim() || null,
+        seo_description: el.seoDesc.value.trim() || null,
+      };
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!el.slug.value.match(/^[a-z0-9-]+$/)) { toast('Slug must be lowercase letters, numbers and hyphens', 'err'); return; }
+      el.save.disabled = true;
+      const payload = collect();
+      try {
+        if (currentId) {
+          const { error } = await sb.from('blog_posts').update(payload).eq('id', currentId);
+          if (error) { toast(error.code === '23505' ? 'That slug is already used for this language' : 'Save failed', 'err'); return; }
+          toast('Saved', 'ok');
+        } else {
+          const { data, error } = await sb.from('blog_posts').insert(payload).select('id').single();
+          if (error || !data) { toast(error?.code === '23505' ? 'That slug is already used for this language' : 'Save failed', 'err'); return; }
+          currentId = data.id;
+          history.replaceState(null, '', `/admin/blog/${data.id}`);
+          el.del.classList.remove('a-hide');
+          toast('Created', 'ok');
+        }
+        dirty = false; el.dirty.textContent = '';
+      } finally { el.save.disabled = false; }
+    });
+
+    el.del.addEventListener('click', async () => {
+      if (!currentId || !confirm('Delete this article? This cannot be undone.')) return;
+      const { error } = await sb.from('blog_posts').delete().eq('id', currentId);
+      if (error) { toast('Delete failed', 'err'); return; }
+      dirty = false;
+      location.href = '/admin/blog';
+    });
+  </script>
+</AdminShell>
