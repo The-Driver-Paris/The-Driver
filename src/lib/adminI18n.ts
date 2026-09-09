@@ -31,6 +31,7 @@ const en: Dict = {
   'nav.viewSite': 'View site',
   'nav.signOut': 'Sign out',
   'nav.language': 'Language',
+  'nav.account': 'Account',
 
   'gate.checking': 'Checking your access…',
   'gate.deniedTitle': 'No access',
@@ -169,6 +170,21 @@ const en: Dict = {
   'login.enterEmail': 'Enter your email first, then click again.',
   'login.resetSent': 'Check your inbox for a reset link.',
   'login.resetError': 'Could not send the reset email.',
+
+  'account.title': 'Account',
+  'account.subtitle': 'Your sign-in details.',
+  'account.signedInAs': 'Signed in as',
+  'account.changePassword': 'Change password',
+  'account.current': 'Current password',
+  'account.new': 'New password',
+  'account.confirm': 'Confirm new password',
+  'account.hint': 'At least 8 characters.',
+  'account.update': 'Update password',
+  'account.mismatch': "The new passwords don't match.",
+  'account.tooShort': 'The new password must be at least 8 characters.',
+  'account.wrongCurrent': 'Your current password is incorrect.',
+  'account.updated': 'Password updated.',
+  'account.updateError': 'Could not update the password.',
 };
 
 const fr: Dict = {
@@ -182,6 +198,7 @@ const fr: Dict = {
   'nav.viewSite': 'Voir le site',
   'nav.signOut': 'Se déconnecter',
   'nav.language': 'Langue',
+  'nav.account': 'Mon compte',
 
   'gate.checking': 'Vérification de votre accès…',
   'gate.deniedTitle': 'Aucun accès',
@@ -320,6 +337,21 @@ const fr: Dict = {
   'login.enterEmail': 'Saisissez d’abord votre e-mail, puis recliquez.',
   'login.resetSent': 'Consultez votre boîte mail pour le lien de réinitialisation.',
   'login.resetError': "Impossible d'envoyer l'e-mail de réinitialisation.",
+
+  'account.title': 'Mon compte',
+  'account.subtitle': 'Vos identifiants de connexion.',
+  'account.signedInAs': 'Connecté en tant que',
+  'account.changePassword': 'Changer le mot de passe',
+  'account.current': 'Mot de passe actuel',
+  'account.new': 'Nouveau mot de passe',
+  'account.confirm': 'Confirmer le nouveau mot de passe',
+  'account.hint': 'Au moins 8 caractères.',
+  'account.update': 'Mettre à jour le mot de passe',
+  'account.mismatch': 'Les nouveaux mots de passe ne correspondent pas.',
+  'account.tooShort': 'Le nouveau mot de passe doit comporter au moins 8 caractères.',
+  'account.wrongCurrent': 'Votre mot de passe actuel est incorrect.',
+  'account.updated': 'Mot de passe mis à jour.',
+  'account.updateError': 'Impossible de mettre à jour le mot de passe.',
 };
 
 const es: Dict = {
@@ -333,6 +365,7 @@ const es: Dict = {
   'nav.viewSite': 'Ver el sitio',
   'nav.signOut': 'Cerrar sesión',
   'nav.language': 'Idioma',
+  'nav.account': 'Mi cuenta',
 
   'gate.checking': 'Comprobando tu acceso…',
   'gate.deniedTitle': 'Sin acceso',
@@ -471,6 +504,21 @@ const es: Dict = {
   'login.enterEmail': 'Introduce primero tu correo y vuelve a hacer clic.',
   'login.resetSent': 'Revisa tu bandeja de entrada para el enlace de restablecimiento.',
   'login.resetError': 'No se pudo enviar el correo de restablecimiento.',
+
+  'account.title': 'Mi cuenta',
+  'account.subtitle': 'Tus datos de acceso.',
+  'account.signedInAs': 'Sesión iniciada como',
+  'account.changePassword': 'Cambiar contraseña',
+  'account.current': 'Contraseña actual',
+  'account.new': 'Nueva contraseña',
+  'account.confirm': 'Confirmar nueva contraseña',
+  'account.hint': 'Al menos 8 caracteres.',
+  'account.update': 'Actualizar contraseña',
+  'account.mismatch': 'Las nuevas contraseñas no coinciden.',
+  'account.tooShort': 'La nueva contraseña debe tener al menos 8 caracteres.',
+  'account.wrongCurrent': 'Tu contraseña actual es incorrecta.',
+  'account.updated': 'Contraseña actualizada.',
+  'account.updateError': 'No se pudo actualizar la contraseña.',
 };
 
 const it: Dict = {
@@ -484,6 +532,7 @@ const it: Dict = {
   'nav.viewSite': 'Vedi il sito',
   'nav.signOut': 'Esci',
   'nav.language': 'Lingua',
+  'nav.account': 'Il mio account',
 
   'gate.checking': 'Verifica del tuo accesso…',
   'gate.deniedTitle': 'Nessun accesso',
@@ -622,6 +671,21 @@ const it: Dict = {
   'login.enterEmail': 'Inserisci prima la tua email, poi clicca di nuovo.',
   'login.resetSent': 'Controlla la posta per il link di reimpostazione.',
   'login.resetError': "Impossibile inviare l'email di reimpostazione.",
+
+  'account.title': 'Il mio account',
+  'account.subtitle': 'I tuoi dati di accesso.',
+  'account.signedInAs': 'Accesso effettuato come',
+  'account.changePassword': 'Cambia la password',
+  'account.current': 'Password attuale',
+  'account.new': 'Nuova password',
+  'account.confirm': 'Conferma la nuova password',
+  'account.hint': 'Almeno 8 caratteri.',
+  'account.update': 'Aggiorna la password',
+  'account.mismatch': 'Le nuove password non coincidono.',
+  'account.tooShort': 'La nuova password deve avere almeno 8 caratteri.',
+  'account.wrongCurrent': 'La password attuale non è corretta.',
+  'account.updated': 'Password aggiornata.',
+  'account.updateError': 'Impossibile aggiornare la password.',
 };
 
 export const ADMIN_STRINGS: Record<AdminLang, Dict> = { en, fr, es, it };

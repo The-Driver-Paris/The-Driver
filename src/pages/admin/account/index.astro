@@ -1,0 +1,98 @@
+---
+import AdminShell from '../_AdminShell.astro';
+// Client-rendered shell — see src/pages/admin/index.astro. Not a permissioned
+// section: every signed-in admin can reach it (it's not in ADMIN_SECTIONS, so
+// the shell's access gate lets it through).
+export const prerender = true;
+---
+
+<AdminShell title="Account" titleKey="nav.account" section="account">
+  <div class="a-page-head">
+    <h1 class="a-h1" data-i18n="account.title">Account</h1>
+    <p class="a-sub" data-i18n="account.subtitle">Your sign-in details.</p>
+  </div>
+
+  <div class="a-card" style="max-width:460px">
+    <div style="font-size:12px;color:var(--a-muted)" data-i18n="account.signedInAs">Signed in as</div>
+    <strong data-email style="display:block;margin-top:2px;font-size:15px">—</strong>
+
+    <hr style="border:0;border-top:1px solid var(--a-border);margin:18px 0" />
+
+    <strong data-i18n="account.changePassword">Change password</strong>
+    <form data-pw style="margin-top:12px">
+      <label class="a-label" for="cur" data-i18n="account.current">Current password</label>
+      <input class="a-input" id="cur" name="current" type="password" autocomplete="current-password" required />
+
+      <label class="a-label" for="np1" data-i18n="account.new">New password</label>
+      <input class="a-input" id="np1" name="next" type="password" autocomplete="new-password" minlength="8" required />
+      <p class="a-hint" data-i18n="account.hint">At least 8 characters.</p>
+
+      <label class="a-label" for="np2" data-i18n="account.confirm">Confirm new password</label>
+      <input class="a-input" id="np2" name="confirm" type="password" autocomplete="new-password" minlength="8" required />
+
+      <div style="margin-top:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button type="submit" class="a-btn a-btn-primary" data-pw-btn data-i18n="account.update">Update password</button>
+        <span data-pw-msg style="font-size:13px"></span>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    import { getBrowserClient } from '../../../lib/supabase';
+    const sb = getBrowserClient();
+    const T = (k: string) => (window as any).adminT(k) as string;
+    const toast = (window as any).adminToast as (m: string, k?: string) => void;
+
+    const emailEl = document.querySelector<HTMLElement>('[data-email]')!;
+    const form = document.querySelector<HTMLFormElement>('[data-pw]')!;
+    const btn = document.querySelector<HTMLButtonElement>('[data-pw-btn]')!;
+    const msg = document.querySelector<HTMLElement>('[data-pw-msg]')!;
+    let email = '';
+
+    const setMsg = (text: string, ok = false) => {
+      msg.textContent = text;
+      msg.style.color = ok ? 'var(--a-ok)' : 'var(--a-danger)';
+    };
+
+    window.addEventListener('admin:ready', (e) => {
+      email = ((e as CustomEvent).detail?.email as string) ?? '';
+      emailEl.textContent = email || '—';
+    });
+
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      setMsg('');
+
+      const fd = new FormData(form);
+      const current = String(fd.get('current') || '');
+      const next = String(fd.get('next') || '');
+      const confirm = String(fd.get('confirm') || '');
+
+      if (next.length < 8) return setMsg(T('account.tooShort'));
+      if (next !== confirm) return setMsg(T('account.mismatch'));
+
+      if (!email) {
+        const { data } = await sb.auth.getSession();
+        email = data.session?.user.email ?? '';
+      }
+      if (!email) return setMsg(T('account.updateError'));
+
+      btn.disabled = true;
+      try {
+        // Re-authenticate with the current password before changing it, so an
+        // unattended open session can't be used to take over the account.
+        const reauth = await sb.auth.signInWithPassword({ email, password: current });
+        if (reauth.error) return setMsg(T('account.wrongCurrent'));
+
+        const { error } = await sb.auth.updateUser({ password: next });
+        if (error) return setMsg(T('account.updateError'));
+
+        form.reset();
+        setMsg(T('account.updated'), true);
+        toast(T('account.updated'), 'ok');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</AdminShell>
