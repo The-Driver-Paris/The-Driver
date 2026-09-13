@@ -42,12 +42,12 @@ const configBlob = {
     vehicleOrSimilar: f.summary.vehicleOrSimilar,
   },
   locale,
-  // Cloudflare Worker URL — receives the booking JSON, sends two emails
-  // via Resend (chauffeur notification + customer auto-confirmation).
-  // The actual URL is set via PUBLIC_WORKER_URL in `.env` after the Worker
-  // is deployed (see worker/README.md). The placeholder lets the form
-  // surface a clear error if it's submitted before deploy.
-  workerUrl: import.meta.env.PUBLIC_WORKER_URL ?? '',
+  // Same-origin API route — receives the booking JSON, sends two emails via
+  // Resend (chauffeur notification + customer auto-confirmation). See
+  // src/pages/api/submit-form.ts. Was an external Cloudflare Worker URL
+  // (PUBLIC_WORKER_URL) until September 2026, when that Cloudflare account
+  // was lost — see HANDOVER.md §7A.
+  workerUrl: '/api/submit-form/',
   whatsapp: '33634301292',
   // Post-conversion landing — single URL for all locales so the media buyer
   // can attach one Google Ads / Meta / GA4 conversion to `/thank-you`. The
@@ -1146,11 +1146,6 @@ function isoToFlag(iso: string): string {
         return;
       }
 
-      if (!cfg.workerUrl) {
-        errorEl.textContent = 'Missing form config (PUBLIC_WORKER_URL).';
-        errorEl.classList.remove('hidden');
-        return;
-      }
 
       // ── Collect form values into the JSON payload the Worker expects.
       //    The Worker (worker/) builds both branded HTML emails server-

@@ -11,11 +11,11 @@ const s = t(locale).pages.faqContact.form;
 
 const uid = 'cf-' + Math.random().toString(36).slice(2, 9);
 
-// Posts to the same Cloudflare Worker as the booking form, which sends the
-// message via Resend from the verified `thedriver.fr` domain. The Worker
-// tells the two apart by `formType` (see worker/worker.js).
+// Posts to the same same-origin API route as the booking form, which sends
+// the message via Resend from the verified `thedriver.fr` domain. The route
+// tells the two apart by `formType` (see src/pages/api/submit-form.ts).
 const config = {
-  workerUrl: import.meta.env.PUBLIC_WORKER_URL ?? '',
+  workerUrl: '/api/submit-form/',
   locale,
   labels: {
     sending: s.sending,
@@ -294,11 +294,6 @@ const config = {
       errorBlock.classList.add('hidden');
       if (!form.checkValidity()) {
         form.reportValidity();
-        return;
-      }
-      if (!cfg.workerUrl) {
-        errorMsg.textContent = 'Missing form config (PUBLIC_WORKER_URL).';
-        errorBlock.classList.remove('hidden');
         return;
       }
 

@@ -1,4 +1,18 @@
-# Driver Services — Cloudflare Worker
+# Driver Services — Cloudflare Worker (superseded, kept for reference)
+
+> **September 2026: this Worker is no longer live.** The Cloudflare account
+> it was deployed under was lost, and the site's form backend was ported to
+> `src/pages/api/submit-form.ts` — a Vercel serverless function that ships
+> with the rest of this project (`src/lib/email/` holds the same templates
+> as `templates/` below, copied verbatim). The forms POST to `/api/submit-form/`
+> same-origin now; nothing in the live site references this directory or
+> `PUBLIC_WORKER_URL` any more. See HANDOVER.md §3A for the full story. Kept
+> here only in case this code is ever useful again (e.g. moving the site off
+> Vercel — see HANDOVER.md §8).
+
+The rest of this file describes the Worker as it worked while it was live.
+
+---
 
 The site's only backend. It receives **both** forms and sends every email
 through Resend from the verified `thedriver.fr` domain.

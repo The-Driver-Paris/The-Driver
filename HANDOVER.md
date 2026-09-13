@@ -185,6 +185,60 @@ Resend domain, Worker and hosting project be shut down.
 
 ---
 
+## 3A. September 2026 — Cloudflare account lost, migrated off it
+
+What this section describes superseded the assumption above ("Cloudflare —
+hosts the booking Worker only, not DNS") for both DNS *and* the form backend.
+Kept here rather than rewritten in place so the history is traceable.
+
+**What happened:** at some point DNS for `thedriver.fr` was moved onto
+Cloudflare nameservers (`dax.ns.cloudflare.com` / `pearl.ns.cloudflare.com`)
+rather than staying at the registrar as §2 recommends — outside this repo's
+history, so the how is unknown. In September 2026 access to that Cloudflare
+account was lost entirely (no login, no recovery path). The zone went dark —
+Cloudflare's own nameservers started returning `REFUSED` for every query —
+which took `thedriver.fr` and `www.thedriver.fr` fully offline while
+`the-driver-ten.vercel.app` kept serving normally.
+
+**Fix applied:**
+
+1. **DNS moved back to the registrar (IONOS)**, which is where the domain is
+   actually registered — Cloudflare was only ever the nameserver delegation,
+   never the domain's home, so this needed no Cloudflare access. IONOS's own
+   nameservers now serve the zone, with an `A` record for the apex and a
+   `CNAME` for `www` pointing at Vercel (exact values from the Vercel
+   project's **Settings → Domains** panel — see Step 7), plus Resend's
+   SPF/DKIM/DMARC records copied fresh from the Resend dashboard (the old
+   copies died with the Cloudflare zone).
+2. **The booking/contact form backend was ported off the lost Cloudflare
+   account.** It used to be `worker/` (a Cloudflare Worker, deployed
+   separately via Wrangler, reached at a `*.workers.dev` URL stored in
+   `PUBLIC_WORKER_URL`). It is now `src/pages/api/submit-form.ts` — a Vercel
+   serverless function that ships with the rest of this project, reached
+   same-origin at `/api/submit-form/`. Same Resend templates (copied
+   verbatim into `src/lib/email/`), same payload shape, same
+   `formType: 'booking' | 'contact'` dispatch. Differences worth knowing:
+   - No CORS/origin-allowlist logic — same-origin requests don't need it.
+   - Rate limiting is a best-effort in-memory per-instance counter instead
+     of Cloudflare's `ratelimit` binding — see the comment at the top of
+     `submit-form.ts` for the tradeoff and the upgrade path (Upstash
+     Ratelimit) if abuse ever appears.
+   - Needs `RESEND_API_KEY` set as a **Vercel** project Environment Variable
+     (Production + Preview + Development) — it's a new secret this project
+     didn't previously hold, since the Worker held it as a `wrangler secret`
+     instead. `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_ANON_KEY` were already
+     set for the admin dashboard and are reused as-is.
+   - `worker/` is left in the repo for reference only. It is not deployed by
+     anything and the site no longer calls it — see the note at the top of
+     `worker/README.md`.
+
+The account table in §2 and the "If you don't want Vercel" note in §8 both
+describe the *original* design intent (Cloudflare hosting only the Worker,
+kept separate from DNS on purpose) — accurate as design intent, superseded in
+practice by what's above.
+
+---
+
 ## 4. Where to edit things
 
 | What | File |
