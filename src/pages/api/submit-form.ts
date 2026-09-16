@@ -22,6 +22,7 @@ import type { APIRoute } from 'astro';
 import { buildClientEmailHtml } from '../../lib/email/clientEmail.js';
 import { buildCustomerEmailHtml } from '../../lib/email/customerEmail.js';
 import { buildContactEmailHtml } from '../../lib/email/contactEmail.js';
+import { quote } from '../../utils/pricing.js';
 
 export const prerender = false;
 
@@ -118,6 +119,10 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ success: true });
   }
 
+  // Never trust the client-sent price — see applyServerPricing() below. A
+  // no-op for contact submissions (no pickup/dropoff/price fields to check).
+  data = applyServerPricing(data);
+
   // Mirror every submission into Supabase for the admin dashboard inbox.
   // Non-blocking and best-effort: the email path below is the source of
   // truth, so a capture failure (or missing Supabase env) must never fail
@@ -207,6 +212,42 @@ async function handleContact(data: Record<string, unknown>, apiKey: string): Pro
   }
 
   return json({ success: true, message: 'Message sent successfully' });
+}
+
+// ── Never trust the client-sent price ───────────────────────────────────
+//
+// Recomputes the booking total server-side from the same route matrix
+// (src/config/prices.js via src/utils/pricing.js) the booking form itself
+// uses, and overrides `totalPrice` / `vehicleSummary` with OUR number
+// whenever it disagrees with what the client sent — before the price ever
+// reaches an email or the Supabase capture.
+//
+// Nothing in this app is charged online (the chauffeur is paid in person),
+// so the stakes are "a tampered number reaches a real inbox", not payment
+// fraud — but it's worth closing for free, since `quote()` is the exact
+// same pure function the form already calls client-side, just imported here
+// instead of duplicated. A contact submission has no `pickup`/`dropoff`, so
+// `quote()` returns null and this is a no-op. Same for a booking whose
+// route/pax combination falls outside the matrix (nothing today produces
+// one, but if it ever does, falling back to the client's value beats
+// blocking a legitimate edge case we didn't anticipate).
+function applyServerPricing(data: Record<string, unknown>): Record<string, unknown> {
+  const serverQuote = quote({
+    from: String(data.pickup ?? ''),
+    to: String(data.dropoff ?? ''),
+    pax: Number(data.pax ?? data.passengers ?? 1) || 1,
+    tripType: String(data.tripType || 'one-way'),
+  });
+  if (!serverQuote) return data;
+
+  if (Number(data.totalPrice) !== serverQuote.totalPrice) {
+    console.warn(
+      `Price mismatch on booking — client sent ${data.totalPrice}, server computed ` +
+        `${serverQuote.totalPrice} for ${data.pickup}→${data.dropoff}, pax=${data.pax}, ` +
+        `tripType=${data.tripType}. Using the server value.`,
+    );
+  }
+  return { ...data, totalPrice: serverQuote.totalPrice, vehicleSummary: serverQuote.vehicleSummary };
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────

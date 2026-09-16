@@ -302,8 +302,8 @@
     document.querySelectorAll<HTMLInputElement>('input[data-fancy-date]').forEach(enhanceDate);
     document.querySelectorAll<HTMLInputElement>('input[data-fancy-time]').forEach(enhanceTime);
 
-    if (!(window as any).__fdtBound) {
-      (window as any).__fdtBound = true;
+    if (!window.__fdtBound) {
+      window.__fdtBound = true;
       document.addEventListener('click', (e) => { if (!(e.target as HTMLElement).closest('.fdt-host')) closeAllPops(); });
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAllPops(); });
     }

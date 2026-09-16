@@ -24,14 +24,15 @@ export const prerender = true;
 
   <script>
     import { getBrowserClient } from '../../../lib/supabase';
+    import type { ContactMessageRow, MessageStatus } from '../../../lib/database.types';
     const sb = getBrowserClient();
-    const toast = (window as any).adminToast as (m: string, k?: string) => void;
-    const T = (k: string) => (window as any).adminT(k) as string;
+    const toast = window.adminToast;
+    const T = window.adminT;
     const list = document.querySelector<HTMLElement>('[data-list]')!;
     const filter = document.querySelector<HTMLSelectElement>('[data-filter]')!;
     const STATUSES = ['new', 'contacted', 'done', 'cancelled'];
-    let cache: any[] = [];
-    const esc = (s: any) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+    let cache: ContactMessageRow[] = [];
+    const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
     const fmt = (iso: string) => new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 
     function render() {
@@ -61,11 +62,10 @@ export const prerender = true;
     list.addEventListener('change', async (e) => {
       const sel = (e.target as HTMLElement).closest<HTMLSelectElement>('[data-status]');
       if (!sel) return;
-      const { error } = await sb.from('contact_messages')
-        .update({ status: sel.value as 'new' | 'contacted' | 'done' | 'cancelled' })
-        .eq('id', sel.dataset.id!);
+      const status = sel.value as MessageStatus;
+      const { error } = await sb.from('contact_messages').update({ status }).eq('id', sel.dataset.id!);
       if (error) { toast(T('messages.updateError'), 'err'); load(); return; }
-      const row = cache.find((m) => m.id === sel.dataset.id); if (row) row.status = sel.value;
+      const row = cache.find((m) => m.id === sel.dataset.id); if (row) row.status = status;
       toast(T('toast.updated'), 'ok');
     });
     filter.addEventListener('change', render);

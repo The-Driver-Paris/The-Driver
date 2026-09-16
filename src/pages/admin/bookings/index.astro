@@ -29,16 +29,17 @@ export const prerender = true;
 
   <script>
     import { getBrowserClient } from '../../../lib/supabase';
+    import type { BookingRow, BookingStatus } from '../../../lib/database.types';
     const sb = getBrowserClient();
-    const toast = (window as any).adminToast as (m: string, k?: string) => void;
-    const T = (k: string) => (window as any).adminT(k) as string;
+    const toast = window.adminToast;
+    const T = window.adminT;
     const list = document.querySelector<HTMLElement>('[data-list]')!;
     const filter = document.querySelector<HTMLSelectElement>('[data-filter]')!;
     const search = document.querySelector<HTMLInputElement>('[data-search]')!;
     const STATUSES = ['new', 'contacted', 'confirmed', 'done', 'cancelled'];
-    let cache: any[] = [];
+    let cache: BookingRow[] = [];
 
-    const esc = (s: any) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+    const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
     const fmt = (iso: string) => new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 
     function render() {
@@ -82,11 +83,10 @@ export const prerender = true;
       const sel = (e.target as HTMLElement).closest<HTMLSelectElement>('[data-status]');
       if (!sel) return;
       const id = sel.dataset.id!;
-      const { error } = await sb.from('bookings')
-        .update({ status: sel.value as 'new' | 'contacted' | 'confirmed' | 'done' | 'cancelled' })
-        .eq('id', id);
+      const status = sel.value as BookingStatus;
+      const { error } = await sb.from('bookings').update({ status }).eq('id', id);
       if (error) { toast(T('bookings.statusError'), 'err'); load(); return; }
-      const row = cache.find((b) => b.id === id); if (row) row.status = sel.value;
+      const row = cache.find((b) => b.id === id); if (row) row.status = status;
       toast(T('toast.updated'), 'ok');
     });
     list.addEventListener('click', async (e) => {
@@ -102,7 +102,7 @@ export const prerender = true;
     search.addEventListener('input', render);
 
     document.querySelector('[data-export]')?.addEventListener('click', () => {
-      const cols = ['created_at', 'status', 'first_name', 'last_name', 'email', 'phone', 'from_loc', 'to_loc', 'pax', 'trip_date', 'trip_time', 'price_estimate', 'locale', 'source', 'notes'];
+      const cols: (keyof BookingRow)[] = ['created_at', 'status', 'first_name', 'last_name', 'email', 'phone', 'from_loc', 'to_loc', 'pax', 'trip_date', 'trip_time', 'price_estimate', 'locale', 'source', 'notes'];
       const csv = [cols.join(',')].concat(
         cache.map((b) => cols.map((c) => `"${String(b[c] ?? '').replace(/"/g, '""')}"`).join(',')),
       ).join('\n');

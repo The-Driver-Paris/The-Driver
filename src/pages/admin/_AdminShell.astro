@@ -357,8 +357,8 @@ const sbOrigin = sbUrl ? new URL(sbUrl).origin : null;
       } catch {}
       const dict = ADMIN_STRINGS[lang];
       const t = (k: string): string => dict[k] ?? ADMIN_STRINGS.en[k] ?? k;
-      (window as any).adminT = t;
-      (window as any).adminLang = lang;
+      window.adminT = t;
+      window.adminLang = lang;
       document.documentElement.lang = lang;
 
       function applyI18n(root: ParentNode = document) {
@@ -371,7 +371,7 @@ const sbOrigin = sbUrl ? new URL(sbUrl).origin : null;
           if (k) el.setAttribute('placeholder', t(k));
         });
       }
-      (window as any).adminApplyI18n = applyI18n;
+      window.adminApplyI18n = applyI18n;
 
       // language selector (both copies)
       document.querySelectorAll<HTMLSelectElement>('[data-langsel]').forEach((sel) => {
@@ -402,7 +402,7 @@ const sbOrigin = sbUrl ? new URL(sbUrl).origin : null;
         toastHost.appendChild(el);
         setTimeout(() => { el.style.transition = 'opacity .2s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 200); }, 4000);
       }
-      (window as any).adminToast = toast;
+      window.adminToast = toast;
 
       // ── drawer ────────────────────────────────────────────────
       const body = document.body;

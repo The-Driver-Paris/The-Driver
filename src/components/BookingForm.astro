@@ -1198,7 +1198,7 @@ function isoToFlag(iso: string): string {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        const out = await res.json().catch(() => ({} as any));
+        const out: { success?: boolean; error?: string } = await res.json().catch(() => ({}));
         if (!res.ok || out.success === false) {
           throw new Error(out.error || 'submission failed');
         }

@@ -40,8 +40,8 @@ export const prerender = true;
   <script>
     import { getBrowserClient } from '../../../lib/supabase';
     const sb = getBrowserClient();
-    const T = (k: string) => (window as any).adminT(k) as string;
-    const toast = (window as any).adminToast as (m: string, k?: string) => void;
+    const T = window.adminT;
+    const toast = window.adminToast;
 
     const emailEl = document.querySelector<HTMLElement>('[data-email]')!;
     const form = document.querySelector<HTMLFormElement>('[data-pw]')!;

@@ -33,9 +33,11 @@ type DesktopRow = { from: string; to: string; cell: Record<string, number> };
 
 // Allow Paris→Paris (intra-Paris transfer is a real product per latest
 // pricing). Other same-named pairs are nonsensical and stay filtered out.
+const PRICE_MATRIX = PRICES as Record<string, Record<string, Record<string, number>>>;
+
 function cellAt(from: string, to: string): Cell {
   if (from === to && from !== 'Paris') return null;
-  return ((PRICES as any)[from]?.[to] ?? null) as Cell;
+  return PRICE_MATRIX[from]?.[to] ?? null;
 }
 
 // Flatten the matrix to one table row per route. Routes with no priced

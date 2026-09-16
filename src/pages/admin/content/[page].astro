@@ -63,12 +63,10 @@ for (const l of LOCALES) {
 
   <script>
     import { getBrowserClient } from '../../../lib/supabase';
-    const { pageKey, compiled, locales } = (window as any).__contentEditor as {
-      pageKey: string; compiled: Record<string, { path: string; text: string }[]>; locales: string[];
-    };
+    const { pageKey, compiled, locales } = window.__contentEditor!;
     const sb = getBrowserClient();
-    const toast = (window as any).adminToast as (m: string, k?: string) => void;
-    const T = (k: string) => (window as any).adminT(k) as string;
+    const toast = window.adminToast;
+    const T = window.adminT;
     const fields = document.querySelector<HTMLElement>('[data-fields]')!;
     const count = document.querySelector<HTMLElement>('[data-count]')!;
     let overrides: Record<string, Record<string, string>> = {};

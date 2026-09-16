@@ -47,12 +47,12 @@ const SECTION_KEYS = GRANTABLE_SECTIONS.map((s) => s.key);
 
   <script>
     import { getBrowserClient } from '../../../lib/supabase';
-    const { grantable } = (window as any).__team as { grantable: string[] };
+    const { grantable } = window.__team!;
     const sb = getBrowserClient();
-    const toast = (window as any).adminToast as (m: string, k?: string) => void;
-    const T = (k: string) => (window as any).adminT(k) as string;
+    const toast = window.adminToast;
+    const T = window.adminT;
     const staffHost = document.querySelector<HTMLElement>('[data-staff]')!;
-    const esc = (s: any) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+    const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
     async function loadStaff() {
       const { data, error } = await sb.from('admin_profiles')
@@ -107,7 +107,7 @@ const SECTION_KEYS = GRANTABLE_SECTIONS.map((s) => s.key);
       btn.disabled = false;
       if (error) {
         let code = 'create_failed';
-        try { code = (await (error as any).context?.json())?.code ?? code; } catch {}
+        try { code = (await (error as { context?: Response }).context?.json())?.code ?? code; } catch {}
         msg.textContent = { email_exists: T('team.emailExists'), weak_password: T('team.weakPassword') }[code] ?? T('team.createError');
         msg.style.color = 'var(--a-danger)';
         return;

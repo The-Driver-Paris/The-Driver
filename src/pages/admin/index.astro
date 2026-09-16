@@ -33,7 +33,7 @@ export const prerender = true;
   <script>
     import { getBrowserClient } from '../../lib/supabase';
     const sb = getBrowserClient();
-    const T = (k: string) => (window as any).adminT(k) as string;
+    const T = window.adminT;
 
     window.addEventListener('admin:ready', async (e) => {
       const detail = (e as CustomEvent).detail as { isOwner: boolean; sections: string[] };

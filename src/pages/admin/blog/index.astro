@@ -72,18 +72,22 @@ export const prerender = true;
   <script>
     import { getBrowserClient } from '../../../lib/supabase';
     import { formatPostDate } from '../../../lib/blog';
+    import type { BlogPostRow } from '../../../lib/database.types';
     const sb = getBrowserClient();
-    const T = (k: string) => (window as any).adminT(k) as string;
+    const T = window.adminT;
     const tableBody = document.querySelector<HTMLElement>('[data-rows-table]')!;
     const cardsBox = document.querySelector<HTMLElement>('[data-rows-cards]')!;
     const fLocale = document.querySelector<HTMLSelectElement>('[data-filter-locale]')!;
     const fStatus = document.querySelector<HTMLSelectElement>('[data-filter-status]')!;
 
+    // Only the columns the list query below actually selects.
+    type BlogListRow = Pick<BlogPostRow, 'id' | 'slug' | 'locale' | 'status' | 'title' | 'published_at' | 'updated_at'>;
+
     const esc = (s: string) => (s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
     const statusLabel = (s: string) => T('status.' + s);
-    const dateOf = (p: any) => (p.status === 'published' ? formatPostDate(p.published_at, p.locale) : formatPostDate(p.updated_at, p.locale));
+    const dateOf = (p: BlogListRow) => (p.status === 'published' ? formatPostDate(p.published_at, p.locale) : formatPostDate(p.updated_at, p.locale));
 
-    function render(rows: any[]) {
+    function render(rows: BlogListRow[]) {
       if (!rows.length) {
         tableBody.innerHTML = `<tr><td colspan="5" class="a-empty">${T('blog.empty')}</td></tr>`;
         cardsBox.innerHTML = `<li class="a-empty">${T('blog.empty')}</li>`;

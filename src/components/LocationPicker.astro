@@ -773,7 +773,7 @@ const iconSvg = iconType === 'from' ? fromPath : toPath;
 
     // --- wiring ---
     trigger.addEventListener('click', () => setOpen(!isOpen));
-    trigger.addEventListener('lp:force-close' as any, () => setOpen(false));
+    trigger.addEventListener('lp:force-close', () => setOpen(false));
 
     trigger.addEventListener('keydown', (e: KeyboardEvent) => {
       if (isOpen) return;

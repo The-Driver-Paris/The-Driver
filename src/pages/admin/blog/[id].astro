@@ -116,11 +116,12 @@ const isNew = id === 'new';
   <script>
     import { getBrowserClient } from '../../../lib/supabase';
     import { renderMarkdown } from '../../../lib/markdown';
+    import type { BlogPostRow } from '../../../lib/database.types';
 
-    const { paramId, isNew } = (window as any).__blogEditor as { paramId: string; isNew: boolean };
+    const { paramId, isNew } = window.__blogEditor!;
     const sb = getBrowserClient();
-    const toast = (window as any).adminToast as (m: string, k?: string) => void;
-    const T = (k: string) => (window as any).adminT(k) as string;
+    const toast = window.adminToast;
+    const T = window.adminT;
 
     const form = document.querySelector<HTMLFormElement>('[data-form]')!;
     const loadErr = document.querySelector<HTMLElement>('[data-loaderr]')!;
@@ -198,7 +199,7 @@ const isNew = id === 'new';
       } finally { el.save.disabled = false; }
     });
 
-    function fillForm(p: any) {
+    function fillForm(p: BlogPostRow) {
       el.title.value = p.title ?? '';
       el.slug.value = p.slug ?? '';
       el.locale.value = p.locale ?? 'en';
