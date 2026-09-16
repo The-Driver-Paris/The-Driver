@@ -239,6 +239,34 @@ practice by what's above.
 
 ---
 
+## 3B. Known limitation (not urgent) — admin "Forgot password?" email
+
+`/admin/login/` calls the real Supabase Auth API
+(`sb.auth.resetPasswordForEmail`), so the button itself works. Whether the
+*email* actually reaches someone depends on two things that haven't been
+checked/hardened yet:
+
+1. **The address on the admin account.** The reset email goes to whatever
+   address is on file for that user in Supabase → Authentication → Users. If
+   that account was created with a placeholder/fake address rather than a
+   real inbox, the email sends successfully but nobody ever receives it.
+2. **Supabase's default mailer is not production-grade.** Unless a custom
+   SMTP provider is configured (Authentication → Settings → SMTP), password
+   reset and other auth emails go out through Supabase's own built-in mailer,
+   which is heavily rate-limited (a handful of sends/hour) and meant for
+   testing, not real use — it can silently fail to arrive or land in spam.
+
+**Fix, when it's actually needed:** point Supabase Auth's SMTP settings at
+Resend — the domain is already verified there for the booking/contact forms
+(§3A), so it's the natural provider to reuse rather than adding a new one.
+Confirm the admin user's email is a real, monitored inbox at the same time.
+
+Not urgent as of September 2026 — the current admin password is known and not
+at risk of being lost. Worth doing before ever relying on this recovery path
+for real, and before handing admin access to anyone else.
+
+---
+
 ## 4. Where to edit things
 
 | What | File |
