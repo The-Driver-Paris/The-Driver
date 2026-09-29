@@ -198,6 +198,11 @@ const destItems: SeoItem[] = seo.destinations.items;
         <li><a class="ft-legal-link" href="#">{f.privacy}</a></li>
       </ul>
     </div>
+
+    <p class="ft-credit">
+      Website Developed by
+      <a class="ft-credit-link" href="https://alaayounsi.vercel.app/" target="_blank" rel="noopener">Alaa Younsi</a>
+    </p>
   </div>
 </footer>
 
@@ -507,4 +512,25 @@ const destItems: SeoItem[] = seo.destinations.items;
     text-decoration: none;
   }
   .ft-legal-link:hover { color: var(--color-cream); }
+
+  .ft-credit {
+    margin: 20px 0 0;
+    font-size: 12px;
+    color: color-mix(in oklab, var(--color-cream) 40%, transparent);
+  }
+  /* Left-aligned on phones so the fixed WhatsApp button never covers it. */
+  @media (min-width: 768px) {
+    .ft-credit { text-align: center; }
+  }
+  .ft-credit-link {
+    color: color-mix(in oklab, var(--color-cream) 75%, transparent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: color-mix(in oklab, var(--color-cream) 25%, transparent);
+    transition: color 200ms var(--ease-out), text-decoration-color 200ms var(--ease-out);
+  }
+  .ft-credit-link:hover {
+    color: var(--color-cream);
+    text-decoration-color: currentColor;
+  }
 </style>

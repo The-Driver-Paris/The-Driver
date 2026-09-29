@@ -1,173 +1,185 @@
+<div align="center">
+
 # Driver Services
 
-Multilingual landing page for **Driver Services**, a private chauffeur / taxi service for tourists in Paris.
+**A multilingual booking website for a private chauffeur service in Paris.**
 
-> Setting this up for the first time? Read [HANDOVER.md](HANDOVER.md) instead —
-> it covers accounts, DNS, deployment and testing step by step. This file is
-> the day-to-day reference once the site is already running.
+[**thedriver.fr**](https://thedriver.fr) · Designed & developed by [**Alaa Younsi**](https://alaayounsi.vercel.app/)
 
-## Stack
+![Astro](https://img.shields.io/badge/Astro-6-BC52EE?logo=astro&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Postgres_+_Auth-3FCF8E?logo=supabase&logoColor=white)
+![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000000?logo=vercel&logoColor=white)
+![License](https://img.shields.io/badge/License-All_rights_reserved-C94F3A)
 
-- **Framework:** [Astro](https://astro.build) (static, multi-page)
-- **Styling:** [Tailwind CSS](https://tailwindcss.com) (v4, via `@tailwindcss/vite`)
-- **Interactivity:** Vanilla JS only — no UI framework.
-- **Booking form:** posts to a [Cloudflare Worker](worker/README.md) that sends two emails via [Resend](https://resend.com).
-- **Contact form:** posts to the same Worker (`formType: 'contact'`), which sends one email via Resend.
-- **Analytics:** none installed. Add your own in [src/layouts/BaseLayout.astro](src/layouts/BaseLayout.astro) if wanted.
-- **Hosting:** [Vercel](https://vercel.com) — settings live in [vercel.json](vercel.json) (build `npm run build`, output `dist`).
+<img src="docs/screenshots/desktop-home.webp" alt="Driver Services home page on desktop" width="100%">
 
-## Languages
+</div>
 
-Astro's built-in i18n, path-based routing, `prefixDefaultLocale: false`.
+---
 
-| Locale | URL prefix |
-| ------ | ---------- |
-| French (default) | `/` |
-| English | `/en/` |
-| Spanish | `/es/` |
-| Italian | `/it/` |
+## Overview
 
-## Run locally
+Driver Services is a private driver business that moves tourists around Paris:
+airport transfers (CDG, Orly, Beauvais), Disneyland Paris, Versailles, train
+stations and hourly chauffeur hire. Most customers are visitors who don't speak
+French, book from their phone, and want to know the price before they book.
 
-```sh
-npm install
-npm run dev        # http://localhost:4321
-```
+The site is built around that. A visitor picks a pickup point, a destination
+and the number of passengers, sees a fixed all-inclusive price right away, and
+books in a single step. The booking lands in the chauffeur's inbox and the
+customer gets a confirmation email.
 
-Other commands:
+**Highlights**
 
-```sh
-npm run build              # output to ./dist
-npm run preview            # preview the built site
-npm run optimize-images    # regenerate .jpg/.webp/.avif variants (see below)
-npm run generate-favicons  # regenerate favicon set from public/favicon.svg
-```
+- **Instant quotes.** A route and passenger matrix covers every pickup and
+  destination pair and picks the right vehicle (car or van) automatically.
+- **4 languages.** English, French, Spanish and Italian, each with its own
+  translated URLs, not just translated text.
+- **SEO landing pages** for the searches that bring customers in: airport
+  transfers, Disneyland Paris, chauffeur hire, child seats, rates and fleet.
+- **Booking and contact flows** that send branded HTML emails through Resend.
+- **Private admin dashboard** for bookings, messages, blog posts, page copy and
+  staff accounts, with permissions set per section.
+- **Blog** managed from the dashboard, with per-post SEO and an RSS feed.
 
-## Favicons
+## Design
 
-The master is [public/favicon.svg](public/favicon.svg) — edit it in any vector
-editor and re-run `npm run generate-favicons` to regenerate the derived files:
+The look is quiet and premium. It should feel like a well-kept private car, not
+a ride-hailing app.
 
-| Output | Use |
-| ------ | --- |
-| `public/favicon.svg` | Modern browsers (vector, scales perfectly) |
-| `public/favicon.ico` | Legacy browsers (multi-res 16/32/48) |
-| `public/apple-touch-icon.png` | iOS "Add to Home Screen" (180×180) |
-| `public/icon-192.png` | Android Chrome (192×192) |
-| `public/icon-512.png` | PWA install / splash (512×512) |
-| `public/site.webmanifest` | PWA manifest pointing at the icons |
+- **Palette.** Warm cream paper (`#F8F5EE`), deep ink, and a warm near-black
+  (`#14131A`) for contrast sections. A single terracotta accent (`#C94F3A`) is
+  kept for calls to action, active states and focus rings.
+- **Typography.** *Fraunces*, an editorial serif, for headlines, and *Inter*
+  for the interface. The pairing reads as hospitality, not tech.
+- **Texture and motion.** A faint paper grain, soft radial glows, and a short
+  "Bienvenue à Paris" welcome animation that plays once per session. Sections
+  reveal gently as you scroll, using shared easing and timing tokens.
+- **Mobile first.** The quote picker sits right below the hero on phones,
+  WhatsApp is always one tap away, and every tap target fits a thumb.
+- **Trust up front.** Google and TripAdvisor ratings, "tolls included" and
+  "no deposit" appear next to the price, where the booking decision happens.
 
-The generator script ([scripts/generate-favicons.js](scripts/generate-favicons.js))
-reads the SVG, rasterizes via sharp, and writes everything back into `/public/`.
-Don't run it on every build — it's a manual command for when the favicon source
-changes.
+All design decisions live as tokens in
+[`src/styles/global.css`](src/styles/global.css). Tailwind v4 turns them into
+utilities, so the whole site shares one visual system.
 
-## Image pipeline
+## Screenshots
 
-Real photos live in `public/images/fleet/` and `public/images/routes/`.
+| Desktop | Mobile |
+| :---: | :---: |
+| <img src="docs/screenshots/desktop-home.webp" alt="Home — desktop" width="560"> | <img src="docs/screenshots/mobile-home.webp" alt="Home — mobile" width="220"> |
+| <img src="docs/screenshots/desktop-disneyland.webp" alt="Disneyland Paris transfers — desktop" width="560"> | <img src="docs/screenshots/mobile-disneyland.webp" alt="Disneyland Paris transfers — mobile" width="220"> |
+| <img src="docs/screenshots/desktop-rates.webp" alt="Rates and price calculator — desktop" width="560"> | <img src="docs/screenshots/mobile-rates.webp" alt="Rates and price calculator — mobile" width="220"> |
+| <img src="docs/screenshots/desktop-fleet.webp" alt="Fleet — desktop" width="560"> | <img src="docs/screenshots/mobile-fleet.webp" alt="Fleet — mobile" width="220"> |
 
-Components dynamically scan these folders at build time and match filenames to
-card slots by keyword (see [src/utils/images.js](src/utils/images.js)):
+## Tech stack
 
-| Folder | Filename hint | Used by |
-| --- | --- | --- |
-| `fleet/` | `tesla*` | Car card (Tesla Model Y) |
-| `fleet/` | `vito*` / `trafic*` / `traffic*` / `van*` / `mercedes*` | Van card |
-| `routes/` | `hotel*` / `hotels*` / `paris*` | Destinations → Paris hotels |
-| `routes/` | `disney*` / `disneyland*` | Destinations → Disneyland Paris |
-| `routes/` | `versailles*` | Destinations → Château de Versailles |
-| `routes/` | `gare*` / `train*` | Destinations → Paris train stations |
-| `routes/` | `aeroport*` / `airport*` / `cdg*` / `orly*` / `beauvais*` | Destinations → Between airports |
-| `routes/` | `eiffel*` / `tour*` | Destinations → Paris à l'heure |
-
-Missing files fall back to the silhouette placeholder and log a `[images]` warning in the build output.
-
-**Format fallbacks.** Each card renders `<picture>` with `avif → webp → jpg`
-sources (whichever exist on disk). To generate missing variants:
-
-```sh
-npm install --save-dev sharp    # one-time
-npm run optimize-images         # run whenever you add a new raw photo
-```
-
-The optimizer resizes to 1200px (fleet) / 800px (routes), strips metadata, and
-writes `.jpg` (q85), `.webp` (q80), and `.avif` (q55) siblings beside each
-source. It skips outputs that are already up-to-date, so re-running it is
-cheap. Do NOT wire it into the normal build — it's an author-side step; the
-generated files are committed alongside the sources.
-
-## Deploy to Vercel
-
-1. Push this repo to GitHub.
-2. Vercel dashboard → **Add New → Project → Import** the repo. The Astro preset
-   is detected automatically; [vercel.json](vercel.json) pins the build command,
-   output directory and headers, so leave the UI fields at their defaults.
-3. Under **Settings → Environment Variables** add both `PUBLIC_*` values from
-   [.env.example](.env.example), for **Production, Preview and Development**.
-   Vercel never reads your local `.env`.
-4. Deploy. You get a `*.vercel.app` URL; add `thedriver.fr` under
-   **Settings → Domains** afterward.
-5. `site` in [astro.config.mjs](astro.config.mjs) must match the production
-   domain — canonical URLs, hreflang tags and the sitemap are all built from it.
-
-> **Rebuild after changing an env var.** Both `PUBLIC_*` values are compiled into
-> the HTML at build time. Changing one in the dashboard does nothing until you
-> redeploy.
-
-### URL shape
-
-Every URL carries a **trailing slash** (`/tarifs/`, `/en/fleet/`). Three places
-must agree or Google indexes each page twice:
-
-| Where | Setting |
+| Layer | Technology |
 | --- | --- |
-| [astro.config.mjs](astro.config.mjs) | `trailingSlash: 'always'` |
-| [src/i18n/routes.js](src/i18n/routes.js) | every path ends in `/` |
-| [vercel.json](vercel.json) | `"trailingSlash": true` (308-redirects the slashless form) |
+| Framework | [Astro 6](https://astro.build): static pages, with server rendering only where it's needed |
+| Styling | [Tailwind CSS 4](https://tailwindcss.com) with a custom design-token theme |
+| Language | TypeScript (strict), plus vanilla JS on the client, with no UI framework shipped to the browser |
+| Database & auth | [Supabase](https://supabase.com): Postgres with Row-Level Security, Auth and Storage |
+| Email | [Resend](https://resend.com) with hand-built responsive HTML templates |
+| Hosting | [Vercel](https://vercel.com): static CDN plus serverless functions |
+| Tooling | Sharp image pipeline (AVIF/WebP/JPEG), favicon and Open Graph generators, `@astrojs/check` |
 
-Adding a route means adding it to `ROUTES` **with** a trailing slash.
+## Performance
 
-### Domain setup
+- **Static first.** Every marketing page is pre-rendered to plain HTML at
+  build time. Only the booking API, the blog and the admin dashboard run on
+  the server.
+- **Almost no JavaScript.** Interactions are small vanilla scripts. There is
+  no framework runtime to download or hydrate.
+- **Modern images.** Every photo is served through `<picture>` as
+  AVIF → WebP → JPEG, resized for its slot and stripped of metadata.
+- **Caching.** Hashed build assets are cached for a year as `immutable`.
+  Images use `stale-while-revalidate`.
+- **Fonts.** Font servers are preconnected, stylesheets preloaded, and
+  `font-display: swap` stops text from staying invisible while fonts load.
 
-Add both `thedriver.fr` and `www.thedriver.fr` in **Settings → Domains**, then
-mark the apex `thedriver.fr` as primary so `www` 308-redirects to it. Serving
-both without a redirect splits ranking signals between two hostnames.
+## SEO
 
-Use the exact DNS records Vercel shows in that panel (an `A` record for the apex
-and a `CNAME` for `www`) — the values are shown per-project and change over
-time, so copy them from the dashboard rather than from any guide.
+- **Localized URLs** for every page in every language (`/fr/tarifs/`,
+  `/es/tarifas/`, `/it/tariffe/`…), with `hreflang` alternates and an
+  `x-default`.
+- **Canonical URLs** and a single trailing-slash URL format, kept in sync
+  between the Astro config, the route table and Vercel's 308 redirects, so no
+  page gets indexed twice.
+- **Structured data.** `TaxiService` JSON-LD with an `AggregateRating`, so
+  search results can show the business and its rating.
+- **Sitemap** with i18n alternates, `robots.txt`, and `noindex` on private and
+  thank-you pages.
+- **Open Graph and social cards** on every page, from a generated 1200×630
+  image.
+- **Internal linking.** Footer links for routes and destinations point to
+  pre-filled quotes and dedicated landing pages.
 
-## Where to edit things
+## Security
 
-- **Every price on the site** → [src/config/prices.js](src/config/prices.js). The only file to touch when a tariff changes. Holds the route matrix (`PRICES[from][to] = { p1to3, p4…p8, p12, p16, p20, p24 }`), `HOURLY_RATE` and `ROUND_TRIP_DISCOUNT_PERCENT`. A number changed here updates the calculator, the full grid, the "From €X" cards, the booking form, and the site copy in all four languages (the `{hourlyRate}` / `{roundTripDiscount}` placeholders in the i18n files are substituted at build time by `src/i18n/index.js`).
-- **Pickup/drop-off points & vehicle capacities** → [src/data/routes.js](src/data/routes.js). No prices here — it re-exports them from `src/config/prices.js`.
-- **Vehicle definitions** → [src/data/vehicles.js](src/data/vehicles.js).
-- **All user-facing text** → [src/i18n/fr.json](src/i18n/fr.json), [en.json](src/i18n/en.json), [es.json](src/i18n/es.json), [it.json](src/i18n/it.json). No hardcoded strings in components — add a key here, reference via `t(locale).section.key`.
-- **Global styles** → [src/styles/global.css](src/styles/global.css).
-- **Shared layout, `<head>` meta, structured data** → [src/layouts/BaseLayout.astro](src/layouts/BaseLayout.astro).
-- **Booking emails & their templates** → [worker/](worker/) — see [worker/README.md](worker/README.md).
+- **Prices are checked on the server.** The booking API recalculates every
+  quote from the same price table the site uses and never trusts a price sent
+  by the browser.
+- **Secrets stay on the server.** The Resend API key exists only in the
+  serverless function. The browser only ever gets the public Supabase anon key.
+- **Row-Level Security** on every table. Anonymous visitors can submit
+  bookings and messages but can never read them. Staff access is checked in
+  the database, section by section, through `SECURITY DEFINER` helper
+  functions.
+- **Input hardening.** Payloads are validated, required fields enforced and
+  field lengths capped. Requests are rate-limited per IP, and forms post to
+  the site's own domain.
+- **HTTP headers.** HSTS, `X-Content-Type-Options`, `X-Frame-Options`,
+  `Referrer-Policy` and a strict `Permissions-Policy`. The admin area is also
+  kept out of search engines.
+- **Privacy by default.** No analytics, trackers or third-party cookies, so
+  no cookie banner is needed.
 
-## Folder layout
+## Project structure
 
 ```
 src/
-  components/         Nav, Footer, LanguageSwitcher, (Hero, BookingForm, Fleet… later)
-  layouts/
-    BaseLayout.astro  <head>, lang attribute, nav, footer
-  pages/
-    index.astro       FR home
-    en/index.astro    EN home
-    es/index.astro    ES home
-    it/index.astro    IT home
-  i18n/
-    fr.json / en.json / es.json / it.json
-    index.js          t(locale), localizedPath(locale, path)
-  data/
-    routes.js         Pickups, drops, price matrix, capacity, hourly rate
-    vehicles.js       Vehicle definitions
-  styles/
-    global.css        Tailwind entrypoint
-public/
-  images/             Real photos go here
-  favicon.svg
+  components/   UI sections (hero, quote picker, booking modal, fleet, FAQ…)
+  config/       prices.js — the single source of truth for every tariff
+  data/         routes, pickup points and vehicle definitions
+  i18n/         en / fr / es / it strings and localized route table
+  layouts/      BaseLayout — <head>, meta, hreflang, structured data
+  lib/          Supabase client, email templates, admin helpers
+  pages/        localized pages, blog, admin dashboard, /api/submit-form
+  styles/       design tokens and global styles
+supabase/       SQL migrations (schema, RLS, storage) and edge functions
+scripts/        image optimizer, favicon and OG image generators
 ```
+
+## Local development
+
+Requires Node.js 22.12 or newer.
+
+```sh
+npm install
+npm run dev      # http://localhost:4321
+npm run build    # production build
+```
+
+Environment variables are listed in [`.env.example`](.env.example).
+Deployment, DNS, email and Supabase setup are covered in
+[HANDOVER.md](HANDOVER.md) and [SUPABASE-SETUP.md](SUPABASE-SETUP.md).
+
+## Author
+
+Designed and developed by **Alaa Younsi**: design, front end, back end,
+database, SEO and deployment.
+
+🌐 [alaayounsi.vercel.app](https://alaayounsi.vercel.app/)
+
+## License
+
+**© 2026 Alaa Younsi. All rights reserved.**
+
+This repository is published for viewing only. You may not copy, reuse,
+modify, redistribute or use any part of this project, including its code,
+design, text or assets, without prior written permission.
+See [LICENSE](LICENSE) for the full terms.
